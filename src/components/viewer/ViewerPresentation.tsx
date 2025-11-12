@@ -6,6 +6,7 @@ import { ArrowLeft } from 'lucide-react';
 import { Slide, loadSlides } from '../../services/SlideService';
 import { SlideViewer } from './SlideViewer';
 import { ResultsPage } from './ResultsPage';
+import { incrementViewCount } from '../../services/PresentationTrackingService';
 
 export default function ViewerPresentation() {
   const { id } = useParams();
@@ -29,6 +30,8 @@ export default function ViewerPresentation() {
 
     if (presData) {
       setPresentation(presData);
+      // Increment view count when presentation is loaded
+      incrementViewCount(id!);
     }
 
     const slidesData = await loadSlides(id!);
