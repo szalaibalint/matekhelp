@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { DndProvider, useDrag, useDrop } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
+import { DndProvider, useDrag, useDrop, useDragLayer } from 'react-dnd';
+import { HTML5Backend, getEmptyImage } from 'react-dnd-html5-backend';
 import { Slide } from '../../services/SlideService';
 import Leaf from './richtext/Leaf';
 
@@ -44,25 +44,44 @@ const MathText: React.FC<{ text: string }> = ({ text }) => {
 interface DraggableBlankProps {
   blank: any;
   index: number;
+  onDragStart?: (index: number, width: number) => void;
 }
 
-const DraggableBlank: React.FC<DraggableBlankProps> = ({ blank, index }) => {
-  const [{ isDragging }, drag] = useDrag(() => ({
+const DraggableBlank: React.FC<DraggableBlankProps> = ({ blank, index, onDragStart }) => {
+  const itemRef = React.useRef<HTMLDivElement>(null);
+  
+  const [{ isDragging }, drag, preview] = useDrag(() => ({
     type: ItemTypes.BLANK,
-    item: { index, blankId: blank.id },
+    item: () => {
+      const width = itemRef.current?.offsetWidth || 0;
+      if (onDragStart) {
+        onDragStart(index, width);
+      }
+      return { index, blankId: blank.id, width };
+    },
     collect: (monitor) => ({
       isDragging: monitor.isDragging(),
     }),
-  }));
+  }), [blank.id, index, onDragStart]);
+
+  // Hide the default HTML5 drag preview
+  useEffect(() => {
+    preview(getEmptyImage(), { captureDraggingState: true });
+  }, [preview]);
+
+  const setRefs = (element: HTMLDivElement | null) => {
+    itemRef.current = element;
+    drag(element);
+  };
 
   return (
     <div
-      ref={drag}
+      ref={setRefs}
       className="px-6 py-3 rounded-lg cursor-move transition-all text-lg font-medium"
       style={{
         backgroundColor: blank.color || '#ffffff',
         border: '2px solid #d1d5db',
-        opacity: isDragging ? 0.5 : 1,
+        opacity: isDragging ? 0 : 1,
       }}
     >
       <MathText text={blank.answer} />
@@ -87,6 +106,8 @@ const DroppableBlankBox: React.FC<DroppableBlankBoxProps> = ({
   droppedAnswer, 
   color 
 }) => {
+  const spanRef = React.useRef<HTMLSpanElement>(null);
+  
   const [{ isOver }, drop] = useDrop(() => ({
     accept: ItemTypes.BLANK,
     drop: (item: { blankId: string }) => {
@@ -98,9 +119,13 @@ const DroppableBlankBox: React.FC<DroppableBlankBoxProps> = ({
   }));
 
   // Make the dropped answer draggable so it can be removed
-  const [{ isDragging }, drag] = useDrag(() => ({
+  const [{ isDragging }, drag, preview] = useDrag(() => ({
     type: ItemTypes.BLANK,
-    item: droppedBlankId ? { blankId: droppedBlankId } : null,
+    item: () => {
+      if (!droppedBlankId) return null;
+      const width = spanRef.current?.offsetWidth || 0;
+      return { blankId: droppedBlankId, width };
+    },
     canDrag: () => !!droppedBlankId,
     end: (item, monitor) => {
       // If dropped outside any drop zone, remove it from the slot
@@ -113,7 +138,13 @@ const DroppableBlankBox: React.FC<DroppableBlankBoxProps> = ({
     }),
   }), [droppedBlankId, blankId]);
 
+  // Hide the default HTML5 drag preview
+  useEffect(() => {
+    preview(getEmptyImage(), { captureDraggingState: true });
+  }, [preview]);
+
   const combinedRef = (element: HTMLSpanElement | null) => {
+    spanRef.current = element;
     drop(element);
     if (droppedAnswer) {
       drag(element);
@@ -128,11 +159,70 @@ const DroppableBlankBox: React.FC<DroppableBlankBoxProps> = ({
         backgroundColor: isOver ? '#dbeafe' : droppedAnswer ? color : '#f3f4f6',
         borderColor: isOver ? '#3b82f6' : '#d1d5db',
         cursor: droppedAnswer ? 'move' : 'default',
-        opacity: isDragging ? 0.5 : 1,
+        opacity: isDragging ? 0 : 1,
       }}
     >
       {droppedAnswer ? <MathText text={droppedAnswer} /> : '\u00A0\u00A0\u00A0\u00A0\u00A0'}
     </span>
+  );
+};
+
+// Custom drag layer for smooth animations
+const CustomDragLayer: React.FC<{ blanks: any[] }> = ({ blanks }) => {
+  const { itemType, isDragging, item, currentOffset } = useDragLayer((monitor) => ({
+    item: monitor.getItem(),
+    itemType: monitor.getItemType(),
+    currentOffset: monitor.getSourceClientOffset(),
+    isDragging: monitor.isDragging(),
+  }));
+
+  if (!isDragging || !currentOffset) {
+    return null;
+  }
+
+  // Find the blank by blankId or index
+  const draggingBlank = item?.blankId 
+    ? blanks.find(b => b.id === item.blankId)
+    : (item?.index !== undefined ? blanks[item.index] : null);
+    
+  if (!draggingBlank) {
+    return null;
+  }
+
+  const itemWidth = item?.width || 'auto';
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        pointerEvents: 'none',
+        zIndex: 100,
+        left: 0,
+        top: 0,
+        width: '100%',
+        height: '100%',
+      }}
+    >
+      <div
+        style={{
+          transform: `translate(${currentOffset.x}px, ${currentOffset.y}px)`,
+          transition: 'transform 0.05s ease-out',
+          width: itemWidth,
+        }}
+      >
+        <div
+          className="px-6 py-3 rounded-lg text-lg font-medium shadow-2xl"
+          style={{
+            backgroundColor: draggingBlank.color || '#ffffff',
+            border: '2px solid #3b82f6',
+            opacity: 0.9,
+            cursor: 'grabbing',
+          }}
+        >
+          <MathText text={draggingBlank.answer} />
+        </div>
+      </div>
+    </div>
   );
 };
 
@@ -262,6 +352,7 @@ export const FillInBlanksSlideViewer: React.FC<FillInBlanksSlideViewerProps> = (
 
   return (
     <DndProvider backend={HTML5Backend}>
+      <CustomDragLayer blanks={slide.content.blanks || []} />
       <div className="w-full max-w-4xl space-y-8">
         <div className="text-xl" style={{ color: textColor }}>
           {renderContent(slide.content.content || [])}

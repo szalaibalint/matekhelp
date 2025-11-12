@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { DndProvider, useDrag, useDrop } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
+import { DndProvider, useDrag, useDrop, useDragLayer } from 'react-dnd';
+import { HTML5Backend, getEmptyImage } from 'react-dnd-html5-backend';
 import { Slide } from '../../services/SlideService';
 import { Check, X } from 'lucide-react';
 
@@ -53,6 +53,7 @@ interface DraggableItemProps {
   index: number;
   color: string;
   isMatched: boolean;
+  onDragStart?: (index: number, width: number) => void;
 }
 
 interface DropZoneProps {
@@ -64,27 +65,45 @@ interface DropZoneProps {
   leftItems: string[];
 }
 
-const DraggableItem: React.FC<DraggableItemProps> = ({ item, index, color, isMatched }) => {
-  const [{ isDragging }, drag] = useDrag(() => ({
+const DraggableItem: React.FC<DraggableItemProps> = ({ item, index, color, isMatched, onDragStart }) => {
+  const itemRef = React.useRef<HTMLDivElement>(null);
+  
+  const [{ isDragging }, drag, preview] = useDrag(() => ({
     type: ItemTypes.LEFT_ITEM,
-    item: { index },
+    item: () => {
+      const width = itemRef.current?.offsetWidth || 0;
+      if (onDragStart) {
+        onDragStart(index, width);
+      }
+      return { index, width };
+    },
     canDrag: !isMatched,
     collect: (monitor) => ({
       isDragging: monitor.isDragging(),
     }),
-  }), [isMatched]);
+  }), [isMatched, index, onDragStart]);
+
+  // Hide the default HTML5 drag preview
+  useEffect(() => {
+    preview(getEmptyImage(), { captureDraggingState: true });
+  }, [preview]);
+
+  const setRefs = (element: HTMLDivElement | null) => {
+    itemRef.current = element;
+    drag(element);
+  };
 
   return (
     <div
-      ref={drag}
+      ref={setRefs}
       className={`p-4 rounded-lg border-2 text-lg font-medium transition-all ${
         isMatched ? 'opacity-50 cursor-not-allowed' : 'cursor-move hover:shadow-lg'
       }`}
       style={{
         backgroundColor: color,
         borderColor: '#d1d5db',
-        opacity: isDragging ? 0.5 : 1,
-        transform: isDragging ? 'rotate(5deg)' : 'none',
+        opacity: isDragging ? 0 : isMatched ? 0.5 : 1,
+        transform: isDragging ? 'scale(0.95)' : 'none',
       }}
     >
       <MathText text={item} />
@@ -126,6 +145,61 @@ const DropZone: React.FC<DropZoneProps> = ({ rightItem, index, color, matchedLef
             ← <MathText text={leftItems[matchedLeftIndex]} />
           </div>
         )}
+      </div>
+    </div>
+  );
+};
+
+// Custom drag layer for smooth animations
+const CustomDragLayer: React.FC<{ leftItems: { text: string; originalIndex: number; color: string }[] }> = ({ leftItems }) => {
+  const { itemType, isDragging, item, currentOffset } = useDragLayer((monitor) => ({
+    item: monitor.getItem(),
+    itemType: monitor.getItemType(),
+    currentOffset: monitor.getSourceClientOffset(),
+    isDragging: monitor.isDragging(),
+  }));
+
+  if (!isDragging || !currentOffset) {
+    return null;
+  }
+
+  const draggingItem = leftItems[item?.index];
+  if (!draggingItem) {
+    return null;
+  }
+
+  const itemWidth = item?.width || 'auto';
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        pointerEvents: 'none',
+        zIndex: 100,
+        left: 0,
+        top: 0,
+        width: '100%',
+        height: '100%',
+      }}
+    >
+      <div
+        style={{
+          transform: `translate(${currentOffset.x}px, ${currentOffset.y}px)`,
+          transition: 'transform 0.05s ease-out',
+          width: itemWidth,
+        }}
+      >
+        <div
+          className="p-4 rounded-lg border-2 text-lg font-medium shadow-2xl"
+          style={{
+            backgroundColor: draggingItem.color,
+            borderColor: '#3b82f6',
+            opacity: 0.9,
+            cursor: 'grabbing',
+          }}
+        >
+          <MathText text={draggingItem.text} />
+        </div>
       </div>
     </div>
   );
@@ -180,6 +254,7 @@ export const MatchingSlideViewer: React.FC<MatchingSlideViewerProps> = ({ slide,
 
   return (
     <DndProvider backend={HTML5Backend}>
+      <CustomDragLayer leftItems={leftItems} />
       <div className="w-full max-w-6xl">
         <h2
           className="text-4xl font-bold mb-8 text-center"
