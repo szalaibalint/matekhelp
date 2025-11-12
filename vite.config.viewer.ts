@@ -1,27 +1,30 @@
 import path from "path";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
-import { tempo } from "tempo-devtools/dist/vite";
+import { Plugin } from 'vite';
 
-const conditionalPlugins: [string, Record<string, any>][] = [];
+// Plugin to serve viewer.html as index
+const serveViewerHtml = (): Plugin => ({
+  name: 'serve-viewer-html',
+  configureServer(server) {
+    server.middlewares.use((req, res, next) => {
+      if (req.url === '/' || req.url === '/index.html') {
+        req.url = '/viewer.html';
+      }
+      next();
+    });
+  },
+});
 
-// @ts-ignore
-if (process.env.TEMPO === "true") {
-  /* conditionalPlugins.push(["tempo-devtools/swc", {}]) [deprecated] */
-}
-
-// Default configuration (Editor) - kept for backward compatibility
-// For separate builds, use vite.config.editor.ts and vite.config.viewer.ts
+// Viewer configuration
 export default defineConfig({
   base: process.env.NODE_ENV === "development" ? "/" : process.env.VITE_BASE_PATH || "/",
   optimizeDeps: {
-    entries: ["src/main.tsx", "src/tempobook/**/*"],
+    entries: ["src/viewer-main.tsx"],
   },
   plugins: [
-    react({
-      plugins: conditionalPlugins,
-    }),
-    tempo(),
+    react(),
+    serveViewerHtml(),
   ],
   resolve: {
     preserveSymlinks: true,
@@ -30,15 +33,14 @@ export default defineConfig({
     },
   },
   server: {
-    port: 5173,
+    port: 5174,
     // @ts-ignore
     allowedHosts: true,
   },
   build: {
-    outDir: 'dist',
+    outDir: 'dist/viewer',
     rollupOptions: {
       input: {
-        main: path.resolve(__dirname, "index.html"),
         viewer: path.resolve(__dirname, "viewer.html"),
       },
       output: {

@@ -6,7 +6,7 @@ const ViewerPresentation = React.lazy(() => import('./components/viewer/ViewerPr
 
 export default function ViewerApp() {
   return (
-    <Router basename="/viewer">
+    <Router>
       <Suspense fallback={<div>Loading...</div>}>
         <Routes>
           <Route path="/" element={<ViewerPage />} />

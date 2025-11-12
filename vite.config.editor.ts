@@ -10,8 +10,7 @@ if (process.env.TEMPO === "true") {
   /* conditionalPlugins.push(["tempo-devtools/swc", {}]) [deprecated] */
 }
 
-// Default configuration (Editor) - kept for backward compatibility
-// For separate builds, use vite.config.editor.ts and vite.config.viewer.ts
+// Editor/Admin configuration
 export default defineConfig({
   base: process.env.NODE_ENV === "development" ? "/" : process.env.VITE_BASE_PATH || "/",
   optimizeDeps: {
@@ -35,11 +34,10 @@ export default defineConfig({
     allowedHosts: true,
   },
   build: {
-    outDir: 'dist',
+    outDir: 'dist/editor',
     rollupOptions: {
       input: {
         main: path.resolve(__dirname, "index.html"),
-        viewer: path.resolve(__dirname, "viewer.html"),
       },
       output: {
         manualChunks: {

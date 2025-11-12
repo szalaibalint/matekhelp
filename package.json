@@ -4,11 +4,17 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
-    "build-no-errors": "tsc && vite build",
+    "dev": "concurrently \"npm run dev:editor\" \"npm run dev:viewer\"",
+    "dev:editor": "vite --config vite.config.editor.ts",
+    "dev:viewer": "vite --config vite.config.viewer.ts",
+    "build": "npm run build:editor && npm run build:viewer",
+    "build:editor": "tsc && vite build --config vite.config.editor.ts",
+    "build:viewer": "tsc && vite build --config vite.config.viewer.ts",
+    "build-no-errors": "npm run build:editor && npm run build:viewer",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
+    "preview:editor": "vite preview --config vite.config.editor.ts --port 4173",
+    "preview:viewer": "vite preview --config vite.config.viewer.ts --port 4174",
     "types:supabase": "npx supabase gen types typescript --project-id $SUPABASE_PROJECT_ID > src/types/supabase.ts"
   },
   "dependencies": {
@@ -77,6 +83,7 @@
     "@types/react-dom": "^18.2.22",
     "@vitejs/plugin-react-swc": "3.5.0",
     "autoprefixer": "^10.4.19",
+    "concurrently": "^9.2.1",
     "postcss": "^8.4.38",
     "tailwindcss": "3.4.1",
     "tempo-devtools": "^2.0.94",
