@@ -80,16 +80,6 @@ export default function ViewerPage() {
           {!selectedCategoryId ? (
             // Landing page with featured content
             <div className="p-6 max-w-7xl mx-auto">
-              {/* Hero Section */}
-              <div className="mb-12 text-center">
-                <h2 className="text-4xl font-bold text-gray-900 mb-4">
-                  Fedezd fel a matematika világát!
-                </h2>
-                <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-                  Interaktív gyakorlatokkal, vizuális magyarázatokkal és lépésről-lépésre haladva.
-                </p>
-              </div>
-
               {/* Popular Presentations */}
               {popularPresentations.length > 0 && (
                 <div className="mb-8">

@@ -376,7 +376,11 @@ export function PresentationEditor({ presentationId, onBack }: PresentationEdito
         {!isSidebarCollapsed && (
           <div className="w-80 border-r border-gray-200 flex flex-col bg-gray-50">
             <div className="p-4 border-b border-gray-200">
-              <Select onValueChange={(type) => addSlide(type as Slide['type'])}>
+              <Select value="" onValueChange={(type) => {
+                if (type) {
+                  addSlide(type as Slide['type']);
+                }
+              }}>
                 <SelectTrigger>
                   <SelectValue placeholder="Dia hozzáadása" />
                 </SelectTrigger>
