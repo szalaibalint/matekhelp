@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../ui/button';
 import { supabase } from '../../../supabase/supabase';
-import { ArrowLeft, Maximize, Minimize } from 'lucide-react';
+import { ArrowLeft, Maximize, Minimize, Grid, X } from 'lucide-react';
 import { Slide, loadSlides } from '../../services/SlideService';
 import { SlideViewer } from './SlideViewer';
 import { ResultsPage } from './ResultsPage';
@@ -30,6 +30,7 @@ export default function ViewerPresentation() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isRetrying, setIsRetrying] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showThumbnails, setShowThumbnails] = useState(false);
   const { toast } = useToast();
 
   const minSwipeDistance = 50;
@@ -463,6 +464,48 @@ export default function ViewerPresentation() {
         />
       </div>
 
+      {/* Header - Hidden in fullscreen */}
+      {!isFullscreen && (
+        <div className="bg-white/95 backdrop-blur-sm border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate('/')}
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span className="hidden sm:inline">Vissza</span>
+          </Button>
+          
+          <h1 className="text-base md:text-lg font-semibold text-center flex-1 px-4">
+            {presentation.title}
+          </h1>
+          
+          <div className="flex items-center gap-1 md:gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowThumbnails(!showThumbnails)}
+              className="flex items-center gap-1 md:gap-2"
+              title="Diaáttekintés"
+            >
+              <Grid className="h-4 w-4" />
+              <span className="hidden sm:inline">Diák</span>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleFullscreen}
+              className="flex items-center gap-1 md:gap-2"
+              title="Teljes képernyő (F11)"
+            >
+              <Maximize className="h-4 w-4" />
+              <span className="hidden sm:inline">Teljes képernyő</span>
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Fullscreen Exit Button - Shown only in fullscreen */}
       {isFullscreen && (
         <div className="absolute top-4 right-4 z-50">
@@ -479,9 +522,82 @@ export default function ViewerPresentation() {
         </div>
       )}
 
+      {/* Thumbnail Sidebar */}
+      {showThumbnails && !isFullscreen && (
+        <>
+          {/* Mobile overlay */}
+          <div 
+            className="fixed inset-0 bg-black/50 z-40 md:hidden"
+            onClick={() => setShowThumbnails(false)}
+          />
+          
+          {/* Sidebar */}
+          <div className="fixed md:absolute right-0 top-0 bottom-0 w-64 md:w-48 lg:w-64 bg-white/95 backdrop-blur-sm border-l border-gray-200 shadow-xl z-50 overflow-y-auto">
+            <div className="sticky top-0 bg-white/95 backdrop-blur-sm border-b border-gray-200 p-3 flex items-center justify-between">
+              <h3 className="font-semibold text-sm">Diák (összesen: {slides.length})</h3>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowThumbnails(false)}
+                className="h-6 w-6 p-0"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            <div className="p-2 space-y-2">
+              {slides.map((slide, index) => (
+                <button
+                  key={index}
+                  onClick={() => {
+                    setCurrentIndex(index);
+                    setShowThumbnails(false);
+                  }}
+                  className={`w-full text-left p-2 rounded-lg border-2 transition-all hover:shadow-md ${
+                    index === currentIndex 
+                      ? 'border-blue-500 bg-blue-50' 
+                      : 'border-gray-200 bg-white hover:border-blue-300'
+                  }`}
+                >
+                  <div className="flex items-start gap-2">
+                    <div className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-semibold">
+                      {index + 1}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs font-medium text-gray-700 mb-1">
+                        {slide.type === 'text' && 'Szöveg dia'}
+                        {slide.type === 'multiple_choice' && 'Fel eletsoros'}
+                        {slide.type === 'fill_in_blanks' && 'Kitöltés'}
+                        {slide.type === 'matching' && 'Párosítás'}
+                        {slide.type === 'ranking' && 'Rangsorolás'}
+                        {slide.type === 'true_false' && 'Igaz/Hamis'}
+                      </div>
+                      
+                      {/* Mini preview of slide content */}
+                      <div className="text-xs text-gray-500 line-clamp-2">
+                        {slide.title || (slide.type === 'text' && slide.content?.[0]?.children?.[0]?.text) || 'Nincs előnézet'}
+                      </div>
+                      
+                      {/* Answer indicator */}
+                      {userAnswers[index] && (
+                        <div className="mt-1 text-xs text-green-600 font-medium">
+                          ✓ Megválaszolva
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+
       {/* Slide container */}
       <div
-        className="flex-1 overflow-y-auto flex items-start p-3 md:p-8"
+        className={`flex-1 overflow-y-auto flex items-start p-3 md:p-8 transition-all ${
+          showThumbnails && !isFullscreen ? 'md:mr-48 lg:mr-64' : ''
+        }`}
         style={{ backgroundColor: slideBackgroundColor, color: slideTextColor, minHeight: 'calc(100vh - 80px)' }}
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
