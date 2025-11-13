@@ -1809,7 +1809,7 @@ function PreviewMode({ slides, currentIndex, onNext, onPrev, onExit, theme }: { 
 
   return (
     <div 
-      className="fixed inset-0 bg-gray-900 text-white flex flex-col items-center justify-center p-8"
+      className="fixed inset-0 bg-gray-900 text-white flex flex-col items-start justify-start p-8"
       style={{ 
         backgroundColor: currentSlide.backgroundColor || theme?.background || '#ffffff',
         color: currentSlide.textColor || theme?.textColor || '#000000',

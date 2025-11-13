@@ -16,7 +16,7 @@ const RichTextRenderer = ({ content }) => {
     return <Element key={index} element={node} attributes={{}}>{children}</Element>;
   };
 
-  return <div style={{ whiteSpace: 'pre-wrap' }}>{content.map(renderNode)}</div>;
+  return <div className="relative min-h-[400px] pt-0 mt-0" style={{ whiteSpace: 'pre-wrap' }}>{content.map(renderNode)}</div>;
 };
 
 export default RichTextRenderer;

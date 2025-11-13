@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, useEffect } from 'react';
+import { useCallback, useMemo, useState, useEffect, forwardRef } from 'react';
 import { createEditor, Descendant, Editor, Transforms, Element as SlateElement, Text, Path, BaseEditor } from 'slate';
 import { Slate, Editable, withReact, useSlate, ReactEditor, useSelected, useFocused } from 'slate-react';
 import { withHistory, HistoryEditor } from 'slate-history';
@@ -347,16 +347,34 @@ export function RichTextEditor({ content, onChange, enableDragBlanks = false, bl
   ];
 
   const insertImage = (url: string) => {
-    const image = {
-      type: 'image',
-      url,
-      width: 400,
-      height: 300,
-      rotation: 0,
-      float: 'none',
-      children: [{ text: '' }],
+    // Load image to get original dimensions
+    const img = document.createElement('img');
+    img.onload = () => {
+      const image = {
+        type: 'image',
+        url,
+        width: img.naturalWidth,
+        height: img.naturalHeight,
+        rotation: 0,
+        float: 'none',
+        children: [{ text: '' }],
+      };
+      Transforms.insertNodes(editor, image);
     };
-    Transforms.insertNodes(editor, image);
+    img.onerror = () => {
+      // Fallback to default dimensions if image fails to load
+      const image = {
+        type: 'image',
+        url,
+        width: 400,
+        height: 300,
+        rotation: 0,
+        float: 'none',
+        children: [{ text: '' }],
+      };
+      Transforms.insertNodes(editor, image);
+    };
+    img.src = url;
     setImageUrl('');
   };
 
@@ -519,7 +537,7 @@ export function RichTextEditor({ content, onChange, enableDragBlanks = false, bl
   };
 
   return (
-    <div className="flex flex-col h-full bg-white border border-gray-200 rounded-lg">
+    <div className="flex flex-col min-h-full bg-white border border-gray-200 rounded-lg">
       <Slate
         editor={editor}
         initialValue={initialValue}
@@ -805,7 +823,7 @@ export function RichTextEditor({ content, onChange, enableDragBlanks = false, bl
           </Dialog>
         </div>
 
-        <div className="flex-1 p-4 overflow-y-auto">
+        <div className="flex-1 p-4 overflow-visible relative min-h-[400px]">
           <Editable
             renderElement={renderElement}
             renderLeaf={renderLeaf}
@@ -978,27 +996,52 @@ const Element = ({ attributes, children, element }: any) => {
   }
 };
 
-const ImageElement = ({ attributes, children, element }: any) => {
+const ImageElement = forwardRef(({ attributes, children, element }: any, ref) => {
   const editor = useSlate();
   const selected = useSelected();
   const focused = useFocused();
   const [size, setSize] = useState({ width: element.width || 400, height: element.height || 300 });
   const [rotation, setRotation] = useState(element.rotation || 0);
   const [float, setFloat] = useState(element.float || 'none');
+  const [align, setAlign] = useState(element.align || 'left');
+  const [position, setPosition] = useState(element.position || { x: 0, y: 0 });
+  const [isAbsolute, setIsAbsolute] = useState(element.isAbsolute || false);
   const [isResizing, setIsResizing] = useState(false);
   const [isRotating, setIsRotating] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const [startPos, setStartPos] = useState({ x: 0, y: 0 });
   const [startSize, setStartSize] = useState({ width: 0, height: 0 });
   const [startRotation, setStartRotation] = useState(0);
+  const [aspectRatio, setAspectRatio] = useState(1);
+  const [editorBounds, setEditorBounds] = useState<DOMRect | null>(null);
+
+  // Get parent block alignment
+  let parentAlign = align; // Use image's own alignment instead of parent's
+  try {
+    const path = ReactEditor.findPath(editor, element);
+    const [parentNode] = Editor.parent(editor, path);
+    parentAlign = (parentNode as any)?.align || align;
+  } catch (e) {
+    // If we can't get the parent, use image's own alignment
+  }
 
   useEffect(() => {
     if (isResizing) {
       const handleMouseMove = (e: MouseEvent) => {
         const deltaX = e.clientX - startPos.x;
         const deltaY = e.clientY - startPos.y;
-        const newWidth = Math.max(100, startSize.width + deltaX);
-        const newHeight = Math.max(75, startSize.height + deltaY);
-        setSize({ width: newWidth, height: newHeight });
+        
+        if (e.shiftKey) {
+          // Maintain aspect ratio when Shift is held
+          const newWidth = Math.max(100, startSize.width + deltaX);
+          const newHeight = Math.round(newWidth / aspectRatio);
+          setSize({ width: newWidth, height: newHeight });
+        } else {
+          // Free resize
+          const newWidth = Math.max(100, startSize.width + deltaX);
+          const newHeight = Math.max(75, startSize.height + deltaY);
+          setSize({ width: newWidth, height: newHeight });
+        }
       };
 
       const handleMouseUp = () => {
@@ -1039,22 +1082,93 @@ const ImageElement = ({ attributes, children, element }: any) => {
     }
   }, [isRotating, startPos, startRotation, rotation, editor, element]);
 
+  useEffect(() => {
+    if (isDragging) {
+      const handleMouseMove = (e: MouseEvent) => {
+        // Get the specific editor container
+        const editorEl = ReactEditor.toDOMNode(editor, editor);
+        const editorContainer = editorEl.closest('.flex-1.p-4.overflow-visible') as HTMLElement;
+        if (!editorContainer) return;
+        
+        const containerRect = editorContainer.getBoundingClientRect();
+        
+        const deltaX = e.clientX - startPos.x;
+        const deltaY = e.clientY - startPos.y;
+        
+        // Calculate new position with bounds checking
+        let newX = position.x + deltaX;
+        let newY = position.y + deltaY;
+        
+        // Constrain within editor container (accounting for image size and padding)
+        const maxX = containerRect.width - size.width - 32; // 32 for padding
+        const maxY = containerRect.height - size.height - 32;
+        
+        newX = Math.max(0, Math.min(newX, maxX));
+        newY = Math.max(0, Math.min(newY, maxY));
+        
+        setPosition({ x: newX, y: newY });
+        setStartPos({ x: e.clientX, y: e.clientY });
+      };
+
+      const handleMouseUp = () => {
+        setIsDragging(false);
+        const path = ReactEditor.findPath(editor, element);
+        Transforms.setNodes(editor, { position } as any, { at: path });
+      };
+
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+      return () => {
+        window.removeEventListener('mousemove', handleMouseMove);
+        window.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [isDragging, startPos, position, editor, element, size]);
+
   const handleFloatChange = (newFloat: string) => {
     setFloat(newFloat);
     const path = ReactEditor.findPath(editor, element);
-    Transforms.setNodes(editor, { float: newFloat }, { at: path });
+    Transforms.setNodes(editor, { float: newFloat } as any, { at: path });
+  };
+
+  const handleAlignChange = (newAlign: string) => {
+    setAlign(newAlign);
+    const path = ReactEditor.findPath(editor, element);
+    Transforms.setNodes(editor, { align: newAlign } as any, { at: path });
+  };
+
+  const toggleAbsolutePosition = () => {
+    const newIsAbsolute = !isAbsolute;
+    setIsAbsolute(newIsAbsolute);
+    const path = ReactEditor.findPath(editor, element);
+    if (newIsAbsolute) {
+      // Switch to absolute positioning
+      Transforms.setNodes(editor, { isAbsolute: true, position, float: 'none' } as any, { at: path });
+      setFloat('none');
+    } else {
+      // Switch back to inline/float positioning
+      Transforms.setNodes(editor, { isAbsolute: false, position: { x: 0, y: 0 } } as any, { at: path });
+      setPosition({ x: 0, y: 0 });
+    }
   };
 
   return (
     <div 
       {...attributes} 
-      className="relative inline-block group my-4"
+      className="group my-4"
+      contentEditable={false}
       style={{
-        float: float !== 'none' ? float as any : undefined,
-        margin: float !== 'none' ? '0 10px' : '0 auto'
+        position: isAbsolute ? 'absolute' : 'relative',
+        left: isAbsolute ? `${position.x}px` : undefined,
+        top: isAbsolute ? `${position.y}px` : undefined,
+        float: !isAbsolute && float !== 'none' ? float as any : undefined,
+        margin: !isAbsolute && float !== 'none' ? '0 10px' : isAbsolute ? 0 : '0 auto',
+        zIndex: isAbsolute ? 1 : undefined,
+        display: isAbsolute ? 'block' : float === 'none' ? 'block' : 'inline-block',
+        textAlign: !isAbsolute && float === 'none' ? parentAlign as any : undefined,
       }}
     >
-      <div className="relative">
+      <div className="relative" style={{ display: 'inline-block' }}>
         <img
           src={element.url}
           alt=""
@@ -1063,8 +1177,16 @@ const ImageElement = ({ attributes, children, element }: any) => {
             height: size.height,
             transform: `rotate(${rotation}deg)`,
             maxWidth: '100%',
+            cursor: isAbsolute ? 'move' : 'default',
           }}
           className={`block border-2 transition-all ${selected && focused ? 'border-blue-500' : 'border-transparent group-hover:border-blue-300'}`}
+          onMouseDown={(e) => {
+            if (isAbsolute && !isResizing && !isRotating) {
+              e.preventDefault();
+              setIsDragging(true);
+              setStartPos({ x: e.clientX, y: e.clientY });
+            }
+          }}
         />
         
         <div
@@ -1074,6 +1196,7 @@ const ImageElement = ({ attributes, children, element }: any) => {
             setIsResizing(true);
             setStartPos({ x: e.clientX, y: e.clientY });
             setStartSize(size);
+            setAspectRatio(size.width / size.height);
           }}
         />
         
@@ -1093,25 +1216,67 @@ const ImageElement = ({ attributes, children, element }: any) => {
             >
               <RotateCw className="h-3 w-3" />
             </Button>
-            <Select value={float} onValueChange={handleFloatChange}>
-              <SelectTrigger className="h-8 w-20 text-xs">
-                <Move className="h-3 w-3" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Sorban</SelectItem>
-                <SelectItem value="left">Balra úsztatás</SelectItem>
-                <SelectItem value="right">Jobbra úsztatás</SelectItem>
-              </SelectContent>
-            </Select>
+            <Button
+              size="sm"
+              variant={isAbsolute ? "default" : "secondary"}
+              className="h-8 w-8 p-0"
+              onClick={toggleAbsolutePosition}
+              title={isAbsolute ? "Vissza a szövegbe" : "Szabadon mozgatható"}
+            >
+              <Move className="h-3 w-3" />
+            </Button>
+            {!isAbsolute && float === 'none' && (
+              <>
+                <Button
+                  size="sm"
+                  variant={align === 'left' ? "default" : "secondary"}
+                  className="h-8 w-8 p-0"
+                  onClick={() => handleAlignChange('left')}
+                  title="Balra igazítás"
+                >
+                  <AlignLeft className="h-3 w-3" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant={align === 'center' ? "default" : "secondary"}
+                  className="h-8 w-8 p-0"
+                  onClick={() => handleAlignChange('center')}
+                  title="Középre igazítás"
+                >
+                  <AlignCenter className="h-3 w-3" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant={align === 'right' ? "default" : "secondary"}
+                  className="h-8 w-8 p-0"
+                  onClick={() => handleAlignChange('right')}
+                  title="Jobbra igazítás"
+                >
+                  <AlignRight className="h-3 w-3" />
+                </Button>
+              </>
+            )}
+            {!isAbsolute && (
+              <Select value={float} onValueChange={handleFloatChange}>
+                <SelectTrigger className="h-8 w-20 text-xs">
+                  <Palette className="h-3 w-3" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sorban</SelectItem>
+                  <SelectItem value="left">Balra úsztatás</SelectItem>
+                  <SelectItem value="right">Jobbra úsztatás</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
           </div>
         </div>
       </div>
       {children}
     </div>
   );
-};
+});
 
-const VideoElement = ({ attributes, children, element }: any) => {
+const VideoElement = forwardRef(({ attributes, children, element }: any, ref) => {
   const editor = useSlate();
   const selected = useSelected();
   const focused = useFocused();
@@ -1212,7 +1377,7 @@ const VideoElement = ({ attributes, children, element }: any) => {
       {children}
     </div>
   );
-};
+});
 
 const Leaf = ({ attributes, children, leaf }: any) => {
   if (leaf.bold) {

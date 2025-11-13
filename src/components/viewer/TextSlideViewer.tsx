@@ -46,7 +46,7 @@ export const TextSlideViewer: React.FC<TextSlideViewerProps> = ({ slide, onAnswe
   };
 
   return (
-    <div className="prose prose-lg max-w-none" style={{ whiteSpace: 'pre-wrap' }}>
+    <div className="prose prose-lg max-w-none relative min-h-[400px] pt-0 mt-0" style={{ whiteSpace: 'pre-wrap' }}>
       {content.map((node: any, i: number) => renderNode(node, [i]))}
     </div>
   );

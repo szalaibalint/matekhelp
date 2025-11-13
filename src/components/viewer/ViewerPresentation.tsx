@@ -258,7 +258,7 @@ export default function ViewerPresentation() {
       </div>
 
       <div
-        className="flex-1 overflow-y-auto flex items-center p-8"
+        className="flex-1 overflow-y-auto flex items-start p-8"
         style={{ backgroundColor: slideBackgroundColor, color: slideTextColor, minHeight: 'calc(100vh - 80px)' }}
       >
         <div className="w-full">
