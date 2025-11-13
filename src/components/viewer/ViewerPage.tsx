@@ -5,14 +5,22 @@ import { getPopularPresentations, getRecentPresentations } from '../../services/
 import { CategoryTree } from '../admin/CategoryTree';
 import { PresentationGrid } from './PresentationGrid';
 import { HorizontalScrollCarousel } from './HorizontalScrollCarousel';
-import { BookOpen, TrendingUp, Clock } from 'lucide-react';
+import { ViewerLoginDialog } from './ViewerLoginDialog';
+import { ViewerRegisterDialog } from './ViewerRegisterDialog';
+import { useViewerAuth } from '../../contexts/ViewerAuthContext';
+import { BookOpen, TrendingUp, Clock, User, LogOut } from 'lucide-react';
+import { Button } from '../ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '../ui/dropdown-menu';
 
 export default function ViewerPage() {
+  const { user, isLoggedIn, logout } = useViewerAuth();
   const [categories, setCategories] = useState<Category[]>([]);
   const [presentations, setPresentations] = useState<Presentation[]>([]);
   const [popularPresentations, setPopularPresentations] = useState<Presentation[]>([]);
   const [recentPresentations, setRecentPresentations] = useState<Presentation[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [showLoginDialog, setShowLoginDialog] = useState(false);
+  const [showRegisterDialog, setShowRegisterDialog] = useState(false);
 
   useEffect(() => {
     fetchCategories();
@@ -46,13 +54,51 @@ export default function ViewerPage() {
     <div className="h-screen flex flex-col bg-gradient-to-br from-blue-50 via-white to-purple-50">
       {/* Header */}
       <div className="bg-white/80 backdrop-blur-sm border-b border-gray-200 px-6 py-4 shadow-sm">
-        <div className="flex items-center gap-3">
-          <BookOpen className="h-8 w-8 text-blue-600" />
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <BookOpen className="h-8 w-8 text-blue-600" />
+            <div>
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                MatekHelp
+              </h1>
+              <p className="text-sm text-gray-600">Interaktív matematika tananyagok</p>
+            </div>
+          </div>
+
+          {/* Auth Section */}
           <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              MatekHelp
-            </h1>
-            <p className="text-sm text-gray-600">Interaktív matematika tananyagok</p>
+            {isLoggedIn ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    <span>{user?.username}</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <div className="px-2 py-1.5 text-sm font-medium">
+                    {user?.full_name || user?.username}
+                  </div>
+                  <div className="px-2 py-1.5 text-xs text-gray-500">
+                    {user?.email}
+                  </div>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={logout}>
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Kijelentkezés
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setShowLoginDialog(true)}>
+                  Bejelentkezés
+                </Button>
+                <Button onClick={() => setShowRegisterDialog(true)}>
+                  Regisztráció
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -122,6 +168,18 @@ export default function ViewerPage() {
           )}
         </div>
       </div>
+
+      {/* Login Dialog */}
+      <ViewerLoginDialog 
+        open={showLoginDialog} 
+        onClose={() => setShowLoginDialog(false)} 
+      />
+
+      {/* Register Dialog */}
+      <ViewerRegisterDialog 
+        open={showRegisterDialog} 
+        onClose={() => setShowRegisterDialog(false)} 
+      />
     </div>
   );
 }
