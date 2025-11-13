@@ -1,13 +1,15 @@
 import React, { useEffect } from 'react';
 import { Button } from '../ui/button';
 import { useNavigate } from 'react-router-dom';
+import { RefreshCw } from 'lucide-react';
 
 interface ResultsPageProps {
   correct: number;
   total: number;
+  onRetry?: () => void;
 }
 
-export const ResultsPage: React.FC<ResultsPageProps> = ({ correct, total }) => {
+export const ResultsPage: React.FC<ResultsPageProps> = ({ correct, total, onRetry }) => {
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -29,9 +31,27 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({ correct, total }) => {
       <p className="text-lg md:text-2xl mb-6 md:mb-8 text-center px-4">
         {correct === total ? 'Tökéletes pontszám! 🎉' : correct >= total * 0.7 ? 'Szép munka! 👏' : 'Gyakorolj még! 💪'}
       </p>
-      <Button size="lg" variant="secondary" onClick={() => navigate('/')} className="touch-manipulation w-full sm:w-auto max-w-xs">
-        Kilépés a tananyagból
-      </Button>
+      <div className="flex flex-col sm:flex-row gap-3">
+        {onRetry && (
+          <Button 
+            size="lg" 
+            variant="outline" 
+            onClick={onRetry} 
+            className="touch-manipulation w-full sm:w-auto"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Újra próbálom
+          </Button>
+        )}
+        <Button 
+          size="lg" 
+          variant="secondary" 
+          onClick={() => navigate('/')} 
+          className="touch-manipulation w-full sm:w-auto"
+        >
+          Kilépés a tananyagból
+        </Button>
+      </div>
     </div>
   );
 };

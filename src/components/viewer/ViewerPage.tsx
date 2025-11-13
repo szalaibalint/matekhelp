@@ -10,11 +10,12 @@ import { InProgressCard } from './InProgressCard';
 import { ViewerLoginDialog } from './ViewerLoginDialog';
 import { ViewerRegisterDialog } from './ViewerRegisterDialog';
 import { useViewerAuth } from '../../contexts/ViewerAuthContext';
-import { BookOpen, TrendingUp, Clock, User, LogOut, Search, PlayCircle, Menu, X } from 'lucide-react';
+import { BookOpen, TrendingUp, Clock, User, LogOut, Search, PlayCircle, Menu, X, AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Skeleton } from '../ui/skeleton';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '../ui/dropdown-menu';
+import { useToast } from '../ui/use-toast';
 
 export default function ViewerPage() {
   const { user, isLoggedIn, logout } = useViewerAuth();
@@ -29,6 +30,8 @@ export default function ViewerPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showLoginDialog, setShowLoginDialog] = useState(false);
   const [showRegisterDialog, setShowRegisterDialog] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     fetchCategories();
@@ -52,24 +55,78 @@ export default function ViewerPage() {
   }, [user]);
 
   const fetchCategories = async () => {
-    const categoryTree = await loadCategories();
-    setCategories(categoryTree);
+    try {
+      const categoryTree = await loadCategories();
+      setCategories(categoryTree);
+      setLoadError(null);
+    } catch (error: any) {
+      const errorMsg = 'Nem sikerült betölteni a témaköröket';
+      setLoadError(errorMsg);
+      toast({
+        title: 'Betöltési hiba',
+        description: errorMsg,
+        variant: 'destructive',
+      });
+    }
   };
 
   const fetchFeaturedPresentations = async () => {
-    setIsLoading(true);
-    const [popular, recent] = await Promise.all([
-      getPopularPresentations(10),
-      getRecentPresentations(10)
-    ]);
-    setPopularPresentations(popular);
-    setRecentPresentations(recent);
+    try {
+      setIsLoading(true);
+      const [popular, recent] = await Promise.all([
+        getPopularPresentations(10),
+        getRecentPresentations(10)
+      ]);
+      setPopularPresentations(popular);
+      setRecentPresentations(recent);
+      setLoadError(null);
+    } catch (error: any) {
+      const errorMsg = 'Nem sikerült betölteni a tananyagokat';
+      setLoadError(errorMsg);
+      toast({
+        title: 'Betöltési hiba',
+        description: errorMsg,
+        variant: 'destructive',
+        action: (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={fetchFeaturedPresentations}
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Újra
+          </Button>
+        ),
+      });
+    }
   };
 
   const fetchPresentations = async () => {
-    const data = await loadPresentations(selectedCategoryId);
-    setPresentations(data.filter(p => p.status === 'published'));
-    setIsLoading(false);
+    try {
+      const data = await loadPresentations(selectedCategoryId);
+      setPresentations(data.filter(p => p.status === 'published'));
+      setIsLoading(false);
+      setLoadError(null);
+    } catch (error: any) {
+      setIsLoading(false);
+      const errorMsg = 'Nem sikerült betölteni a tananyagokat';
+      setLoadError(errorMsg);
+      toast({
+        title: 'Betöltési hiba',
+        description: errorMsg,
+        variant: 'destructive',
+        action: (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={fetchPresentations}
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Újra
+          </Button>
+        ),
+      });
+    }
   };
 
   const filteredPresentations = presentations.filter(p => {

@@ -10,6 +10,8 @@ import { incrementViewCount } from '../../services/PresentationTrackingService';
 import { UserProgressService } from '../../services/UserProgressService';
 import { useViewerAuth } from '../../contexts/ViewerAuthContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../ui/dialog';
+import { useToast } from '../ui/use-toast';
+import { AlertCircle, RefreshCw } from 'lucide-react';
 
 export default function ViewerPresentation() {
   const { id } = useParams();
@@ -25,6 +27,9 @@ export default function ViewerPresentation() {
   const [savedAnswers, setSavedAnswers] = useState<any | null>(null);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [isRetrying, setIsRetrying] = useState(false);
+  const { toast } = useToast();
 
   const minSwipeDistance = 50;
 
@@ -98,9 +103,44 @@ export default function ViewerPresentation() {
 
   // Track progress when slide changes
   useEffect(() => {
-    if (user?.id && id && slides.length > 0 && !showResults) {
-      UserProgressService.saveProgress(id, currentIndex, slides.length, user.id, false, userAnswers);
-    }
+    const saveProgressAsync = async () => {
+      if (user?.id && id && slides.length > 0 && !showResults) {
+        const result = await UserProgressService.saveProgress(
+          id, 
+          currentIndex, 
+          slides.length, 
+          user.id, 
+          false, 
+          userAnswers
+        );
+        
+        if (!result.success) {
+          setSaveError(result.error || 'Nem sikerült menteni a haladást');
+          toast({
+            title: 'Mentési hiba',
+            description: result.error || 'Nem sikerült menteni a haladást',
+            variant: 'destructive',
+            action: (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setSaveError(null);
+                  saveProgressAsync();
+                }}
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Újra
+              </Button>
+            ),
+          });
+        } else {
+          setSaveError(null);
+        }
+      }
+    };
+    
+    saveProgressAsync();
   }, [currentIndex, user, id, slides.length, showResults, userAnswers]);
 
   // Touch handlers for swipe navigation
@@ -349,9 +389,22 @@ export default function ViewerPresentation() {
     const { correct, total } = calculateScore();
     // Mark as completed when showing results
     if (user?.id && id) {
-      UserProgressService.markAsCompleted(id, slides.length, user.id, correct, total);
+      UserProgressService.markAsCompleted(id, slides.length, user.id, correct, total)
+        .then(result => {
+          if (!result.success) {
+            toast({
+              title: 'Hiba történt',
+              description: result.error || 'Nem sikerült menteni az eredményt',
+              variant: 'destructive',
+            });
+          }
+        });
     }
-    return <ResultsPage correct={correct} total={total} />;
+    return <ResultsPage correct={correct} total={total} onRetry={() => {
+      setShowResults(false);
+      setCurrentIndex(0);
+      setUserAnswers({});
+    }} />;
   }
 
   const currentSlide = slides[currentIndex];
