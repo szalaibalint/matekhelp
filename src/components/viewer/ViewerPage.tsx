@@ -10,7 +10,7 @@ import { InProgressCard } from './InProgressCard';
 import { ViewerLoginDialog } from './ViewerLoginDialog';
 import { ViewerRegisterDialog } from './ViewerRegisterDialog';
 import { useViewerAuth } from '../../contexts/ViewerAuthContext';
-import { BookOpen, TrendingUp, Clock, User, LogOut, Search, PlayCircle } from 'lucide-react';
+import { BookOpen, TrendingUp, Clock, User, LogOut, Search, PlayCircle, Menu, X } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Skeleton } from '../ui/skeleton';
@@ -26,6 +26,7 @@ export default function ViewerPage() {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showLoginDialog, setShowLoginDialog] = useState(false);
   const [showRegisterDialog, setShowRegisterDialog] = useState(false);
 
@@ -101,21 +102,29 @@ export default function ViewerPage() {
   return (
     <div className="h-screen flex flex-col bg-gradient-to-br from-blue-50 via-white to-purple-50">
       {/* Header */}
-      <div className="bg-white/80 backdrop-blur-sm border-b border-gray-200 px-6 py-4 shadow-sm">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <BookOpen className="h-8 w-8 text-blue-600" />
+      <div className="bg-white/80 backdrop-blur-sm border-b border-gray-200 px-4 md:px-6 py-3 md:py-4 shadow-sm">
+        <div className="flex items-center justify-between gap-2">
+          {/* Mobile menu button */}
+          <button
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            className="md:hidden p-2 hover:bg-gray-100 rounded-md"
+          >
+            <Menu className="h-6 w-6" />
+          </button>
+
+          <div className="flex items-center gap-2 md:gap-3">
+            <BookOpen className="h-6 w-6 md:h-8 md:w-8 text-blue-600" />
             <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              <h1 className="text-xl md:text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                 MatekHelp
               </h1>
-              <p className="text-sm text-gray-600">Interaktív matematika tananyagok</p>
+              <p className="hidden md:block text-sm text-gray-600">Interaktív matematika tananyagok</p>
             </div>
           </div>
 
           {/* Search Bar */}
-          <div className="flex-1 max-w-md mx-8">
-            <div className="relative">
+          <div className="hidden md:flex flex-1 max-w-md mx-8">
+            <div className="relative w-full">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
                 type="text"
@@ -128,7 +137,7 @@ export default function ViewerPage() {
           </div>
 
           {/* Auth Section */}
-          <div>
+          <div className="flex-shrink-0">
             {isLoggedIn ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -153,32 +162,69 @@ export default function ViewerPage() {
               </DropdownMenu>
             ) : (
               <div className="flex gap-2">
-                <Button variant="outline" onClick={() => setShowLoginDialog(true)}>
-                  Bejelentkezés
+                <Button variant="outline" onClick={() => setShowLoginDialog(true)} size="sm">
+                  <span className="hidden sm:inline">Bejelentkezés</span>
+                  <LogOut className="sm:hidden h-4 w-4" />
                 </Button>
-                <Button onClick={() => setShowRegisterDialog(true)}>
-                  Regisztráció
+                <Button onClick={() => setShowRegisterDialog(true)} size="sm">
+                  <span className="hidden sm:inline">Regisztráció</span>
+                  <User className="sm:hidden h-4 w-4" />
                 </Button>
               </div>
             )}
           </div>
         </div>
+        {/* Mobile Search */}
+        <div className="md:hidden mt-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              type="text"
+              placeholder="Keresés..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+        </div>
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden relative">
+        {/* Mobile Sidebar Overlay */}
+        {isSidebarOpen && (
+          <div 
+            className="md:hidden fixed inset-0 bg-black/50 z-40"
+            onClick={() => setIsSidebarOpen(false)}
+          />
+        )}
+
         {/* Categories Sidebar */}
-        <div className="w-64 bg-white/80 backdrop-blur-sm border-r border-gray-200 flex flex-col">
-          <div className="p-4 border-b border-gray-200">
-            <h2 className="font-semibold mb-3 flex items-center gap-2">
+        <div className={`
+          fixed md:relative inset-y-0 left-0 z-50 md:z-0
+          w-64 bg-white/80 backdrop-blur-sm border-r border-gray-200 flex flex-col
+          transform transition-transform duration-300 ease-in-out
+          ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+        `}>
+          <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+            <h2 className="font-semibold flex items-center gap-2">
               <span>Témakörök</span>
             </h2>
+            <button
+              onClick={() => setIsSidebarOpen(false)}
+              className="md:hidden p-1 hover:bg-gray-100 rounded"
+            >
+              <X className="h-5 w-5" />
+            </button>
           </div>
 
           <CategoryTree
             categories={categories}
             selectedCategoryId={selectedCategoryId}
-            onSelectCategory={setSelectedCategoryId}
+            onSelectCategory={(id) => {
+              setSelectedCategoryId(id);
+              setIsSidebarOpen(false);
+            }}
             onDeleteCategory={() => {}}
           />
         </div>
@@ -215,15 +261,15 @@ export default function ViewerPage() {
             </div>
           ) : !selectedCategoryId ? (
             // Landing page with featured content
-            <div className="p-6 max-w-7xl mx-auto">
+            <div className="p-3 md:p-6 max-w-7xl mx-auto">
               {/* Continue Where You Left Off */}
               {inProgressPresentations.length > 0 && (
-                <div className="mb-8">
-                  <div className="flex items-center gap-2 mb-4">
-                    <PlayCircle className="h-6 w-6 text-green-500" />
-                    <h3 className="text-2xl font-bold text-gray-900">Folytasd, ahol abbahagytad</h3>
+                <div className="mb-6 md:mb-8">
+                  <div className="flex items-center gap-2 mb-3 md:mb-4">
+                    <PlayCircle className="h-5 w-5 md:h-6 md:w-6 text-green-500" />
+                    <h3 className="text-xl md:text-2xl font-bold text-gray-900">Folytasd, ahol abbahagytad</h3>
                   </div>
-                  <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
+                  <div className="flex gap-3 md:gap-4 overflow-x-auto pb-4 scrollbar-hide">
                     {inProgressPresentations.map((progress) => (
                       <InProgressCard key={progress.id} progress={progress} />
                     ))}
@@ -233,10 +279,10 @@ export default function ViewerPage() {
 
               {/* Popular Presentations */}
               {filteredPopularPresentations.length > 0 && (
-                <div className="mb-8">
-                  <div className="flex items-center gap-2 mb-4">
-                    <TrendingUp className="h-6 w-6 text-orange-500" />
-                    <h3 className="text-2xl font-bold text-gray-900">Népszerű tananyagok</h3>
+                <div className="mb-6 md:mb-8">
+                  <div className="flex items-center gap-2 mb-3 md:mb-4">
+                    <TrendingUp className="h-5 w-5 md:h-6 md:w-6 text-orange-500" />
+                    <h3 className="text-xl md:text-2xl font-bold text-gray-900">Népszerű tananyagok</h3>
                   </div>
                   <HorizontalScrollCarousel
                     title=""

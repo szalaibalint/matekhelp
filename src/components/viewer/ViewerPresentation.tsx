@@ -23,6 +23,10 @@ export default function ViewerPresentation() {
   const [showResumeDialog, setShowResumeDialog] = useState(false);
   const [savedProgress, setSavedProgress] = useState<number | null>(null);
   const [savedAnswers, setSavedAnswers] = useState<any | null>(null);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+
+  const minSwipeDistance = 50;
 
   useEffect(() => {
     loadPresentationData();
@@ -98,6 +102,31 @@ export default function ViewerPresentation() {
       UserProgressService.saveProgress(id, currentIndex, slides.length, user.id, false, userAnswers);
     }
   }, [currentIndex, user, id, slides.length, showResults, userAnswers]);
+
+  // Touch handlers for swipe navigation
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+    
+    if (isLeftSwipe && currentIndex < slides.length - 1) {
+      setCurrentIndex(Math.min(slides.length - 1, currentIndex + 1));
+    }
+    if (isRightSwipe && currentIndex > 0) {
+      setCurrentIndex(Math.max(0, currentIndex - 1));
+    }
+  };
 
   const loadPresentationData = async () => {
     const { data: presData } = await supabase
@@ -340,8 +369,11 @@ export default function ViewerPresentation() {
       </div>
 
       <div
-        className="flex-1 overflow-y-auto flex items-start p-8"
+        className="flex-1 overflow-y-auto flex items-start p-3 md:p-8"
         style={{ backgroundColor: slideBackgroundColor, color: slideTextColor, minHeight: 'calc(100vh - 80px)' }}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
       >
         <div className="w-full">
           <SlideViewer
@@ -354,34 +386,83 @@ export default function ViewerPresentation() {
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-gray-200 p-4 flex items-center justify-between shadow-lg">
-        <Button variant="outline" onClick={() => navigate('/')}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Kilépés a tananyagból
-        </Button>
-        <div className="flex items-center space-x-3">
-          <span className="text-sm text-gray-500">
-            {currentIndex + 1} / {slides.length}
-          </span>
-          {user && (
-            <span className="text-sm font-semibold text-blue-600">
-              {Math.round(((currentIndex + 1) / slides.length) * 100)}%
+      <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-gray-200 p-2 md:p-4 shadow-lg">
+        {/* Mobile: Vertical Stack */}
+        <div className="flex md:hidden flex-col gap-2">
+          <div className="flex items-center justify-between px-2">
+            <span className="text-sm text-gray-500">
+              {currentIndex + 1} / {slides.length}
             </span>
-          )}
+            {user && (
+              <span className="text-sm font-semibold text-blue-600">
+                {Math.round(((currentIndex + 1) / slides.length) * 100)}%
+              </span>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => navigate('/')} 
+              className="flex-1 h-12 touch-manipulation"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => setCurrentIndex(Math.max(0, currentIndex - 1))} 
+              disabled={currentIndex === 0}
+              className="flex-1 h-12 touch-manipulation"
+            >
+              Előző
+            </Button>
+            {isLastSlide ? (
+              <Button 
+                onClick={() => setShowResults(true)} 
+                className="flex-1 h-12 touch-manipulation"
+              >
+                Eredmények
+              </Button>
+            ) : (
+              <Button 
+                onClick={() => setCurrentIndex(Math.min(slides.length - 1, currentIndex + 1))} 
+                className="flex-1 h-12 touch-manipulation"
+              >
+                Következő
+              </Button>
+            )}
+          </div>
         </div>
-        <div className="flex space-x-2">
-          <Button variant="outline" onClick={() => setCurrentIndex(Math.max(0, currentIndex - 1))} disabled={currentIndex === 0}>
-            Előző
+
+        {/* Desktop: Horizontal Layout */}
+        <div className="hidden md:flex items-center justify-between">
+          <Button variant="outline" onClick={() => navigate('/')}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Kilépés a tananyagból
           </Button>
-          {isLastSlide ? (
-            <Button onClick={() => setShowResults(true)}>
-              Eredmények megjelenítése
+          <div className="flex items-center space-x-3">
+            <span className="text-sm text-gray-500">
+              {currentIndex + 1} / {slides.length}
+            </span>
+            {user && (
+              <span className="text-sm font-semibold text-blue-600">
+                {Math.round(((currentIndex + 1) / slides.length) * 100)}%
+              </span>
+            )}
+          </div>
+          <div className="flex space-x-2">
+            <Button variant="outline" onClick={() => setCurrentIndex(Math.max(0, currentIndex - 1))} disabled={currentIndex === 0}>
+              Előző
             </Button>
-          ) : (
-            <Button onClick={() => setCurrentIndex(Math.min(slides.length - 1, currentIndex + 1))}>
-              Következő
-            </Button>
-          )}
+            {isLastSlide ? (
+              <Button onClick={() => setShowResults(true)}>
+                Eredmények megjelenítése
+              </Button>
+            ) : (
+              <Button onClick={() => setCurrentIndex(Math.min(slides.length - 1, currentIndex + 1))}>
+                Következő
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
