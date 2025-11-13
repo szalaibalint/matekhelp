@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Button } from '../ui/button';
 import { useNavigate } from 'react-router-dom';
 
@@ -9,6 +9,18 @@ interface ResultsPageProps {
 
 export const ResultsPage: React.FC<ResultsPageProps> = ({ correct, total }) => {
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === ' ' || e.key === 'Escape') {
+        e.preventDefault();
+        navigate('/');
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [navigate]);
 
   return (
     <div className="h-screen flex flex-col items-center justify-center text-gray-900 p-8">

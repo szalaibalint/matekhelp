@@ -21,6 +21,53 @@ export default function ViewerPresentation() {
     loadPresentationData();
   }, [id]);
 
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if user is typing in an input field
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      switch (e.key) {
+        case 'ArrowRight':
+        case ' ': // Space bar
+          e.preventDefault();
+          if (!showResults && currentIndex < slides.length - 1) {
+            setCurrentIndex(currentIndex + 1);
+          } else if (!showResults && currentIndex === slides.length - 1) {
+            setShowResults(true);
+          }
+          break;
+        case 'ArrowLeft':
+          e.preventDefault();
+          if (!showResults && currentIndex > 0) {
+            setCurrentIndex(currentIndex - 1);
+          }
+          break;
+        case 'ArrowDown':
+          e.preventDefault();
+          if (!showResults && currentIndex < slides.length - 1) {
+            setCurrentIndex(currentIndex + 1);
+          }
+          break;
+        case 'ArrowUp':
+          e.preventDefault();
+          if (!showResults && currentIndex > 0) {
+            setCurrentIndex(currentIndex - 1);
+          }
+          break;
+        case 'Escape':
+          e.preventDefault();
+          navigate('/');
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentIndex, slides.length, showResults, navigate]);
+
   const loadPresentationData = async () => {
     const { data: presData } = await supabase
       .from('presentations')
