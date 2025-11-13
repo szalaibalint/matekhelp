@@ -23,7 +23,8 @@ import {
   PanelLeftOpen,
   X,
   ArrowRight,
-  Sigma
+  Sigma,
+  Loader2
 } from 'lucide-react';
 import { supabase } from '../../../supabase/supabase';
 import { toast } from '../ui/use-toast';
@@ -364,7 +365,11 @@ export function PresentationEditor({ presentationId, onBack }: PresentationEdito
             Előnézet
           </Button>
           <Button onClick={saveAll} disabled={isSaving}>
-            <Save className="h-4 w-4 mr-2" />
+            {isSaving ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4 mr-2" />
+            )}
             {isSaving ? 'Mentés...' : 'Mentés'}
           </Button>
         </div>

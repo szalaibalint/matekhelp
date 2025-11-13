@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, useEffect, forwardRef } from 'react';
+import { useCallback, useMemo, useState, useEffect, forwardRef, useRef } from 'react';
 import { createEditor, Descendant, Editor, Transforms, Element as SlateElement, Text, Path, BaseEditor } from 'slate';
 import { Slate, Editable, withReact, useSlate, ReactEditor, useSelected, useFocused } from 'slate-react';
 import { withHistory, HistoryEditor } from 'slate-history';
@@ -36,6 +36,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { SketchPicker } from 'react-color';
 import { toast } from '../ui/use-toast';
+import { supabase } from '../../../supabase/supabase';
+import { Progress } from '../ui/progress';
 import UserInputElement from '../viewer/richtext/elements/UserInputElement';
 import MathElement from '../viewer/richtext/elements/MathElement';
 import DragBlankElement from '../viewer/richtext/elements/DragBlankElement';
@@ -321,6 +323,9 @@ export function RichTextEditor({ content, onChange, enableDragBlanks = false, bl
     return e;
   }, []);
   const [imageUrl, setImageUrl] = useState('');
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [videoUrl, setVideoUrl] = useState('');
   const [linkUrl, setLinkUrl] = useState('');
   const [linkText, setLinkText] = useState('');
@@ -337,6 +342,51 @@ export function RichTextEditor({ content, onChange, enableDragBlanks = false, bl
   const insertMathInline = (formula: string) => {
     const math = { type: 'math-inline', formula, children: [{ text: '' }] };
     Transforms.insertNodes(editor, math);
+  };
+
+  const handleImageUpload = async (file: File) => {
+    if (!file || !file.type.startsWith('image/')) {
+      toast({ title: 'Hiba', description: 'Kérlek válassz egy képfájlt!', variant: 'destructive' });
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadProgress(0);
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
+      const filePath = `images/${fileName}`;
+
+      // Simulate progress for better UX (Supabase doesn't provide real-time upload progress)
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => Math.min(prev + 10, 90));
+      }, 100);
+
+      const { data, error } = await supabase.storage
+        .from('presentation-images')
+        .upload(filePath, file);
+
+      clearInterval(progressInterval);
+      setUploadProgress(100);
+
+      if (error) throw error;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('presentation-images')
+        .getPublicUrl(filePath);
+
+      insertImage(publicUrl);
+      
+      setTimeout(() => {
+        setUploadProgress(0);
+        setIsUploading(false);
+      }, 500);
+    } catch (error: any) {
+      toast({ title: 'Hiba', description: error.message, variant: 'destructive' });
+      setIsUploading(false);
+      setUploadProgress(0);
+    }
   };
 
   const initialValue: Descendant[] = content.length > 0 ? content : [
@@ -611,12 +661,49 @@ export function RichTextEditor({ content, onChange, enableDragBlanks = false, bl
                 <DialogTitle>Kép beillesztése</DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
-                <Input
-                  placeholder="Kép URL-jének megadása"
-                  value={imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
-                />
-                <Button onClick={() => insertImage(imageUrl)} disabled={!imageUrl}>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Kép feltöltése</label>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleImageUpload(file);
+                    }}
+                    className="block w-full text-sm text-gray-500
+                      file:mr-4 file:py-2 file:px-4
+                      file:rounded-md file:border-0
+                      file:text-sm file:font-semibold
+                      file:bg-blue-50 file:text-blue-700
+                      hover:file:bg-blue-100"
+                    disabled={isUploading}
+                  />
+                  {isUploading && (
+                    <div className="mt-2">
+                      <Progress value={uploadProgress} className="h-2" />
+                      <p className="text-xs text-gray-500 mt-1">Feltöltés: {uploadProgress}%</p>
+                    </div>
+                  )}
+                </div>
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-white px-2 text-gray-500">vagy</span>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Kép URL megadása</label>
+                  <Input
+                    placeholder="https://example.com/image.jpg"
+                    value={imageUrl}
+                    onChange={(e) => setImageUrl(e.target.value)}
+                    disabled={isUploading}
+                  />
+                </div>
+                <Button onClick={() => insertImage(imageUrl)} disabled={!imageUrl || isUploading} className="w-full">
                   Kép beillesztése
                 </Button>
               </div>

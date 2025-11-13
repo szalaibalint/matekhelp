@@ -8,6 +8,7 @@ import { Category } from '../../services/CategoryService';
 import { PresentationCard } from './PresentationCard';
 import { PresentationSettingsDialog } from './PresentationSettingsDialog';
 import { DeletePresentationDialog } from './DeletePresentationDialog';
+import { Skeleton } from '../ui/skeleton';
 
 interface PresentationListProps {
   onSelect: (id: string) => void;
@@ -19,6 +20,7 @@ interface PresentationListProps {
 
 export function PresentationList({ onSelect, onCreateNew, categoryId, categories, searchQuery = '' }: PresentationListProps) {
   const [presentations, setPresentations] = useState<Presentation[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [editingPresentation, setEditingPresentation] = useState<Presentation | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -38,8 +40,10 @@ export function PresentationList({ onSelect, onCreateNew, categoryId, categories
   }, [categoryId]);
 
   const fetchPresentations = async () => {
+    setIsLoading(true);
     const data = await loadPresentations(categoryId);
     setPresentations(data);
+    setIsLoading(false);
   };
 
   const handleDuplicate = async (id: string) => {
@@ -85,29 +89,43 @@ export function PresentationList({ onSelect, onCreateNew, categoryId, categories
       </div>
 
       <div className="flex-1 overflow-y-auto p-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredPresentations.map((presentation) => (
-            <PresentationCard
-              key={presentation.id}
-              presentation={presentation}
-              onSelect={onSelect}
-              onDelete={setDeletingId}
-              onDuplicate={handleDuplicate}
-              onEditSettings={setEditingPresentation}
-            />
-          ))}
-        </div>
-
-        {filteredPresentations.length === 0 && (
-          <div className="text-center py-12">
-            <PresentationIcon className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Még nincsenek tananyagok</h3>
-            <p className="text-gray-500 mb-4">Hozd létre az első tananyagodat a kezdéshez.</p>
-            <Button onClick={onCreateNew}>
-              <Plus className="h-4 w-4 mr-2" />
-              Tananyag létrehozása
-            </Button>
+        {isLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="space-y-3">
+                <Skeleton className="h-48 w-full" />
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-4 w-1/2" />
+              </div>
+            ))}
           </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredPresentations.map((presentation) => (
+                <PresentationCard
+                  key={presentation.id}
+                  presentation={presentation}
+                  onSelect={onSelect}
+                  onDelete={setDeletingId}
+                  onDuplicate={handleDuplicate}
+                  onEditSettings={setEditingPresentation}
+                />
+              ))}
+            </div>
+
+            {filteredPresentations.length === 0 && (
+              <div className="text-center py-12">
+                <PresentationIcon className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Még nincsenek tananyagok</h3>
+                <p className="text-gray-500 mb-4">Hozd létre az első tananyagodat a kezdéshez.</p>
+                <Button onClick={onCreateNew}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Tananyag létrehozása
+                </Button>
+              </div>
+            )}
+          </>
         )}
       </div>
 

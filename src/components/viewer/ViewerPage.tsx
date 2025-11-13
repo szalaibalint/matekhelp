@@ -11,6 +11,7 @@ import { useViewerAuth } from '../../contexts/ViewerAuthContext';
 import { BookOpen, TrendingUp, Clock, User, LogOut, Search } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
+import { Skeleton } from '../ui/skeleton';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '../ui/dropdown-menu';
 
 export default function ViewerPage() {
@@ -21,6 +22,7 @@ export default function ViewerPage() {
   const [recentPresentations, setRecentPresentations] = useState<Presentation[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
   const [showLoginDialog, setShowLoginDialog] = useState(false);
   const [showRegisterDialog, setShowRegisterDialog] = useState(false);
 
@@ -39,6 +41,7 @@ export default function ViewerPage() {
   };
 
   const fetchFeaturedPresentations = async () => {
+    setIsLoading(true);
     const [popular, recent] = await Promise.all([
       getPopularPresentations(10),
       getRecentPresentations(10)
@@ -50,6 +53,7 @@ export default function ViewerPage() {
   const fetchPresentations = async () => {
     const data = await loadPresentations(selectedCategoryId);
     setPresentations(data.filter(p => p.status === 'published'));
+    setIsLoading(false);
   };
 
   const filteredPresentations = presentations.filter(p => {
@@ -166,7 +170,35 @@ export default function ViewerPage() {
 
         {/* Main Content Area */}
         <div className="flex-1 overflow-y-auto">
-          {!selectedCategoryId ? (
+          {isLoading ? (
+            // Loading skeletons
+            <div className="p-6 max-w-7xl mx-auto">
+              <div className="mb-8">
+                <Skeleton className="h-8 w-64 mb-4" />
+                <div className="flex gap-4 overflow-hidden">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="min-w-[300px] space-y-3">
+                      <Skeleton className="h-48 w-full" />
+                      <Skeleton className="h-4 w-3/4" />
+                      <Skeleton className="h-4 w-1/2" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="mb-8">
+                <Skeleton className="h-8 w-64 mb-4" />
+                <div className="flex gap-4 overflow-hidden">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="min-w-[300px] space-y-3">
+                      <Skeleton className="h-48 w-full" />
+                      <Skeleton className="h-4 w-3/4" />
+                      <Skeleton className="h-4 w-1/2" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : !selectedCategoryId ? (
             // Landing page with featured content
             <div className="p-6 max-w-7xl mx-auto">
               {/* Popular Presentations */}
