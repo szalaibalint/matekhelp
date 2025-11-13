@@ -3,7 +3,8 @@ import { PresentationList } from './PresentationList';
 import { PresentationEditor } from './PresentationEditor';
 import { supabase } from '../../../supabase/supabase';
 import { Button } from '../ui/button';
-import { LogOut } from 'lucide-react';
+import { Input } from '../ui/input';
+import { LogOut, Search } from 'lucide-react';
 import { useAuth } from '../../../supabase/auth';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '../ui/use-toast';
@@ -16,6 +17,7 @@ export default function AdminDashboard() {
   const [selectedPresentationId, setSelectedPresentationId] = useState<string | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const [deletingCategory, setDeletingCategory] = useState<Category | null>(null);
   const { signOut } = useAuth();
   const navigate = useNavigate();
@@ -82,6 +84,21 @@ export default function AdminDashboard() {
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">Tananyagok</h1>
+        
+        {/* Search Bar */}
+        <div className="flex-1 max-w-md mx-8">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              type="text"
+              placeholder="Keresés a tananyagok között..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+        </div>
+        
         <Button variant="outline" onClick={handleLogout}>
           <LogOut className="h-4 w-4 mr-2" />
           Kijelentkezés
@@ -112,6 +129,7 @@ export default function AdminDashboard() {
             onCreateNew={handleCreateNew}
             categoryId={selectedCategoryId}
             categories={categories}
+            searchQuery={searchQuery}
           />
         </div>
       </div>

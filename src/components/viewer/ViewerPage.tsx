@@ -8,8 +8,9 @@ import { HorizontalScrollCarousel } from './HorizontalScrollCarousel';
 import { ViewerLoginDialog } from './ViewerLoginDialog';
 import { ViewerRegisterDialog } from './ViewerRegisterDialog';
 import { useViewerAuth } from '../../contexts/ViewerAuthContext';
-import { BookOpen, TrendingUp, Clock, User, LogOut } from 'lucide-react';
+import { BookOpen, TrendingUp, Clock, User, LogOut, Search } from 'lucide-react';
 import { Button } from '../ui/button';
+import { Input } from '../ui/input';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '../ui/dropdown-menu';
 
 export default function ViewerPage() {
@@ -19,6 +20,7 @@ export default function ViewerPage() {
   const [popularPresentations, setPopularPresentations] = useState<Presentation[]>([]);
   const [recentPresentations, setRecentPresentations] = useState<Presentation[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const [showLoginDialog, setShowLoginDialog] = useState(false);
   const [showRegisterDialog, setShowRegisterDialog] = useState(false);
 
@@ -50,6 +52,33 @@ export default function ViewerPage() {
     setPresentations(data.filter(p => p.status === 'published'));
   };
 
+  const filteredPresentations = presentations.filter(p => {
+    if (!searchQuery) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      p.title?.toLowerCase().includes(query) ||
+      p.description?.toLowerCase().includes(query)
+    );
+  });
+
+  const filteredPopularPresentations = popularPresentations.filter(p => {
+    if (!searchQuery) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      p.title?.toLowerCase().includes(query) ||
+      p.description?.toLowerCase().includes(query)
+    );
+  });
+
+  const filteredRecentPresentations = recentPresentations.filter(p => {
+    if (!searchQuery) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      p.title?.toLowerCase().includes(query) ||
+      p.description?.toLowerCase().includes(query)
+    );
+  });
+
   return (
     <div className="h-screen flex flex-col bg-gradient-to-br from-blue-50 via-white to-purple-50">
       {/* Header */}
@@ -62,6 +91,20 @@ export default function ViewerPage() {
                 MatekHelp
               </h1>
               <p className="text-sm text-gray-600">Interaktív matematika tananyagok</p>
+            </div>
+          </div>
+
+          {/* Search Bar */}
+          <div className="flex-1 max-w-md mx-8">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                type="text"
+                placeholder="Keresés a tananyagok között..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
             </div>
           </div>
 
@@ -127,7 +170,7 @@ export default function ViewerPage() {
             // Landing page with featured content
             <div className="p-6 max-w-7xl mx-auto">
               {/* Popular Presentations */}
-              {popularPresentations.length > 0 && (
+              {filteredPopularPresentations.length > 0 && (
                 <div className="mb-8">
                   <div className="flex items-center gap-2 mb-4">
                     <TrendingUp className="h-6 w-6 text-orange-500" />
@@ -135,13 +178,13 @@ export default function ViewerPage() {
                   </div>
                   <HorizontalScrollCarousel
                     title=""
-                    presentations={popularPresentations}
+                    presentations={filteredPopularPresentations}
                   />
                 </div>
               )}
 
               {/* Recent Presentations */}
-              {recentPresentations.length > 0 && (
+              {filteredRecentPresentations.length > 0 && (
                 <div className="mb-8">
                   <div className="flex items-center gap-2 mb-4">
                     <Clock className="h-6 w-6 text-blue-500" />
@@ -149,7 +192,7 @@ export default function ViewerPage() {
                   </div>
                   <HorizontalScrollCarousel
                     title=""
-                    presentations={recentPresentations}
+                    presentations={filteredRecentPresentations}
                   />
                 </div>
               )}
@@ -157,13 +200,13 @@ export default function ViewerPage() {
               {/* All Presentations */}
               <div className="mt-12">
                 <h3 className="text-2xl font-bold text-gray-900 mb-6">Összes tananyag</h3>
-                <PresentationGrid presentations={presentations} />
+                <PresentationGrid presentations={filteredPresentations} />
               </div>
             </div>
           ) : (
             // Category filtered view
             <div className="p-6">
-              <PresentationGrid presentations={presentations} />
+              <PresentationGrid presentations={filteredPresentations} />
             </div>
           )}
         </div>

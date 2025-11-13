@@ -14,11 +14,11 @@ interface PresentationListProps {
   onCreateNew: () => void;
   categoryId: string | null;
   categories: Category[];
+  searchQuery?: string;
 }
 
-export function PresentationList({ onSelect, onCreateNew, categoryId, categories }: PresentationListProps) {
+export function PresentationList({ onSelect, onCreateNew, categoryId, categories, searchQuery = '' }: PresentationListProps) {
   const [presentations, setPresentations] = useState<Presentation[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
   const [editingPresentation, setEditingPresentation] = useState<Presentation | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -61,9 +61,14 @@ export function PresentationList({ onSelect, onCreateNew, categoryId, categories
 
   const categoryName = findCategoryName(categories, categoryId);
 
-  const filteredPresentations = presentations.filter(p =>
-    p.title.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredPresentations = presentations.filter(p => {
+    if (!searchQuery) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      p.title?.toLowerCase().includes(query) ||
+      p.description?.toLowerCase().includes(query)
+    );
+  });
 
   return (
     <div className="h-full flex flex-col bg-gray-50">
@@ -76,15 +81,6 @@ export function PresentationList({ onSelect, onCreateNew, categoryId, categories
             <Plus className="h-5 w-5 mr-2" />
             Új Tananyag
           </Button>
-        </div>
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input
-            placeholder="Tananyagok keresése..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-          />
         </div>
       </div>
 
