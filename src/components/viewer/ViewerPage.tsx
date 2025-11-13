@@ -2,13 +2,15 @@ import { useState, useEffect } from 'react';
 import { Category, loadCategories } from '../../services/CategoryService';
 import { Presentation, loadPresentations } from '../../services/PresentationService';
 import { getPopularPresentations, getRecentPresentations } from '../../services/PresentationTrackingService';
+import { UserProgressService, UserProgress } from '../../services/UserProgressService';
 import { CategoryTree } from '../admin/CategoryTree';
 import { PresentationGrid } from './PresentationGrid';
 import { HorizontalScrollCarousel } from './HorizontalScrollCarousel';
+import { InProgressCard } from './InProgressCard';
 import { ViewerLoginDialog } from './ViewerLoginDialog';
 import { ViewerRegisterDialog } from './ViewerRegisterDialog';
 import { useViewerAuth } from '../../contexts/ViewerAuthContext';
-import { BookOpen, TrendingUp, Clock, User, LogOut, Search } from 'lucide-react';
+import { BookOpen, TrendingUp, Clock, User, LogOut, Search, PlayCircle } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Skeleton } from '../ui/skeleton';
@@ -20,6 +22,7 @@ export default function ViewerPage() {
   const [presentations, setPresentations] = useState<Presentation[]>([]);
   const [popularPresentations, setPopularPresentations] = useState<Presentation[]>([]);
   const [recentPresentations, setRecentPresentations] = useState<Presentation[]>([]);
+  const [inProgressPresentations, setInProgressPresentations] = useState<UserProgress[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -34,6 +37,18 @@ export default function ViewerPage() {
   useEffect(() => {
     fetchPresentations();
   }, [selectedCategoryId]);
+
+  useEffect(() => {
+    const loadUserProgress = async () => {
+      if (user?.id) {
+        const progress = await UserProgressService.getInProgressPresentations(user.id);
+        setInProgressPresentations(progress);
+      } else {
+        setInProgressPresentations([]);
+      }
+    };
+    loadUserProgress();
+  }, [user]);
 
   const fetchCategories = async () => {
     const categoryTree = await loadCategories();
@@ -201,6 +216,21 @@ export default function ViewerPage() {
           ) : !selectedCategoryId ? (
             // Landing page with featured content
             <div className="p-6 max-w-7xl mx-auto">
+              {/* Continue Where You Left Off */}
+              {inProgressPresentations.length > 0 && (
+                <div className="mb-8">
+                  <div className="flex items-center gap-2 mb-4">
+                    <PlayCircle className="h-6 w-6 text-green-500" />
+                    <h3 className="text-2xl font-bold text-gray-900">Folytasd, ahol abbahagytad</h3>
+                  </div>
+                  <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
+                    {inProgressPresentations.map((progress) => (
+                      <InProgressCard key={progress.id} progress={progress} />
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Popular Presentations */}
               {filteredPopularPresentations.length > 0 && (
                 <div className="mb-8">

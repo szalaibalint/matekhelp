@@ -7,19 +7,43 @@ import { Slide, loadSlides } from '../../services/SlideService';
 import { SlideViewer } from './SlideViewer';
 import { ResultsPage } from './ResultsPage';
 import { incrementViewCount } from '../../services/PresentationTrackingService';
+import { UserProgressService } from '../../services/UserProgressService';
+import { useViewerAuth } from '../../contexts/ViewerAuthContext';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../ui/dialog';
 
 export default function ViewerPresentation() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useViewerAuth();
   const [presentation, setPresentation] = useState<any>(null);
   const [slides, setSlides] = useState<Slide[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [userAnswers, setUserAnswers] = useState<any>({});
   const [showResults, setShowResults] = useState(false);
+  const [showResumeDialog, setShowResumeDialog] = useState(false);
+  const [savedProgress, setSavedProgress] = useState<number | null>(null);
+  const [savedAnswers, setSavedAnswers] = useState<any | null>(null);
 
   useEffect(() => {
     loadPresentationData();
   }, [id]);
+
+  // Load saved progress
+  useEffect(() => {
+    const loadProgress = async () => {
+      if (user?.id && id) {
+        const progress = await UserProgressService.getProgress(id, user.id);
+        if (progress && progress.last_slide_index > 0 && progress.progress_percentage < 100) {
+          setSavedProgress(progress.last_slide_index);
+          setSavedAnswers(progress.user_answers || {});
+          setShowResumeDialog(true);
+        }
+      }
+    };
+    if (slides.length > 0) {
+      loadProgress();
+    }
+  }, [slides, user, id]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -67,6 +91,13 @@ export default function ViewerPresentation() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [currentIndex, slides.length, showResults, navigate]);
+
+  // Track progress when slide changes
+  useEffect(() => {
+    if (user?.id && id && slides.length > 0 && !showResults) {
+      UserProgressService.saveProgress(id, currentIndex, slides.length, user.id, false, userAnswers);
+    }
+  }, [currentIndex, user, id, slides.length, showResults, userAnswers]);
 
   const loadPresentationData = async () => {
     const { data: presData } = await supabase
@@ -287,6 +318,10 @@ export default function ViewerPresentation() {
 
   if (showResults) {
     const { correct, total } = calculateScore();
+    // Mark as completed when showing results
+    if (user?.id && id) {
+      UserProgressService.markAsCompleted(id, slides.length, user.id, correct, total);
+    }
     return <ResultsPage correct={correct} total={total} />;
   }
 
@@ -324,10 +359,15 @@ export default function ViewerPresentation() {
           <ArrowLeft className="h-4 w-4 mr-2" />
           Kilépés a tananyagból
         </Button>
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-3">
           <span className="text-sm text-gray-500">
             {currentIndex + 1} / {slides.length}
           </span>
+          {user && (
+            <span className="text-sm font-semibold text-blue-600">
+              {Math.round(((currentIndex + 1) / slides.length) * 100)}%
+            </span>
+          )}
         </div>
         <div className="flex space-x-2">
           <Button variant="outline" onClick={() => setCurrentIndex(Math.max(0, currentIndex - 1))} disabled={currentIndex === 0}>
@@ -344,6 +384,43 @@ export default function ViewerPresentation() {
           )}
         </div>
       </div>
+
+      {/* Resume Dialog */}
+      <Dialog open={showResumeDialog} onOpenChange={setShowResumeDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Folytatás</DialogTitle>
+            <DialogDescription>
+              Már elkezdted ezt a tananyagot. Szeretnéd folytatni, ahol abbahagytad?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowResumeDialog(false);
+                setCurrentIndex(0);
+                setUserAnswers({});
+              }}
+            >
+              Kezdés elölről
+            </Button>
+            <Button
+              onClick={() => {
+                if (savedProgress !== null) {
+                  setCurrentIndex(savedProgress);
+                }
+                if (savedAnswers !== null) {
+                  setUserAnswers(savedAnswers);
+                }
+                setShowResumeDialog(false);
+              }}
+            >
+              Folytatás ({savedProgress !== null ? savedProgress + 1 : 1}. dia)
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

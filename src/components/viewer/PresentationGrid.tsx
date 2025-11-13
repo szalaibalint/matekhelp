@@ -1,19 +1,42 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Presentation } from '../../services/PresentationService';
 import { ViewerPresentationCard } from './ViewerPresentationCard';
 import { Presentation as PresentationIcon } from 'lucide-react';
+import { UserProgressService, UserProgress } from '../../services/UserProgressService';
+import { useViewerAuth } from '../../contexts/ViewerAuthContext';
 
 interface PresentationGridProps {
   presentations: Presentation[];
 }
 
 export const PresentationGrid: React.FC<PresentationGridProps> = ({ presentations }) => {
+  const { user } = useViewerAuth();
+  const [progressMap, setProgressMap] = useState<Map<string, UserProgress>>(new Map());
+
+  useEffect(() => {
+    const loadProgress = async () => {
+      if (user?.id && presentations.length > 0) {
+        const ids = presentations.map(p => p.id);
+        const progress = await UserProgressService.getProgressForPresentations(ids, user.id);
+        setProgressMap(progress);
+      }
+    };
+    loadProgress();
+  }, [user, presentations]);
+
   return (
     <div className="flex-1 overflow-y-auto p-6">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {presentations.map((presentation) => (
-          <ViewerPresentationCard key={presentation.id} presentation={presentation} />
-        ))}
+        {presentations.map((presentation) => {
+          const progress = progressMap.get(presentation.id);
+          return (
+            <ViewerPresentationCard 
+              key={presentation.id} 
+              presentation={presentation}
+              bestScore={progress?.best_score_percentage}
+            />
+          );
+        })}
       </div>
 
       {presentations.length === 0 && (
