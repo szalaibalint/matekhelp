@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../ui/button';
 import { supabase } from '../../../supabase/supabase';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Maximize, Minimize } from 'lucide-react';
 import { Slide, loadSlides } from '../../services/SlideService';
 import { SlideViewer } from './SlideViewer';
 import { ResultsPage } from './ResultsPage';
@@ -29,9 +29,35 @@ export default function ViewerPresentation() {
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isRetrying, setIsRetrying] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const { toast } = useToast();
 
   const minSwipeDistance = 50;
+
+  // Fullscreen functions
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().then(() => {
+        setIsFullscreen(true);
+      }).catch((err) => {
+        console.error('Error attempting to enable fullscreen:', err);
+      });
+    } else {
+      document.exitFullscreen().then(() => {
+        setIsFullscreen(false);
+      });
+    }
+  };
+
+  // Listen for fullscreen changes
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
 
   useEffect(() => {
     loadPresentationData();
@@ -92,7 +118,22 @@ export default function ViewerPresentation() {
           break;
         case 'Escape':
           e.preventDefault();
-          navigate('/');
+          if (document.fullscreenElement) {
+            document.exitFullscreen();
+          } else {
+            navigate('/');
+          }
+          break;
+        case 'F11':
+          e.preventDefault();
+          toggleFullscreen();
+          break;
+        case 'f':
+        case 'F':
+          if (e.ctrlKey || e.metaKey) {
+            e.preventDefault();
+            toggleFullscreen();
+          }
           break;
       }
     };
@@ -413,7 +454,8 @@ export default function ViewerPresentation() {
   const slideTextColor = currentSlide?.textColor || presentation.theme?.textColor || '#000000';
 
   return (
-    <div className="h-screen flex flex-col">
+    <div className="h-screen flex flex-col relative">
+      {/* Progress bar */}
       <div className="h-2 bg-gray-200">
         <div
           className="h-full bg-blue-500 transition-all"
@@ -421,6 +463,23 @@ export default function ViewerPresentation() {
         />
       </div>
 
+      {/* Fullscreen Exit Button - Shown only in fullscreen */}
+      {isFullscreen && (
+        <div className="absolute top-4 right-4 z-50">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={toggleFullscreen}
+            className="shadow-lg bg-white/90 backdrop-blur-sm hover:bg-white"
+            title="Kilépés a teljes képernyőből (ESC vagy F11)"
+          >
+            <Minimize className="h-4 w-4 mr-2" />
+            Kilépés
+          </Button>
+        </div>
+      )}
+
+      {/* Slide container */}
       <div
         className="flex-1 overflow-y-auto flex items-start p-3 md:p-8"
         style={{ backgroundColor: slideBackgroundColor, color: slideTextColor, minHeight: 'calc(100vh - 80px)' }}
@@ -439,9 +498,11 @@ export default function ViewerPresentation() {
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-gray-200 p-2 md:p-4 shadow-lg">
-        {/* Mobile: Vertical Stack */}
-        <div className="flex md:hidden flex-col gap-2">
+      {/* Navigation Toolbar - Hidden in fullscreen */}
+      {!isFullscreen && (
+        <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-gray-200 p-2 md:p-4 shadow-lg">
+          {/* Mobile: Vertical Stack */}
+          <div className="flex md:hidden flex-col gap-2">
           <div className="flex items-center justify-between px-2">
             <span className="text-sm text-gray-500">
               {currentIndex + 1} / {slides.length}
@@ -517,7 +578,8 @@ export default function ViewerPresentation() {
             )}
           </div>
         </div>
-      </div>
+        </div>
+      )}
 
       {/* Resume Dialog */}
       <Dialog open={showResumeDialog} onOpenChange={setShowResumeDialog}>
