@@ -42,11 +42,27 @@ export const TextSlideViewer: React.FC<TextSlideViewerProps> = ({ slide, onAnswe
       );
     }
 
+    // Check if this is an empty paragraph (only contains empty text)
+    const isEmpty = (node.type === 'paragraph' || node.type === 'heading-one' || node.type === 'heading-two' || node.type === 'heading-three' || !node.type) && 
+                    node.children?.length === 1 && 
+                    Text.isText(node.children[0]) && 
+                    node.children[0].text === '';
+    
+    if (isEmpty) {
+      // Render an empty line with appropriate height based on the element type
+      let minHeight = '1.5em'; // default for paragraphs
+      if (node.type === 'heading-one') minHeight = '2.5em';
+      if (node.type === 'heading-two') minHeight = '2em';
+      if (node.type === 'heading-three') minHeight = '1.75em';
+      
+      return <div key={key} style={{ minHeight }}>&nbsp;</div>;
+    }
+
     return <Element key={key} element={node} attributes={{}}>{children}</Element>;
   };
 
   return (
-    <div className="prose prose-lg max-w-none relative min-h-[400px] pt-0 mt-0" style={{ whiteSpace: 'pre-wrap' }}>
+    <div className="prose prose-lg max-w-none relative min-h-[400px] pt-0 mt-0">
       {content.map((node: any, i: number) => renderNode(node, [i]))}
     </div>
   );

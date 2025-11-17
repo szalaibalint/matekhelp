@@ -17,7 +17,7 @@ const Leaf = ({ attributes, children, leaf }: any) => {
     children = <u>{children}</u>;
   }
 
-  const style: any = { whiteSpace: 'pre-wrap' };
+  const style: any = {};
   
   if (leaf.color) {
     style.color = leaf.color;
