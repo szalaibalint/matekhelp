@@ -67,3 +67,50 @@ x^{2}                      # Superscript
 
 For full LaTeX syntax, see the [KaTeX documentation](https://katex.org/docs/supported.html).
 
+## User Progress Dashboard
+
+The viewer application includes a comprehensive progress tracking dashboard that displays statistics, completed presentations, and performance over time.
+
+### Features
+
+- **Statistics Overview**: View key metrics including:
+  - Total completed presentations
+  - Average score across all presentations
+  - Number of perfect scores (100%)
+  - Presentations currently in progress
+
+- **Recent Activity Chart**: Visual representation of your latest results with:
+  - Color-coded progress bars (green for 90+%, blue for 70+%, yellow for 50+%, red for below 50%)
+  - Star indicators for perfect scores
+  - Top 10 most recent completions
+
+- **In Progress**: Quick access to presentations you've started but haven't completed yet, with:
+  - Completion percentage
+  - Last accessed date
+  - Direct "Continue" button to resume
+
+- **Completed Presentations**: Full list of finished presentations showing:
+  - Best score achieved
+  - Number of attempts
+  - Last completion date
+  - Emoji indicators based on performance
+  - Quick "Retry" button to improve your score
+
+### Accessing the Dashboard
+
+1. Log in to the viewer application
+2. Click on your username in the top-right corner
+3. Select "Haladásom" (My Progress) from the dropdown menu
+4. Or navigate directly to `/progress`
+
+### Score Tracking
+
+The system automatically tracks:
+- Your best score for each presentation
+- Total number of attempts
+- Progress percentage (based on slides completed)
+- User answers for each slide
+
+Scores are calculated based on correct answers and are saved persistently, allowing you to retry presentations and improve your performance.
+
+

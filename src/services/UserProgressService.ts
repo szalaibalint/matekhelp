@@ -111,6 +111,25 @@ export const UserProgressService = {
     }
   },
 
+  // Get all user progress (both completed and in-progress)
+  async getAllUserProgress(viewerUserId?: string): Promise<UserProgress[]> {
+    try {
+      if (!viewerUserId) return [];
+
+      const { data, error } = await supabase
+        .from('user_progress')
+        .select('*')
+        .eq('viewer_user_id', viewerUserId)
+        .order('last_accessed_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error: any) {
+      console.error('Failed to get all user progress:', error);
+      return [];
+    }
+  },
+
   // Get all in-progress presentations for a user
   async getInProgressPresentations(viewerUserId?: string): Promise<UserProgress[]> {
     try {

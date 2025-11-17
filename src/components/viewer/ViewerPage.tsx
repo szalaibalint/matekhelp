@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Category, loadCategories } from '../../services/CategoryService';
 import { Presentation, loadPresentations } from '../../services/PresentationService';
 import { getPopularPresentations, getRecentPresentations } from '../../services/PresentationTrackingService';
@@ -10,7 +11,7 @@ import { InProgressCard } from './InProgressCard';
 import { ViewerLoginDialog } from './ViewerLoginDialog';
 import { ViewerRegisterDialog } from './ViewerRegisterDialog';
 import { useViewerAuth } from '../../contexts/ViewerAuthContext';
-import { BookOpen, TrendingUp, Clock, User, LogOut, Search, PlayCircle, Menu, X, AlertCircle, RefreshCw } from 'lucide-react';
+import { BookOpen, TrendingUp, Clock, User, LogOut, Search, PlayCircle, Menu, X, AlertCircle, RefreshCw, Trophy } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Skeleton } from '../ui/skeleton';
@@ -19,6 +20,7 @@ import { useToast } from '../ui/use-toast';
 
 export default function ViewerPage() {
   const { user, isLoggedIn, logout } = useViewerAuth();
+  const navigate = useNavigate();
   const [categories, setCategories] = useState<Category[]>([]);
   const [presentations, setPresentations] = useState<Presentation[]>([]);
   const [popularPresentations, setPopularPresentations] = useState<Presentation[]>([]);
@@ -228,6 +230,10 @@ export default function ViewerPage() {
                     {user?.email}
                   </div>
                   <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => navigate('/progress')}>
+                    <Trophy className="h-4 w-4 mr-2" />
+                    Haladásom
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={logout}>
                     <LogOut className="h-4 w-4 mr-2" />
                     Kijelentkezés
