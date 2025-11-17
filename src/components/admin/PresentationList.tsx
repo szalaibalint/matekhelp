@@ -23,6 +23,23 @@ export function PresentationList({ onSelect, onCreateNew, categoryId, categories
   const [isLoading, setIsLoading] = useState(true);
   const [editingPresentation, setEditingPresentation] = useState<Presentation | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [categoryMap, setCategoryMap] = useState<Map<string, string>>(new Map());
+
+  // Build category map for quick lookups
+  useEffect(() => {
+    const buildCategoryMap = (cats: Category[], map: Map<string, string>) => {
+      cats.forEach(cat => {
+        map.set(cat.id, cat.name);
+        if (cat.children) {
+          buildCategoryMap(cat.children, map);
+        }
+      });
+    };
+    
+    const map = new Map<string, string>();
+    buildCategoryMap(categories, map);
+    setCategoryMap(map);
+  }, [categories]);
 
   useEffect(() => {
     fetchPresentations();
@@ -41,7 +58,7 @@ export function PresentationList({ onSelect, onCreateNew, categoryId, categories
 
   const fetchPresentations = async () => {
     setIsLoading(true);
-    const data = await loadPresentations(categoryId);
+    const data = await loadPresentations(categoryId, categories);
     setPresentations(data);
     setIsLoading(false);
   };
@@ -110,6 +127,7 @@ export function PresentationList({ onSelect, onCreateNew, categoryId, categories
                   onDelete={setDeletingId}
                   onDuplicate={handleDuplicate}
                   onEditSettings={setEditingPresentation}
+                  categoryName={categoryId ? categoryMap.get(presentation.category_id || '') : undefined}
                 />
               ))}
             </div>

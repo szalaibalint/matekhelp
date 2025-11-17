@@ -1,5 +1,6 @@
 import { supabase } from '../../supabase/supabase';
 import { toast } from '../components/ui/use-toast';
+import { Category } from './CategoryService';
 
 export interface Presentation {
   id: string;
@@ -11,13 +12,47 @@ export interface Presentation {
   updated_at: string;
 }
 
-export const loadPresentations = async (categoryId: string | null): Promise<Presentation[]> => {
+// Helper function to get all descendant category IDs
+const getAllDescendantIds = (category: Category): string[] => {
+  const ids = [category.id];
+  if (category.children && category.children.length > 0) {
+    category.children.forEach(child => {
+      ids.push(...getAllDescendantIds(child));
+    });
+  }
+  return ids;
+};
+
+export const loadPresentations = async (categoryId: string | null, categories?: Category[]): Promise<Presentation[]> => {
   let query = supabase
     .from('presentations')
     .select('*')
     .order('updated_at', { ascending: false });
 
-  if (categoryId) {
+  if (categoryId && categories) {
+    // Find the selected category
+    const findCategory = (cats: Category[]): Category | null => {
+      for (const cat of cats) {
+        if (cat.id === categoryId) return cat;
+        if (cat.children) {
+          const found = findCategory(cat.children);
+          if (found) return found;
+        }
+      }
+      return null;
+    };
+    
+    const selectedCategory = findCategory(categories);
+    if (selectedCategory) {
+      // Get all descendant category IDs including the selected one
+      const categoryIds = getAllDescendantIds(selectedCategory);
+      query = query.in('category_id', categoryIds);
+    } else {
+      // Fallback to just the selected category if not found in tree
+      query = query.eq('category_id', categoryId);
+    }
+  } else if (categoryId) {
+    // Fallback when categories array is not provided
     query = query.eq('category_id', categoryId);
   }
 

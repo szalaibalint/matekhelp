@@ -7,9 +7,10 @@ import { useViewerAuth } from '../../contexts/ViewerAuthContext';
 
 interface PresentationGridProps {
   presentations: Presentation[];
+  categoryMap?: Map<string, string>;
 }
 
-export const PresentationGrid: React.FC<PresentationGridProps> = ({ presentations }) => {
+export const PresentationGrid: React.FC<PresentationGridProps> = ({ presentations, categoryMap }) => {
   const { user } = useViewerAuth();
   const [progressMap, setProgressMap] = useState<Map<string, UserProgress>>(new Map());
 
@@ -34,6 +35,7 @@ export const PresentationGrid: React.FC<PresentationGridProps> = ({ presentation
               key={presentation.id} 
               presentation={presentation}
               bestScore={progress?.best_score_percentage}
+              categoryName={categoryMap?.get(presentation.category_id || '')}
             />
           );
         })}

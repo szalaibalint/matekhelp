@@ -3,7 +3,7 @@ import { Category, loadCategories } from '../../services/CategoryService';
 import { Presentation, loadPresentations } from '../../services/PresentationService';
 import { getPopularPresentations, getRecentPresentations } from '../../services/PresentationTrackingService';
 import { UserProgressService, UserProgress } from '../../services/UserProgressService';
-import { CategoryTree } from '../admin/CategoryTree';
+import { ViewerCategoryTree } from './ViewerCategoryTree';
 import { PresentationGrid } from './PresentationGrid';
 import { HorizontalScrollCarousel } from './HorizontalScrollCarousel';
 import { InProgressCard } from './InProgressCard';
@@ -31,7 +31,24 @@ export default function ViewerPage() {
   const [showLoginDialog, setShowLoginDialog] = useState(false);
   const [showRegisterDialog, setShowRegisterDialog] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [categoryMap, setCategoryMap] = useState<Map<string, string>>(new Map());
   const { toast } = useToast();
+
+  // Build category map for quick lookups
+  useEffect(() => {
+    const buildCategoryMap = (cats: Category[], map: Map<string, string>) => {
+      cats.forEach(cat => {
+        map.set(cat.id, cat.name);
+        if (cat.children) {
+          buildCategoryMap(cat.children, map);
+        }
+      });
+    };
+    
+    const map = new Map<string, string>();
+    buildCategoryMap(categories, map);
+    setCategoryMap(map);
+  }, [categories]);
 
   useEffect(() => {
     fetchCategories();
@@ -103,7 +120,7 @@ export default function ViewerPage() {
 
   const fetchPresentations = async () => {
     try {
-      const data = await loadPresentations(selectedCategoryId);
+      const data = await loadPresentations(selectedCategoryId, categories);
       setPresentations(data.filter(p => p.status === 'published'));
       setIsLoading(false);
       setLoadError(null);
@@ -275,14 +292,13 @@ export default function ViewerPage() {
             </button>
           </div>
 
-          <CategoryTree
+          <ViewerCategoryTree
             categories={categories}
             selectedCategoryId={selectedCategoryId}
             onSelectCategory={(id) => {
               setSelectedCategoryId(id);
               setIsSidebarOpen(false);
             }}
-            onDeleteCategory={() => {}}
           />
         </div>
 
@@ -371,7 +387,10 @@ export default function ViewerPage() {
           ) : (
             // Category filtered view
             <div className="p-6">
-              <PresentationGrid presentations={filteredPresentations} />
+              <PresentationGrid 
+                presentations={filteredPresentations} 
+                categoryMap={selectedCategoryId ? categoryMap : undefined}
+              />
             </div>
           )}
         </div>

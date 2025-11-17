@@ -4,7 +4,7 @@ import { Button } from '../ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../ui/dropdown-menu';
 import { Card, CardContent } from '../ui/card';
 import { Badge } from '../ui/badge';
-import { MoreVertical, Trash2, Copy, Eye, Settings, Presentation as PresentationIcon } from 'lucide-react';
+import { MoreVertical, Trash2, Copy, Eye, Settings, Presentation as PresentationIcon, Folder } from 'lucide-react';
 
 interface PresentationCardProps {
   presentation: Presentation;
@@ -12,6 +12,7 @@ interface PresentationCardProps {
   onDelete: (id: string) => void;
   onDuplicate: (id: string) => void;
   onEditSettings: (presentation: Presentation) => void;
+  categoryName?: string;
 }
 
 export const PresentationCard: React.FC<PresentationCardProps> = ({
@@ -20,6 +21,7 @@ export const PresentationCard: React.FC<PresentationCardProps> = ({
   onDelete,
   onDuplicate,
   onEditSettings,
+  categoryName,
 }) => {
   return (
     <Card
@@ -75,6 +77,12 @@ export const PresentationCard: React.FC<PresentationCardProps> = ({
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
+        {categoryName && (
+          <div className="flex items-center gap-1.5 mb-2">
+            <Folder className="h-3.5 w-3.5 text-blue-500" />
+            <span className="text-xs text-blue-600 font-medium">{categoryName}</span>
+          </div>
+        )}
         <h3 className="text-lg font-semibold mb-2 truncate">{presentation.title}</h3>
         <p className="text-sm text-gray-500 line-clamp-2 mb-3">
           {presentation.description || 'Nincs leírás'}

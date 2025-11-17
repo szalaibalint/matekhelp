@@ -3,15 +3,16 @@ import { Presentation } from '../../services/PresentationService';
 import { Button } from '../ui/button';
 import { Card, CardContent } from '../ui/card';
 import { Badge } from '../ui/badge';
-import { Play, Presentation as PresentationIcon, Trophy } from 'lucide-react';
+import { Play, Presentation as PresentationIcon, Trophy, Folder } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface ViewerPresentationCardProps {
   presentation: Presentation;
   bestScore?: number;
+  categoryName?: string;
 }
 
-export const ViewerPresentationCard: React.FC<ViewerPresentationCardProps> = ({ presentation, bestScore }) => {
+export const ViewerPresentationCard: React.FC<ViewerPresentationCardProps> = ({ presentation, bestScore, categoryName }) => {
   const navigate = useNavigate();
 
   return (
@@ -32,6 +33,12 @@ export const ViewerPresentationCard: React.FC<ViewerPresentationCardProps> = ({ 
             </div>
           )}
         </div>
+        {categoryName && (
+          <div className="flex items-center gap-1.5 mb-2">
+            <Folder className="h-3.5 w-3.5 text-blue-500" />
+            <span className="text-xs text-blue-600 font-medium">{categoryName}</span>
+          </div>
+        )}
         <h3 className="text-base md:text-lg font-semibold mb-2 line-clamp-2">{presentation.title}</h3>
         <p className="text-xs md:text-sm text-gray-500 line-clamp-2 mb-3">
           {presentation.description || 'Nincs leírás'}
