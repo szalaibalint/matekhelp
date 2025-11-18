@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { DndProvider, useDrag, useDrop, useDragLayer } from 'react-dnd';
 import { HTML5Backend, getEmptyImage } from 'react-dnd-html5-backend';
+import { TouchBackend } from 'react-dnd-touch-backend';
+import { MultiBackend, TouchTransition, MouseTransition } from 'dnd-multi-backend';
 import { Slide } from '../../services/SlideService';
 import { GripVertical } from 'lucide-react';
 
@@ -192,8 +194,24 @@ export const RankingSlideViewer: React.FC<RankingSlideViewerProps> = ({ slide, u
     setHoverIndex(index);
   };
 
+  // Create multi-backend options for mouse and touch support
+  const backendOptions = {
+    backends: [
+      {
+        backend: HTML5Backend,
+        transition: MouseTransition,
+      },
+      {
+        backend: TouchBackend,
+        options: { enableMouseEvents: true },
+        preview: true,
+        transition: TouchTransition,
+      },
+    ],
+  };
+
   return (
-    <DndProvider backend={HTML5Backend}>
+    <DndProvider backend={MultiBackend} options={backendOptions}>
       <CustomDragLayer />
       <div className="w-full max-w-2xl">
         <h2

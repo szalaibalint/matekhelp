@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { DndProvider, useDrag, useDrop, useDragLayer } from 'react-dnd';
 import { HTML5Backend, getEmptyImage } from 'react-dnd-html5-backend';
+import { TouchBackend } from 'react-dnd-touch-backend';
+import { MultiBackend, TouchTransition, MouseTransition } from 'dnd-multi-backend';
 import { Slide } from '../../services/SlideService';
 import { Check, X } from 'lucide-react';
 
@@ -266,8 +268,24 @@ export const MatchingSlideViewer: React.FC<MatchingSlideViewerProps> = ({ slide,
 
   const pairs = slide.content.pairs || [];
 
+  // Create multi-backend options for mouse and touch support
+  const backendOptions = {
+    backends: [
+      {
+        backend: HTML5Backend,
+        transition: MouseTransition,
+      },
+      {
+        backend: TouchBackend,
+        options: { enableMouseEvents: true },
+        preview: true,
+        transition: TouchTransition,
+      },
+    ],
+  };
+
   return (
-    <DndProvider backend={HTML5Backend}>
+    <DndProvider backend={MultiBackend} options={backendOptions}>
       <CustomDragLayer leftItems={leftItems} />
       <div className="w-full max-w-6xl">
         <h2
