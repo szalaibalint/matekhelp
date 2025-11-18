@@ -1,14 +1,18 @@
 import { useState, useEffect } from 'react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
-import { Plus, Search, Presentation as PresentationIcon } from 'lucide-react';
+import { Plus, Search, Presentation as PresentationIcon, CheckSquare } from 'lucide-react';
 import { supabase } from '../../../supabase/supabase';
 import { Presentation, loadPresentations, duplicatePresentation } from '../../services/PresentationService';
 import { Category } from '../../services/CategoryService';
 import { PresentationCard } from './PresentationCard';
 import { PresentationSettingsDialog } from './PresentationSettingsDialog';
 import { DeletePresentationDialog } from './DeletePresentationDialog';
+import { BulkOperationsToolbar } from './BulkOperationsToolbar';
+import { BulkMoveCategoryDialog } from './BulkMoveCategoryDialog';
+import { BulkDeleteDialog } from './BulkDeleteDialog';
 import { Skeleton } from '../ui/skeleton';
+import { useToast } from '../ui/use-toast';
 
 interface PresentationListProps {
   onSelect: (id: string) => void;
@@ -24,6 +28,11 @@ export function PresentationList({ onSelect, onCreateNew, categoryId, categories
   const [editingPresentation, setEditingPresentation] = useState<Presentation | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [categoryMap, setCategoryMap] = useState<Map<string, string>>(new Map());
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showBulkMoveDialog, setShowBulkMoveDialog] = useState(false);
+  const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
+  const { toast } = useToast();
 
   // Build category map for quick lookups
   useEffect(() => {
@@ -68,6 +77,118 @@ export function PresentationList({ onSelect, onCreateNew, categoryId, categories
     fetchPresentations();
   };
 
+  const toggleSelectionMode = () => {
+    setIsSelectionMode(!isSelectionMode);
+    if (isSelectionMode) {
+      setSelectedIds(new Set());
+    }
+  };
+
+  const toggleSelection = (id: string) => {
+    const newSelected = new Set(selectedIds);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedIds(newSelected);
+  };
+
+  const clearSelection = () => {
+    setSelectedIds(new Set());
+    setIsSelectionMode(false);
+  };
+
+  const handleBulkDelete = async () => {
+    try {
+      const idsToDelete = Array.from(selectedIds);
+      
+      const { error } = await supabase
+        .from('presentations')
+        .delete()
+        .in('id', idsToDelete);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Sikeres törlés',
+        description: `${idsToDelete.length} tananyag törölve.`,
+      });
+
+      clearSelection();
+      fetchPresentations();
+    } catch (error) {
+      console.error('Bulk delete error:', error);
+      toast({
+        title: 'Hiba történt',
+        description: 'Nem sikerült törölni a tananyagokat.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleBulkMove = async (targetCategoryId: string) => {
+    try {
+      const idsToMove = Array.from(selectedIds);
+      
+      const { error } = await supabase
+        .from('presentations')
+        .update({ category_id: targetCategoryId })
+        .in('id', idsToMove);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Sikeres áthelyezés',
+        description: `${idsToMove.length} tananyag áthelyezve.`,
+      });
+
+      clearSelection();
+      fetchPresentations();
+    } catch (error) {
+      console.error('Bulk move error:', error);
+      toast({
+        title: 'Hiba történt',
+        description: 'Nem sikerült áthelyezni a tananyagokat.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleBulkStatusChange = async (status: 'draft' | 'published' | 'archived') => {
+    try {
+      const idsToUpdate = Array.from(selectedIds);
+      
+      const { error } = await supabase
+        .from('presentations')
+        .update({ status })
+        .in('id', idsToUpdate);
+
+      if (error) throw error;
+
+      const statusNames = {
+        draft: 'Vázlat',
+        published: 'Publikált',
+        archived: 'Archivált',
+      };
+
+      toast({
+        title: 'Sikeres módosítás',
+        description: `${idsToUpdate.length} tananyag állapota: ${statusNames[status]}.`,
+      });
+
+      clearSelection();
+      fetchPresentations();
+    } catch (error) {
+      console.error('Bulk status change error:', error);
+      toast({
+        title: 'Hiba történt',
+        description: 'Nem sikerült módosítani az állapotokat.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const findCategoryName = (cats: Category[], id: string | null): string | null => {
     if (!id) return null;
     for (const cat of cats) {
@@ -91,17 +212,60 @@ export function PresentationList({ onSelect, onCreateNew, categoryId, categories
     );
   });
 
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl/Cmd + A to select all in selection mode
+      if ((e.ctrlKey || e.metaKey) && e.key === 'a' && isSelectionMode) {
+        e.preventDefault();
+        const allIds = new Set(filteredPresentations.map(p => p.id));
+        setSelectedIds(allIds);
+      }
+      // Escape to exit selection mode
+      if (e.key === 'Escape' && isSelectionMode) {
+        clearSelection();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isSelectionMode, filteredPresentations]);
+
   return (
     <div className="h-full flex flex-col bg-gray-50">
       <div className="p-6 bg-white border-b border-gray-200">
         <div className="flex items-center justify-between mb-4">
-          <h1 className="text-3xl font-bold text-gray-900">
-            {categoryName ? categoryName : 'Összes tananyag'}
-          </h1>
-          <Button onClick={onCreateNew} size="lg">
-            <Plus className="h-5 w-5 mr-2" />
-            Új Tananyag
-          </Button>
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-bold text-gray-900">
+              {categoryName ? categoryName : 'Összes tananyag'}
+            </h1>
+            {isSelectionMode && filteredPresentations.length > 0 && (
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => {
+                  const allIds = new Set(filteredPresentations.map(p => p.id));
+                  setSelectedIds(allIds);
+                }}
+              >
+                Összes kijelölése
+              </Button>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <Button 
+              variant={isSelectionMode ? "secondary" : "outline"} 
+              onClick={toggleSelectionMode}
+              size="lg"
+            >
+              <CheckSquare className="h-5 w-5 mr-2" />
+              {isSelectionMode ? 'Kijelölés vége' : 'Kijelölés'}
+            </Button>
+            <Button onClick={onCreateNew} size="lg">
+              <Plus className="h-5 w-5 mr-2" />
+              Új Tananyag
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -128,6 +292,9 @@ export function PresentationList({ onSelect, onCreateNew, categoryId, categories
                   onDuplicate={handleDuplicate}
                   onEditSettings={setEditingPresentation}
                   categoryName={categoryId ? categoryMap.get(presentation.category_id || '') : undefined}
+                  isSelectionMode={isSelectionMode}
+                  isSelected={selectedIds.has(presentation.id)}
+                  onToggleSelection={toggleSelection}
                 />
               ))}
             </div>
@@ -158,6 +325,32 @@ export function PresentationList({ onSelect, onCreateNew, categoryId, categories
         deletingId={deletingId}
         onClose={() => setDeletingId(null)}
         onPresentationDeleted={fetchPresentations}
+      />
+
+      <BulkOperationsToolbar
+        selectedCount={selectedIds.size}
+        onClearSelection={clearSelection}
+        onDelete={() => setShowBulkDeleteDialog(true)}
+        onMoveToCategory={() => setShowBulkMoveDialog(true)}
+        onChangeStatus={handleBulkStatusChange}
+      />
+
+      <BulkMoveCategoryDialog
+        isOpen={showBulkMoveDialog}
+        onClose={() => setShowBulkMoveDialog(false)}
+        onConfirm={handleBulkMove}
+        selectedCount={selectedIds.size}
+        categories={categories}
+      />
+
+      <BulkDeleteDialog
+        isOpen={showBulkDeleteDialog}
+        onClose={() => setShowBulkDeleteDialog(false)}
+        onConfirm={() => {
+          handleBulkDelete();
+          setShowBulkDeleteDialog(false);
+        }}
+        selectedCount={selectedIds.size}
       />
     </div>
   );

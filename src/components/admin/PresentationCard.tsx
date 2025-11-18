@@ -4,7 +4,7 @@ import { Button } from '../ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../ui/dropdown-menu';
 import { Card, CardContent } from '../ui/card';
 import { Badge } from '../ui/badge';
-import { MoreVertical, Trash2, Copy, Eye, Settings, Presentation as PresentationIcon, Folder } from 'lucide-react';
+import { MoreVertical, Trash2, Copy, Eye, Settings, Presentation as PresentationIcon, Folder, CheckCircle2 } from 'lucide-react';
 
 interface PresentationCardProps {
   presentation: Presentation;
@@ -13,6 +13,9 @@ interface PresentationCardProps {
   onDuplicate: (id: string) => void;
   onEditSettings: (presentation: Presentation) => void;
   categoryName?: string;
+  isSelectionMode?: boolean;
+  isSelected?: boolean;
+  onToggleSelection?: (id: string) => void;
 }
 
 export const PresentationCard: React.FC<PresentationCardProps> = ({
@@ -22,60 +25,83 @@ export const PresentationCard: React.FC<PresentationCardProps> = ({
   onDuplicate,
   onEditSettings,
   categoryName,
+  isSelectionMode = false,
+  isSelected = false,
+  onToggleSelection,
 }) => {
+  const handleCardClick = () => {
+    if (isSelectionMode && onToggleSelection) {
+      onToggleSelection(presentation.id);
+    } else {
+      onSelect(presentation.id);
+    }
+  };
+
   return (
     <Card
-      className="cursor-pointer hover:shadow-lg transition-shadow"
-      onClick={() => onSelect(presentation.id)}
+      className={`cursor-pointer hover:shadow-lg transition-all ${
+        isSelected ? 'ring-2 ring-blue-500 shadow-lg' : ''
+      }`}
+      onClick={handleCardClick}
     >
       <CardContent className="p-6">
         <div className="flex items-start justify-between mb-3">
           <div className="flex items-center space-x-2">
-            <PresentationIcon className="h-5 w-5 text-purple-600" />
+            {isSelectionMode ? (
+              <div className={`h-5 w-5 rounded-full border-2 flex items-center justify-center ${
+                isSelected ? 'bg-blue-500 border-blue-500' : 'border-gray-300'
+              }`}>
+                {isSelected && <CheckCircle2 className="h-4 w-4 text-white" />}
+              </div>
+            ) : (
+              <PresentationIcon className="h-5 w-5 text-purple-600" />
+            )}
             <Badge variant={presentation.status === 'published' ? 'default' : 'secondary'}>
               {presentation.status === 'published' ? 'Nyilvános' : presentation.status === 'draft' ? 'Piszkozat' : 'Archivált'}
             </Badge>
           </div>
-          <DropdownMenu modal={false}>
-            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                <MoreVertical className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem onClick={(e) => {
-                e.stopPropagation();
-                onSelect(presentation.id);
-              }}>
-                <Eye className="h-4 w-4 mr-2" />
-                Megnyitás
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={(e) => {
-                e.stopPropagation();
-                onEditSettings(presentation);
-              }}>
-                <Settings className="h-4 w-4 mr-2" />
-                Beállítások
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={(e) => {
-                e.stopPropagation();
-                onDuplicate(presentation.id);
-              }}>
-                <Copy className="h-4 w-4 mr-2" />
-                Duplikálás
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={(e) => {
+          {!isSelectionMode && (
+            <DropdownMenu modal={false}>
+              <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem onClick={(e) => {
                   e.stopPropagation();
-                  onDelete(presentation.id);
-                }}
-                className="text-red-600"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Törlés
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                  onSelect(presentation.id);
+                }}>
+                  <Eye className="h-4 w-4 mr-2" />
+                  Megnyitás
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={(e) => {
+                  e.stopPropagation();
+                  onEditSettings(presentation);
+                }}>
+                  <Settings className="h-4 w-4 mr-2" />
+                  Beállítások
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={(e) => {
+                  e.stopPropagation();
+                  onDuplicate(presentation.id);
+                }}>
+                  <Copy className="h-4 w-4 mr-2" />
+                  Duplikálás
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete(presentation.id);
+                  }}
+                  className="text-red-600"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Törlés
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
         {categoryName && (
           <div className="flex items-center gap-1.5 mb-2">
