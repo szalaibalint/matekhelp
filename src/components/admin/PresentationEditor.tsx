@@ -189,6 +189,12 @@ export function PresentationEditor({ presentationId, onBack }: PresentationEdito
       defaultCorrectAnswer = true;
     } else if (type === 'fill_in_blanks') {
       defaultPoints = 30;
+    } else if (type === 'matching') {
+      // Calculate points based on pairs and pointsPerPair
+      const matchingContent = defaultContent as { pairs?: any[]; pointsPerPair?: number };
+      const pairs = matchingContent.pairs?.length || 0;
+      const pointsPerPair = matchingContent.pointsPerPair || 1;
+      defaultPoints = pairs * pointsPerPair;
     }
     
     const newSlide: Slide = {
@@ -1105,8 +1111,11 @@ function SlideEditor({ slide, onChange, theme }: { slide: Slide; onChange: (upda
                     variant="ghost"
                     onClick={() => {
                       const newPairs = slide.content.pairs.filter((_: any, i: number) => i !== index);
+                      const pointsPerPair = slide.content.pointsPerPair ?? 1;
+                      const totalPoints = newPairs.length * pointsPerPair;
                       onChange({ 
-                        content: { ...slide.content, pairs: newPairs }
+                        content: { ...slide.content, pairs: newPairs },
+                        points: totalPoints
                       });
                     }}
                   >
@@ -1245,7 +1254,12 @@ function SlideEditor({ slide, onChange, theme }: { slide: Slide; onChange: (upda
                   leftColor: '#ffffff',
                   rightColor: '#ffffff'
                 }];
-                onChange({ content: { ...slide.content, pairs: newPairs } });
+                const pointsPerPair = slide.content.pointsPerPair ?? 1;
+                const totalPoints = newPairs.length * pointsPerPair;
+                onChange({ 
+                  content: { ...slide.content, pairs: newPairs },
+                  points: totalPoints
+                });
               }}
             >
               <Plus className="h-4 w-4 mr-2" />
