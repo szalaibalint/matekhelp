@@ -11,16 +11,30 @@ const loadKatex = async () => {
 };
 
 const renderMathText = async (text: string): Promise<string> => {
-  // Check if text contains LaTeX (starts with backslash)
-  if (!text.includes('\\')) {
+  // Strip $ delimiters if present ($$formula$$ or $formula$)
+  let formula = text;
+  let displayMode = false;
+  
+  // Check for display math: $$formula$$
+  if (formula.startsWith('$$') && formula.endsWith('$$')) {
+    formula = formula.slice(2, -2);
+    displayMode = true;
+  }
+  // Check for inline math: $formula$
+  else if (formula.startsWith('$') && formula.endsWith('$')) {
+    formula = formula.slice(1, -1);
+  }
+  
+  // Check if formula contains LaTeX (contains backslash)
+  if (!formula.includes('\\')) {
     return text;
   }
   
   try {
     const katex = await loadKatex();
-    return katex.renderToString(text, {
+    return katex.renderToString(formula, {
       throwOnError: false,
-      displayMode: false,
+      displayMode,
     });
   } catch (e) {
     return text;
