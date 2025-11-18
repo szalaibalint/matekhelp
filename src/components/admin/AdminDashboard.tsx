@@ -19,6 +19,7 @@ export default function AdminDashboard() {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [deletingCategory, setDeletingCategory] = useState<Category | null>(null);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const { signOut } = useAuth();
   const navigate = useNavigate();
 
@@ -63,6 +64,11 @@ export default function AdminDashboard() {
     if (selectedCategoryId === deletingCategory?.id) {
       setSelectedCategoryId(null);
     }
+  };
+
+  const handleEditComplete = () => {
+    fetchCategories();
+    setEditingCategory(null);
   };
 
   const handleLogout = async () => {
@@ -111,7 +117,12 @@ export default function AdminDashboard() {
         <div className="w-64 bg-white border-r border-gray-200 flex flex-col">
           <div className="p-4 border-b border-gray-200">
             <h2 className="font-semibold mb-3">Témakörök</h2>
-            <CategoryDialog categories={categories} onCategoryCreated={fetchCategories} />
+            <CategoryDialog 
+              categories={categories} 
+              onCategoryCreated={fetchCategories}
+              editingCategory={editingCategory}
+              onEditComplete={handleEditComplete}
+            />
           </div>
 
           <CategoryTree
@@ -119,6 +130,7 @@ export default function AdminDashboard() {
             selectedCategoryId={selectedCategoryId}
             onSelectCategory={setSelectedCategoryId}
             onDeleteCategory={setDeletingCategory}
+            onEditCategory={setEditingCategory}
           />
         </div>
 

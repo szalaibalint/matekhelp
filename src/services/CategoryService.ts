@@ -69,6 +69,32 @@ export const createCategory = async (newCategory: { name: string; description: s
   }
 };
 
+export const updateCategory = async (categoryId: string, updates: { name: string; description: string; parent_id: string | null }) => {
+  try {
+    const { error } = await supabase
+      .from('categories')
+      .update({
+        name: updates.name,
+        description: updates.description,
+        parent_id: updates.parent_id
+      })
+      .eq('id', categoryId);
+
+    if (error) throw error;
+
+    toast({
+      title: 'Siker',
+      description: 'A témakör sikeresen frissítve',
+    });
+  } catch (error: any) {
+    toast({
+      title: 'Hiba',
+      description: error.message,
+      variant: 'destructive',
+    });
+  }
+};
+
 export const deleteCategory = async (deletingCategory: Category) => {
   try {
     // Reassign presentations to the parent category or null

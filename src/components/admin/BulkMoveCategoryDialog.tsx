@@ -58,6 +58,7 @@ export function BulkMoveCategoryDialog({
               selectedCategoryId={selectedCategoryId}
               onSelectCategory={setSelectedCategoryId}
               onDeleteCategory={() => {}}
+              onEditCategory={() => {}}
             />
           )}
         </div>

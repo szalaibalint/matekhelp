@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { Category } from '../../services/CategoryService';
 import { Button } from '../ui/button';
-import { Folder, ChevronRight, ChevronDown, Trash2 } from 'lucide-react';
+import { Folder, ChevronRight, ChevronDown, Trash2, Pencil } from 'lucide-react';
 
 interface CategoryTreeProps {
   categories: Category[];
   selectedCategoryId: string | null;
   onSelectCategory: (id: string | null) => void;
   onDeleteCategory: (category: Category) => void;
+  onEditCategory: (category: Category) => void;
 }
 
 export const CategoryTree: React.FC<CategoryTreeProps> = ({
@@ -15,6 +16,7 @@ export const CategoryTree: React.FC<CategoryTreeProps> = ({
   selectedCategoryId,
   onSelectCategory,
   onDeleteCategory,
+  onEditCategory,
 }) => {
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
 
@@ -63,17 +65,30 @@ export const CategoryTree: React.FC<CategoryTreeProps> = ({
             <Folder className={`h-4 w-4 mr-2 flex-shrink-0 ${isSelected ? 'text-blue-700' : 'text-blue-500'}`} />
             <span className={`text-sm truncate ${isSelected ? 'font-semibold text-blue-900' : 'text-gray-700'}`}>{category.name}</span>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 hover:bg-red-50"
-            onClick={(e) => {
-              e.stopPropagation();
-              onDeleteCategory(category);
-            }}
-          >
-            <Trash2 className="h-3 w-3 text-red-500" />
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 hover:bg-blue-50"
+              onClick={(e) => {
+                e.stopPropagation();
+                onEditCategory(category);
+              }}
+            >
+              <Pencil className="h-3 w-3 text-blue-500" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 hover:bg-red-50"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDeleteCategory(category);
+              }}
+            >
+              <Trash2 className="h-3 w-3 text-red-500" />
+            </Button>
+          </div>
         </div>
         {isExpanded && hasChildren && (
           <div className="mt-1 border-l-2 border-gray-200 ml-3">
