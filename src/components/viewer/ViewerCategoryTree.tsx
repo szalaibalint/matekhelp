@@ -7,14 +7,20 @@ interface ViewerCategoryTreeProps {
   categories: Category[];
   selectedCategoryId: string | null;
   onSelectCategory: (id: string | null) => void;
+  expandedCategories?: Set<string>;
+  onExpandedChange?: (expanded: Set<string>) => void;
 }
 
 export const ViewerCategoryTree: React.FC<ViewerCategoryTreeProps> = ({
   categories,
   selectedCategoryId,
   onSelectCategory,
+  expandedCategories: externalExpanded,
+  onExpandedChange,
 }) => {
-  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+  const [internalExpanded, setInternalExpanded] = useState<Set<string>>(new Set());
+  const expandedCategories = externalExpanded || internalExpanded;
+  const setExpandedCategories = onExpandedChange || setInternalExpanded;
 
   const toggleCategory = (categoryId: string) => {
     const newExpanded = new Set(expandedCategories);
@@ -23,7 +29,11 @@ export const ViewerCategoryTree: React.FC<ViewerCategoryTreeProps> = ({
     } else {
       newExpanded.add(categoryId);
     }
-    setExpandedCategories(newExpanded);
+    if (onExpandedChange) {
+      onExpandedChange(newExpanded);
+    } else {
+      setInternalExpanded(newExpanded);
+    }
   };
 
   const renderCategory = (category: Category, level: number = 0) => {

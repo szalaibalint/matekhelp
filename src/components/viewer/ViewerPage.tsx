@@ -5,6 +5,7 @@ import { Presentation, loadPresentations } from '../../services/PresentationServ
 import { getPopularPresentations, getRecentPresentations } from '../../services/PresentationTrackingService';
 import { UserProgressService, UserProgress } from '../../services/UserProgressService';
 import { ViewerCategoryTree } from './ViewerCategoryTree';
+import { SubcategoryGrid } from './SubcategoryGrid';
 import { PresentationGrid } from './PresentationGrid';
 import { HorizontalScrollCarousel } from './HorizontalScrollCarousel';
 import { InProgressCard } from './InProgressCard';
@@ -34,6 +35,7 @@ export default function ViewerPage() {
   const [showRegisterDialog, setShowRegisterDialog] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [categoryMap, setCategoryMap] = useState<Map<string, string>>(new Map());
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const { toast } = useToast();
 
   // Build category map for quick lookups
@@ -147,6 +149,49 @@ export default function ViewerPage() {
       });
     }
   };
+
+  // Helper function to find a category by ID in the tree
+  const findCategoryById = (cats: Category[], id: string): Category | null => {
+    for (const cat of cats) {
+      if (cat.id === id) return cat;
+      if (cat.children) {
+        const found = findCategoryById(cat.children, id);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+
+  // Helper function to build path to a category (all parent IDs)
+  const buildPathToCategory = (cats: Category[], targetId: string, path: string[] = []): string[] | null => {
+    for (const cat of cats) {
+      if (cat.id === targetId) {
+        return path;
+      }
+      if (cat.children) {
+        const found = buildPathToCategory(cat.children, targetId, [...path, cat.id]);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+
+  // Handle category selection and auto-expand path
+  const handleCategorySelect = (id: string | null) => {
+    setSelectedCategoryId(id);
+    setIsSidebarOpen(false);
+    
+    // Auto-expand path to selected category
+    if (id) {
+      const path = buildPathToCategory(categories, id);
+      if (path) {
+        setExpandedCategories(new Set(path));
+      }
+    }
+  };
+
+  const selectedCategory = selectedCategoryId ? findCategoryById(categories, selectedCategoryId) : null;
+  const hasSubcategories = selectedCategory?.children && selectedCategory.children.length > 0;
 
   const filteredPresentations = presentations.filter(p => {
     if (!searchQuery) return true;
@@ -301,10 +346,9 @@ export default function ViewerPage() {
           <ViewerCategoryTree
             categories={categories}
             selectedCategoryId={selectedCategoryId}
-            onSelectCategory={(id) => {
-              setSelectedCategoryId(id);
-              setIsSidebarOpen(false);
-            }}
+            onSelectCategory={handleCategorySelect}
+            expandedCategories={expandedCategories}
+            onExpandedChange={setExpandedCategories}
           />
         </div>
 
@@ -390,8 +434,14 @@ export default function ViewerPage() {
                 <PresentationGrid presentations={filteredPresentations} />
               </div>
             </div>
+          ) : selectedCategoryId && hasSubcategories ? (
+            // Subcategory view - show folders
+            <SubcategoryGrid 
+              subcategories={selectedCategory!.children!}
+              onSelectCategory={handleCategorySelect}
+            />
           ) : (
-            // Category filtered view
+            // Category filtered view with presentations
             <div className="p-6">
               <PresentationGrid 
                 presentations={filteredPresentations} 
