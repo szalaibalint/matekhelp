@@ -27,6 +27,14 @@ const Leaf = ({ attributes, children, leaf }: any) => {
     style.backgroundColor = leaf.backgroundColor;
   }
 
+  if (leaf.fontSize) {
+    style.fontSize = leaf.fontSize;
+  }
+
+  if (leaf.fontFamily) {
+    style.fontFamily = leaf.fontFamily;
+  }
+
   return <span {...attributes} style={style}>{children}</span>;
 };
 

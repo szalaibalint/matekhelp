@@ -46,7 +46,7 @@ import isBlock from '../viewer/richtext/isBlock';
 import { Slide } from '../../services/SlideService';
 
 type CustomElement = { type: string; align?: string; children: CustomText[] | CustomElement[]; url?: string; width?: number; height?: number; rotation?: number; float?: string; correctAnswer?: string; }
-type CustomText = { text: string; bold?: boolean; italic?: boolean; underline?: boolean; code?: boolean; color?: string }
+type CustomText = { text: string; bold?: boolean; italic?: boolean; underline?: boolean; code?: boolean; color?: string; fontSize?: string; fontFamily?: string }
 
 declare module 'slate' {
   interface CustomTypes {
@@ -356,6 +356,8 @@ export function RichTextEditor({ content, onChange, enableDragBlanks = false, bl
   const [textColor, setTextColor] = useState('#000000');
   const [showBgColorPicker, setShowBgColorPicker] = useState(false);
   const [bgColor, setBgColor] = useState('#ffff00');
+  const [fontSize, setFontSize] = useState('16px');
+  const [fontFamily, setFontFamily] = useState('Inter');
   const [showInputDialog, setShowInputDialog] = useState(false);
   const [inputFieldData, setInputFieldData] = useState<{ placeholder: string; correctAnswer: string; points: string | number }>({ placeholder: 'Answer', correctAnswer: '', points: 10 });
   const [editingInputFieldPath, setEditingInputFieldPath] = useState<Path | null>(null);
@@ -664,6 +666,16 @@ export function RichTextEditor({ content, onChange, enableDragBlanks = false, bl
     setTextColor(color);
   };
 
+  const applyFontSize = (size: string) => {
+    toggleMark(editor, 'fontSize', size);
+    setFontSize(size);
+  };
+
+  const applyFontFamily = (family: string) => {
+    toggleMark(editor, 'fontFamily', family);
+    setFontFamily(family);
+  };
+
   const applyBgColor = (color: string) => {
     toggleMark(editor, 'backgroundColor', color);
     setBgColor(color);
@@ -711,6 +723,45 @@ export function RichTextEditor({ content, onChange, enableDragBlanks = false, bl
               />
             </PopoverContent>
           </Popover>
+          
+          <Separator orientation="vertical" className="h-6" />
+          
+          <Select value={fontSize} onValueChange={applyFontSize}>
+            <SelectTrigger className="w-[100px] h-8">
+              <SelectValue placeholder="Méret" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="12px">12px</SelectItem>
+              <SelectItem value="14px">14px</SelectItem>
+              <SelectItem value="16px">16px</SelectItem>
+              <SelectItem value="18px">18px</SelectItem>
+              <SelectItem value="20px">20px</SelectItem>
+              <SelectItem value="24px">24px</SelectItem>
+              <SelectItem value="28px">28px</SelectItem>
+              <SelectItem value="32px">32px</SelectItem>
+              <SelectItem value="36px">36px</SelectItem>
+              <SelectItem value="48px">48px</SelectItem>
+              <SelectItem value="64px">64px</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={fontFamily} onValueChange={applyFontFamily}>
+            <SelectTrigger className="w-[140px] h-8">
+              <SelectValue placeholder="Betűtípus" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Inter">Inter</SelectItem>
+              <SelectItem value="Arial">Arial</SelectItem>
+              <SelectItem value="Helvetica">Helvetica</SelectItem>
+              <SelectItem value="Times New Roman">Times New Roman</SelectItem>
+              <SelectItem value="Georgia">Georgia</SelectItem>
+              <SelectItem value="Courier New">Courier New</SelectItem>
+              <SelectItem value="Verdana">Verdana</SelectItem>
+              <SelectItem value="Comic Sans MS">Comic Sans MS</SelectItem>
+              <SelectItem value="Impact">Impact</SelectItem>
+              <SelectItem value="Trebuchet MS">Trebuchet MS</SelectItem>
+            </SelectContent>
+          </Select>
           
           <Separator orientation="vertical" className="h-6" />
           
@@ -1615,6 +1666,14 @@ const Leaf = ({ attributes, children, leaf }: any) => {
   
   if (leaf.backgroundColor) {
     style.backgroundColor = leaf.backgroundColor;
+  }
+
+  if (leaf.fontSize) {
+    style.fontSize = leaf.fontSize;
+  }
+
+  if (leaf.fontFamily) {
+    style.fontFamily = leaf.fontFamily;
   }
 
   return <span {...attributes} style={style}>{children}</span>;

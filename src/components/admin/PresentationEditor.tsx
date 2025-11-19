@@ -644,6 +644,47 @@ function SlideEditor({ slide, onChange, theme }: { slide: Slide; onChange: (upda
               onChange={(e) => onChange({ content: { ...slide.content, text: e.target.value } })}
               className="text-2xl font-bold"
             />
+            <div className="flex gap-2 mt-2">
+              <Select 
+                value={slide.content.fontSize || '48px'} 
+                onValueChange={(value) => onChange({ content: { ...slide.content, fontSize: value } })}
+              >
+                <SelectTrigger className="w-[120px] h-8">
+                  <SelectValue placeholder="Méret" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="24px">24px</SelectItem>
+                  <SelectItem value="32px">32px</SelectItem>
+                  <SelectItem value="36px">36px</SelectItem>
+                  <SelectItem value="48px">48px</SelectItem>
+                  <SelectItem value="56px">56px</SelectItem>
+                  <SelectItem value="64px">64px</SelectItem>
+                  <SelectItem value="72px">72px</SelectItem>
+                  <SelectItem value="80px">80px</SelectItem>
+                  <SelectItem value="96px">96px</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select 
+                value={slide.content.fontFamily || 'Inter'} 
+                onValueChange={(value) => onChange({ content: { ...slide.content, fontFamily: value } })}
+              >
+                <SelectTrigger className="w-[160px] h-8">
+                  <SelectValue placeholder="Betűtípus" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Inter">Inter</SelectItem>
+                  <SelectItem value="Arial">Arial</SelectItem>
+                  <SelectItem value="Helvetica">Helvetica</SelectItem>
+                  <SelectItem value="Times New Roman">Times New Roman</SelectItem>
+                  <SelectItem value="Georgia">Georgia</SelectItem>
+                  <SelectItem value="Courier New">Courier New</SelectItem>
+                  <SelectItem value="Verdana">Verdana</SelectItem>
+                  <SelectItem value="Comic Sans MS">Comic Sans MS</SelectItem>
+                  <SelectItem value="Impact">Impact</SelectItem>
+                  <SelectItem value="Trebuchet MS">Trebuchet MS</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <div>
             <Label className="flex items-center space-x-2">
@@ -669,6 +710,47 @@ function SlideEditor({ slide, onChange, theme }: { slide: Slide; onChange: (upda
               value={slide.content.subtitle || ''}
               onChange={(e) => onChange({ content: { ...slide.content, subtitle: e.target.value } })}
             />
+            <div className="flex gap-2 mt-2">
+              <Select 
+                value={slide.content.subtitleFontSize || '24px'} 
+                onValueChange={(value) => onChange({ content: { ...slide.content, subtitleFontSize: value } })}
+              >
+                <SelectTrigger className="w-[120px] h-8">
+                  <SelectValue placeholder="Méret" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="16px">16px</SelectItem>
+                  <SelectItem value="18px">18px</SelectItem>
+                  <SelectItem value="20px">20px</SelectItem>
+                  <SelectItem value="24px">24px</SelectItem>
+                  <SelectItem value="28px">28px</SelectItem>
+                  <SelectItem value="32px">32px</SelectItem>
+                  <SelectItem value="36px">36px</SelectItem>
+                  <SelectItem value="40px">40px</SelectItem>
+                  <SelectItem value="48px">48px</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select 
+                value={slide.content.subtitleFontFamily || 'Inter'} 
+                onValueChange={(value) => onChange({ content: { ...slide.content, subtitleFontFamily: value } })}
+              >
+                <SelectTrigger className="w-[160px] h-8">
+                  <SelectValue placeholder="Betűtípus" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Inter">Inter</SelectItem>
+                  <SelectItem value="Arial">Arial</SelectItem>
+                  <SelectItem value="Helvetica">Helvetica</SelectItem>
+                  <SelectItem value="Times New Roman">Times New Roman</SelectItem>
+                  <SelectItem value="Georgia">Georgia</SelectItem>
+                  <SelectItem value="Courier New">Courier New</SelectItem>
+                  <SelectItem value="Verdana">Verdana</SelectItem>
+                  <SelectItem value="Comic Sans MS">Comic Sans MS</SelectItem>
+                  <SelectItem value="Impact">Impact</SelectItem>
+                  <SelectItem value="Trebuchet MS">Trebuchet MS</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </>
       )}
@@ -1617,13 +1699,21 @@ function PreviewMode({ slides, currentIndex, onNext, onPrev, onExit, theme }: { 
           <div className="text-center">
             <h1 
               className="text-5xl font-bold"
-              style={{ color: currentSlide.content.textColor || theme?.textColor || '#000000' }}
+              style={{ 
+                color: currentSlide.content.textColor || theme?.textColor || '#000000',
+                fontSize: currentSlide.content.fontSize || '48px',
+                fontFamily: currentSlide.content.fontFamily || 'Inter'
+              }}
             >
               {currentSlide.content.text}
             </h1>
             <p 
               className="text-2xl mt-4"
-              style={{ color: currentSlide.content.subtitleColor || theme?.textColor || '#666666' }}
+              style={{ 
+                color: currentSlide.content.subtitleColor || theme?.textColor || '#666666',
+                fontSize: currentSlide.content.subtitleFontSize || '24px',
+                fontFamily: currentSlide.content.subtitleFontFamily || 'Inter'
+              }}
             >
               {currentSlide.content.subtitle}
             </p>
