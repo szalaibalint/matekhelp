@@ -419,6 +419,22 @@ export function RichTextEditor({ content, onChange, enableDragBlanks = false, bl
     },
   ];
 
+  // Sync editor content when the content prop changes (e.g., switching slides)
+  useEffect(() => {
+    const isContentDifferent = JSON.stringify(editor.children) !== JSON.stringify(content);
+    if (isContentDifferent && content.length > 0) {
+      // Replace all content without triggering onChange
+      Editor.withoutNormalizing(editor, () => {
+        // Remove all existing children
+        for (let i = editor.children.length - 1; i >= 0; i--) {
+          Transforms.removeNodes(editor, { at: [i] });
+        }
+        // Insert new content
+        Transforms.insertNodes(editor, content, { at: [0] });
+      });
+    }
+  }, [content, editor]);
+
   const insertImage = (url: string) => {
     // Load image to get original dimensions
     const img = document.createElement('img');
