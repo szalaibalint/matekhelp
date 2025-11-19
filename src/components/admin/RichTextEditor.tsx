@@ -348,6 +348,7 @@ export function RichTextEditor({ content, onChange, enableDragBlanks = false, bl
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
   const [videoUrl, setVideoUrl] = useState('');
   const [linkUrl, setLinkUrl] = useState('');
   const [linkText, setLinkText] = useState('');
@@ -448,6 +449,50 @@ export function RichTextEditor({ content, onChange, enableDragBlanks = false, bl
     };
     img.src = url;
     setImageUrl('');
+  };
+
+  const handleVideoUpload = async (file: File) => {
+    if (!file || !file.type.startsWith('video/')) {
+      toast({ title: 'Hiba', description: 'Kérlek válassz egy videófájlt!', variant: 'destructive' });
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadProgress(0);
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
+      const filePath = `videos/${fileName}`;
+
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => Math.min(prev + 10, 90));
+      }, 200);
+
+      const { data, error } = await supabase.storage
+        .from('presentation-images')
+        .upload(filePath, file);
+
+      clearInterval(progressInterval);
+      setUploadProgress(100);
+
+      if (error) throw error;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('presentation-images')
+        .getPublicUrl(filePath);
+
+      insertVideo(publicUrl);
+      
+      setTimeout(() => {
+        setUploadProgress(0);
+        setIsUploading(false);
+      }, 500);
+    } catch (error: any) {
+      toast({ title: 'Hiba', description: error.message, variant: 'destructive' });
+      setIsUploading(false);
+      setUploadProgress(0);
+    }
   };
 
   const insertVideo = (url: string) => {
@@ -743,14 +788,54 @@ export function RichTextEditor({ content, onChange, enableDragBlanks = false, bl
                 <DialogTitle>Videó beillesztése</DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
-                <Input
-                  placeholder="Videó URL megadása (YouTube, Vimeo, stb.)"
-                  value={videoUrl}
-                  onChange={(e) => setVideoUrl(e.target.value)}
-                />
-                <Button onClick={() => insertVideo(videoUrl)} disabled={!videoUrl}>
-                  Videó beillesztése
-                </Button>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Videófájl feltöltése</label>
+                  <input
+                    ref={videoInputRef}
+                    type="file"
+                    accept="video/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        handleVideoUpload(file);
+                      }
+                    }}
+                    className="hidden"
+                  />
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => videoInputRef.current?.click()}
+                    disabled={isUploading}
+                  >
+                    {isUploading ? 'Feltöltés...' : 'Videófájl kiválasztása'}
+                  </Button>
+                  {isUploading && (
+                    <div className="space-y-2">
+                      <Progress value={uploadProgress} />
+                      <p className="text-xs text-center text-gray-500">{uploadProgress}%</p>
+                    </div>
+                  )}
+                </div>
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">Vagy</span>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Videó URL megadása</label>
+                  <Input
+                    placeholder="YouTube, Vimeo, stb."
+                    value={videoUrl}
+                    onChange={(e) => setVideoUrl(e.target.value)}
+                  />
+                  <Button onClick={() => insertVideo(videoUrl)} disabled={!videoUrl} className="w-full">
+                    URL beillesztése
+                  </Button>
+                </div>
               </div>
             </DialogContent>
           </Dialog>
