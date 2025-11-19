@@ -104,7 +104,7 @@ interface Slide {
   content: any;
   settings: any;
   sort_order: number;
-  points: number;
+  points: number | string;
   correct_answer: any;
   backgroundColor?: string;
   textColor?: string;
@@ -177,7 +177,7 @@ export function PresentationEditor({ presentationId, onBack }: PresentationEdito
           content: slide.content,
           settings: slide.settings,
           sort_order: index,
-          points: slide.points || 0,
+          points: typeof slide.points === 'string' ? parseInt(slide.points) || 0 : slide.points || 0,
           correct_answer: slide.correct_answer,
           background_color: slide.backgroundColor,
           text_color: slide.textColor
@@ -348,7 +348,7 @@ export function PresentationEditor({ presentationId, onBack }: PresentationEdito
   };
 
   const getTotalPoints = () => {
-    return slides.reduce((sum, slide) => sum + (slide.points || 0), 0);
+    return slides.reduce((sum, slide) => sum + (typeof slide.points === 'string' ? parseInt(slide.points) || 0 : slide.points || 0), 0);
   };
 
   if (!presentation) return null;
@@ -448,7 +448,7 @@ export function PresentationEditor({ presentationId, onBack }: PresentationEdito
                         <Badge variant="outline" className="text-xs">
                           {index + 1}
                         </Badge>
-                        {slide.points > 0 && (
+                        {(typeof slide.points === 'string' ? parseInt(slide.points) || 0 : slide.points || 0) > 0 && (
                           <Badge className="text-xs bg-green-500">
                             {slide.points} pont
                           </Badge>
@@ -935,8 +935,9 @@ function SlideEditor({ slide, onChange, theme }: { slide: Slide; onChange: (upda
             <Label>Pontszám</Label>
             <Input
               type="number"
-              value={slide.points || 0}
-              onChange={(e) => onChange({ points: parseInt(e.target.value) || 0 })}
+              value={slide.points ?? ''}
+              onChange={(e) => onChange({ points: e.target.value })}
+              onBlur={(e) => onChange({ points: parseInt(e.target.value) || 0 })}
             />
           </div>
         </>
@@ -1089,8 +1090,9 @@ function SlideEditor({ slide, onChange, theme }: { slide: Slide; onChange: (upda
             <Label>Pontszám</Label>
             <Input
               type="number"
-              value={slide.points || 0}
-              onChange={(e) => onChange({ points: parseInt(e.target.value) || 0 })}
+              value={slide.points ?? ''}
+              onChange={(e) => onChange({ points: e.target.value })}
+              onBlur={(e) => onChange({ points: parseInt(e.target.value) || 0 })}
             />
           </div>
         </>
@@ -1396,8 +1398,9 @@ function SlideEditor({ slide, onChange, theme }: { slide: Slide; onChange: (upda
             <Label>Pontszám</Label>
             <Input
               type="number"
-              value={slide.points || 0}
-              onChange={(e) => onChange({ points: parseInt(e.target.value) || 0 })}
+              value={slide.points ?? ''}
+              onChange={(e) => onChange({ points: e.target.value })}
+              onBlur={(e) => onChange({ points: parseInt(e.target.value) || 0 })}
             />
           </div>
         </>
@@ -1516,13 +1519,14 @@ function SlideEditor({ slide, onChange, theme }: { slide: Slide; onChange: (upda
             <Label>Összpontszám</Label>
             <Input
               type="number"
-              value={slide.points || 0}
-              onChange={(e) => onChange({ points: parseInt(e.target.value) || 0 })}
+              value={slide.points ?? ''}
+              onChange={(e) => onChange({ points: e.target.value })}
+              onBlur={(e) => onChange({ points: parseInt(e.target.value) || 0 })}
             />
             <p className="text-sm text-gray-500 mt-1">
               A pontok egyenlően oszlanak meg a kitöltendő mezők között.
               {(slide.content.blanks || []).length > 0 && (
-                <span> ({Math.floor((slide.points || 0) / (slide.content.blanks || []).length)} pont / mező)</span>
+                <span> ({Math.floor((typeof slide.points === 'string' ? parseInt(slide.points) || 0 : slide.points || 0) / (slide.content.blanks || []).length)} pont / mező)</span>
               )}
             </p>
           </div>
@@ -1878,7 +1882,7 @@ function PreviewMode({ slides, currentIndex, onNext, onPrev, onExit, theme }: { 
               <p className="text-lg text-gray-400">
                 Összpontszám: <span className="font-bold">{currentSlide.points || 0} pont</span>
                 {(currentSlide.content.blanks || []).length > 0 && (
-                  <span> • {Math.floor((currentSlide.points || 0) / (currentSlide.content.blanks || []).length)} pont/mező</span>
+                  <span> • {Math.floor((typeof currentSlide.points === 'string' ? parseInt(currentSlide.points) || 0 : currentSlide.points || 0) / (currentSlide.content.blanks || []).length)} pont/mező</span>
                 )}
               </p>
             </div>

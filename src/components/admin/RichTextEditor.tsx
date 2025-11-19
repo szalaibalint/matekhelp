@@ -357,7 +357,7 @@ export function RichTextEditor({ content, onChange, enableDragBlanks = false, bl
   const [showBgColorPicker, setShowBgColorPicker] = useState(false);
   const [bgColor, setBgColor] = useState('#ffff00');
   const [showInputDialog, setShowInputDialog] = useState(false);
-  const [inputFieldData, setInputFieldData] = useState({ placeholder: 'Answer', correctAnswer: '', points: 10 });
+  const [inputFieldData, setInputFieldData] = useState<{ placeholder: string; correctAnswer: string; points: string | number }>({ placeholder: 'Answer', correctAnswer: '', points: 10 });
   const [editingInputFieldPath, setEditingInputFieldPath] = useState<Path | null>(null);
   const [currentAnswer, setCurrentAnswer] = useState('');
   const [correctAnswers, setCorrectAnswers] = useState<string[]>([]);
@@ -613,7 +613,7 @@ export function RichTextEditor({ content, onChange, enableDragBlanks = false, bl
         {
           placeholder: inputFieldData.placeholder,
           correctAnswer: combinedAnswer,
-          points: inputFieldData.points,
+          points: typeof inputFieldData.points === 'string' ? parseInt(inputFieldData.points) || 0 : inputFieldData.points,
         } as any,
         { at: editingInputFieldPath }
       );
@@ -623,7 +623,7 @@ export function RichTextEditor({ content, onChange, enableDragBlanks = false, bl
         type: 'input-field',
         placeholder: inputFieldData.placeholder,
         correctAnswer: combinedAnswer,
-        points: inputFieldData.points,
+        points: typeof inputFieldData.points === 'string' ? parseInt(inputFieldData.points) || 0 : inputFieldData.points,
         children: [{ text: '' }],
       };
       Transforms.insertNodes(editor, inputField);
@@ -917,8 +917,9 @@ export function RichTextEditor({ content, onChange, enableDragBlanks = false, bl
                   <Input
                     type="number"
                     placeholder="Pontszám"
-                    value={inputFieldData.points}
-                    onChange={(e) => setInputFieldData({ ...inputFieldData, points: parseInt(e.target.value) || 0 })}
+                    value={inputFieldData.points ?? ''}
+                    onChange={(e) => setInputFieldData({ ...inputFieldData, points: e.target.value })}
+                    onBlur={(e) => setInputFieldData({ ...inputFieldData, points: parseInt(e.target.value) || 0 })}
                   />
                 </div>
                 
