@@ -1539,7 +1539,14 @@ function PreviewMode({ slides, currentIndex, onNext, onPrev, onExit, theme }: { 
 
   // LaTeX renderer for preview
   const renderLatex = (text: string, key: string) => {
-    if (!text || !text.includes('\\')) {
+    if (!text) {
+      return <span>{text}</span>;
+    }
+    
+    // Check for any LaTeX indicators
+    const hasLatex = text.includes('\\') || text.includes('$');
+    
+    if (!hasLatex) {
       return <span>{text}</span>;
     }
     
@@ -1551,9 +1558,26 @@ function PreviewMode({ slides, currentIndex, onNext, onPrev, onExit, theme }: { 
     // Load and render KaTeX
     import('katex').then((katex) => {
       try {
-        const html = katex.default.renderToString(text, {
+        let formula = text;
+        let displayMode = false;
+        
+        // Remove delimiters if present
+        if (text.startsWith('$$') && text.endsWith('$$')) {
+          formula = text.slice(2, -2);
+          displayMode = true;
+        } else if (text.startsWith('\\[') && text.endsWith('\\]')) {
+          formula = text.slice(2, -2);
+          displayMode = true;
+        } else if (text.startsWith('$') && text.endsWith('$') && text.length > 2) {
+          formula = text.slice(1, -1);
+        } else if (text.startsWith('\\(') && text.endsWith('\\)')) {
+          formula = text.slice(2, -2);
+        }
+        // Otherwise use the text as-is (raw LaTeX)
+        
+        const html = katex.default.renderToString(formula, {
           throwOnError: false,
-          displayMode: false,
+          displayMode: displayMode,
         });
         setRenderedMath(prev => ({ ...prev, [key]: html }));
       } catch (e) {
