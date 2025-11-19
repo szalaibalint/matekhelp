@@ -490,7 +490,7 @@ export default function ViewerPresentation() {
               title="Diaáttekintés"
             >
               <Grid className="h-4 w-4" />
-              <span className="hidden sm:inline">Diák</span>
+              <span className="hidden sm:inline">Dia lista</span>
             </Button>
             <Button
               variant="ghost"
@@ -534,7 +534,7 @@ export default function ViewerPresentation() {
           {/* Sidebar */}
           <div className="fixed md:absolute right-0 top-0 bottom-0 w-64 md:w-48 lg:w-64 bg-white/95 backdrop-blur-sm border-l border-gray-200 shadow-xl z-50 overflow-y-auto">
             <div className="sticky top-0 bg-white/95 backdrop-blur-sm border-b border-gray-200 p-3 flex items-center justify-between">
-              <h3 className="font-semibold text-sm">Diák (összesen: {slides.length})</h3>
+              <h3 className="font-semibold text-sm">Dia lista (összesen: {slides.length})</h3>
               <Button
                 variant="ghost"
                 size="sm"
@@ -564,18 +564,8 @@ export default function ViewerPresentation() {
                       {index + 1}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-xs font-medium text-gray-700 mb-1">
-                        {slide.type === 'text' && 'Szöveg dia'}
-                        {slide.type === 'multiple_choice' && 'Fel eletsoros'}
-                        {slide.type === 'fill_in_blanks' && 'Kitöltés'}
-                        {slide.type === 'matching' && 'Párosítás'}
-                        {slide.type === 'ranking' && 'Rangsorolás'}
-                        {slide.type === 'true_false' && 'Igaz/Hamis'}
-                      </div>
-                      
-                      {/* Mini preview of slide content */}
-                      <div className="text-xs text-gray-500 line-clamp-2">
-                        {slide.title || (slide.type === 'text' && slide.content?.[0]?.children?.[0]?.text) || 'Nincs előnézet'}
+                      <div className="text-xs font-medium text-gray-700 mb-1 line-clamp-2">
+                        {slide.title || (slide.type === 'text' && slide.content?.[0]?.children?.[0]?.text) || 'Cím nélküli dia'}
                       </div>
                       
                       {/* Answer indicator */}
