@@ -1558,27 +1558,42 @@ function PreviewMode({ slides, currentIndex, onNext, onPrev, onExit, theme }: { 
     // Load and render KaTeX
     import('katex').then((katex) => {
       try {
-        let formula = text;
-        let displayMode = false;
+        let html = text;
         
-        // Remove delimiters if present
-        if (text.startsWith('$$') && text.endsWith('$$')) {
-          formula = text.slice(2, -2);
-          displayMode = true;
-        } else if (text.startsWith('\\[') && text.endsWith('\\]')) {
-          formula = text.slice(2, -2);
-          displayMode = true;
-        } else if (text.startsWith('$') && text.endsWith('$') && text.length > 2) {
-          formula = text.slice(1, -1);
-        } else if (text.startsWith('\\(') && text.endsWith('\\)')) {
-          formula = text.slice(2, -2);
-        }
-        // Otherwise use the text as-is (raw LaTeX)
-        
-        const html = katex.default.renderToString(formula, {
-          throwOnError: false,
-          displayMode: displayMode,
+        // Handle display math first ($$...$$ and \[...\])
+        html = html.replace(/\$\$([^$]+)\$\$/g, (match, formula) => {
+          try {
+            return katex.default.renderToString(formula, { throwOnError: false, displayMode: true });
+          } catch {
+            return match;
+          }
         });
+        
+        html = html.replace(/\\\[([^]*?)\\\]/g, (match, formula) => {
+          try {
+            return katex.default.renderToString(formula, { throwOnError: false, displayMode: true });
+          } catch {
+            return match;
+          }
+        });
+        
+        // Handle inline math (\(...\) and $...$)
+        html = html.replace(/\\\(([^]*?)\\\)/g, (match, formula) => {
+          try {
+            return katex.default.renderToString(formula, { throwOnError: false, displayMode: false });
+          } catch {
+            return match;
+          }
+        });
+        
+        html = html.replace(/\$([^$]+)\$/g, (match, formula) => {
+          try {
+            return katex.default.renderToString(formula, { throwOnError: false, displayMode: false });
+          } catch {
+            return match;
+          }
+        });
+        
         setRenderedMath(prev => ({ ...prev, [key]: html }));
       } catch (e) {
         setRenderedMath(prev => ({ ...prev, [key]: text }));
