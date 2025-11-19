@@ -6,6 +6,7 @@ export interface Category {
   name: string;
   description: string;
   parent_id: string | null;
+  image_url?: string | null;
   children?: Category[];
 }
 
@@ -44,14 +45,15 @@ export const buildCategoryTree = (flatCategories: any[]): Category[] => {
   return rootCategories;
 };
 
-export const createCategory = async (newCategory: { name: string; description: string; parent_id: string | null }) => {
+export const createCategory = async (newCategory: { name: string; description: string; parent_id: string | null; image_url?: string | null }) => {
   try {
     const { error } = await supabase
       .from('categories')
       .insert({
         name: newCategory.name,
         description: newCategory.description,
-        parent_id: newCategory.parent_id
+        parent_id: newCategory.parent_id,
+        image_url: newCategory.image_url || null
       });
 
     if (error) throw error;
@@ -69,14 +71,15 @@ export const createCategory = async (newCategory: { name: string; description: s
   }
 };
 
-export const updateCategory = async (categoryId: string, updates: { name: string; description: string; parent_id: string | null }) => {
+export const updateCategory = async (categoryId: string, updates: { name: string; description: string; parent_id: string | null; image_url?: string | null }) => {
   try {
     const { error } = await supabase
       .from('categories')
       .update({
         name: updates.name,
         description: updates.description,
-        parent_id: updates.parent_id
+        parent_id: updates.parent_id,
+        image_url: updates.image_url
       })
       .eq('id', categoryId);
 

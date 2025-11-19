@@ -19,9 +19,19 @@ export const SubcategoryGrid: React.FC<SubcategoryGridProps> = ({ subcategories,
             className="group relative bg-white rounded-xl border-2 border-gray-200 p-6 hover:border-blue-400 hover:shadow-lg transition-all duration-200 text-left"
           >
             <div className="flex flex-col items-center text-center">
-              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-200">
-                <Folder className="h-10 w-10 text-white" />
-              </div>
+              {category.image_url ? (
+                <div className="w-20 h-20 rounded-full overflow-hidden mb-4 group-hover:scale-110 transition-transform duration-200 border-4 border-blue-200">
+                  <img 
+                    src={category.image_url} 
+                    alt={category.name}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ) : (
+                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-200">
+                  <Folder className="h-10 w-10 text-white" />
+                </div>
+              )}
               <h3 className="text-lg font-semibold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">
                 {category.name}
               </h3>

@@ -68,7 +68,15 @@ export const ViewerCategoryTree: React.FC<ViewerCategoryTreeProps> = ({
               </Button>
             )}
             {!hasChildren && <div className="w-6 mr-2" />}
-            <Folder className={`h-4 w-4 mr-2 flex-shrink-0 ${isSelected ? 'text-blue-700' : 'text-blue-500'}`} />
+            {category.image_url ? (
+              <img 
+                src={category.image_url} 
+                alt={category.name}
+                className="h-4 w-4 mr-2 flex-shrink-0 rounded object-cover"
+              />
+            ) : (
+              <Folder className={`h-4 w-4 mr-2 flex-shrink-0 ${isSelected ? 'text-blue-700' : 'text-blue-500'}`} />
+            )}
             <span className={`text-sm truncate ${isSelected ? 'font-semibold text-blue-900' : 'text-gray-700'}`}>
               {category.name}
             </span>
