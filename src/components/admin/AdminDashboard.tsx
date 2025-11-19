@@ -8,7 +8,7 @@ import { LogOut, Search } from 'lucide-react';
 import { useAuth } from '../../../supabase/auth';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '../ui/use-toast';
-import { Category, loadCategories } from '../../services/CategoryService';
+import { Category, loadCategories, reorderCategories } from '../../services/CategoryService';
 import { CategoryTree } from './CategoryTree';
 import { CategoryDialog } from './CategoryDialog';
 import { DeleteCategoryDialog } from './DeleteCategoryDialog';
@@ -71,6 +71,11 @@ export default function AdminDashboard() {
     setEditingCategory(null);
   };
 
+  const handleMoveCategory = async (categoryId: string, newParentId: string | null, insertBeforeId: string | null) => {
+    await reorderCategories(categoryId, newParentId, insertBeforeId);
+    fetchCategories();
+  };
+
   const handleLogout = async () => {
     await signOut();
     navigate('/login');
@@ -131,6 +136,7 @@ export default function AdminDashboard() {
             onSelectCategory={setSelectedCategoryId}
             onDeleteCategory={setDeletingCategory}
             onEditCategory={setEditingCategory}
+            onMoveCategory={handleMoveCategory}
           />
         </div>
 
