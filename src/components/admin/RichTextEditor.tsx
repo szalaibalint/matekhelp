@@ -80,24 +80,38 @@ const withAutoMath = (editor: Editor) => {
         if (Text.isText(node)) {
           const textBefore = node.text;
           
-          // Check for LaTeX patterns with $ delimiters only
-          // Check $$ first (display math), then $ (inline math)
+          // Check for LaTeX patterns: $$...$$ or \[...\] for display, $...$ or \(...\) for inline
           let matched = false;
           let formula = '';
           let matchText = '';
+          let isDisplayMode = false;
           
-          // Try display math first: $$formula$$
-          const displayMatch = textBefore.match(/\$\$(.+?)\$\$$/);
-          if (displayMatch) {
-            matchText = displayMatch[0];
-            formula = displayMatch[1].trim();
+          // Try display math first: $$formula$$ or \[formula\]
+          const displayMatch1 = textBefore.match(/\$\$(.+?)\$\$$/);
+          const displayMatch2 = textBefore.match(/\\\[([^]*?)\\\]$/);
+          
+          if (displayMatch1) {
+            matchText = displayMatch1[0];
+            formula = displayMatch1[1].trim();
             matched = true;
+            isDisplayMode = true;
+          } else if (displayMatch2) {
+            matchText = displayMatch2[0];
+            formula = displayMatch2[1].trim();
+            matched = true;
+            isDisplayMode = true;
           } else {
-            // Try inline math: $formula$
-            const inlineMatch = textBefore.match(/\$(.+?)\$$/);
-            if (inlineMatch) {
-              matchText = inlineMatch[0];
-              formula = inlineMatch[1].trim();
+            // Try inline math: $formula$ or \(formula\)
+            const inlineMatch1 = textBefore.match(/\$(.+?)\$$/);
+            const inlineMatch2 = textBefore.match(/\\\(([^]*?)\\\)$/);
+            
+            if (inlineMatch1) {
+              matchText = inlineMatch1[0];
+              formula = inlineMatch1[1].trim();
+              matched = true;
+            } else if (inlineMatch2) {
+              matchText = inlineMatch2[0];
+              formula = inlineMatch2[1].trim();
               matched = true;
             }
           }
@@ -112,8 +126,13 @@ const withAutoMath = (editor: Editor) => {
               },
             });
             
-            // Insert math element
-            const math = { type: 'math-inline', formula, children: [{ text: '' }] };
+            // Insert math element with displayMode flag if needed
+            const math = { 
+              type: 'math-inline', 
+              formula, 
+              displayMode: isDisplayMode,
+              children: [{ text: '' }] 
+            };
             Transforms.insertNodes(editor, math);
             
             // Move cursor after the math element
@@ -142,9 +161,10 @@ const withAutoMath = (editor: Editor) => {
         const line = lines[i];
         let lastIndex = 0;
         
-        // Match all LaTeX patterns in the line (only with $ delimiters)
-        const displayMathRegex = /\$\$([^\$]+)\$\$/g;
-        const inlineMathRegex = /\$([^\$]+)\$/g;
+        // Match all LaTeX patterns in the line
+        // Patterns: $$...$$ or \[...\] for display math, $...$ or \(...\) for inline math
+        const displayMathRegex = /(\$\$([^\$]+)\$\$|\\\[([^]*?)\\\])/g;
+        const inlineMathRegex = /(\$([^\$]+)\$|\\\(([^]*?)\\\))/g;
         
         // First process display math (higher priority)
         const displayMatches = [...line.matchAll(displayMathRegex)];
@@ -156,8 +176,9 @@ const withAutoMath = (editor: Editor) => {
               editor.insertText(beforeText);
             }
             
-            const formula = match[1].trim();
-            const math = { type: 'math-inline', formula, children: [{ text: '' }] };
+            // Extract formula from either $$...$$ (group 2) or \[...\] (group 3)
+            const formula = (match[2] || match[3]).trim();
+            const math = { type: 'math-inline', formula, displayMode: true, children: [{ text: '' }] };
             Transforms.insertNodes(editor, math);
             Transforms.move(editor);
             
@@ -182,7 +203,8 @@ const withAutoMath = (editor: Editor) => {
                 editor.insertText(beforeText);
               }
               
-              const formula = match[1].trim();
+              // Extract formula from either $...$ (group 2) or \(...\) (group 3)
+              const formula = (match[2] || match[3]).trim();
               const math = { type: 'math-inline', formula, children: [{ text: '' }] };
               Transforms.insertNodes(editor, math);
               Transforms.move(editor);

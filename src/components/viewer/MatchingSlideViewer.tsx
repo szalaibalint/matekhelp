@@ -13,18 +13,23 @@ const loadKatex = async () => {
 };
 
 const renderMathText = async (text: string): Promise<string> => {
-  // Strip $ delimiters if present ($$formula$$ or $formula$)
+  // Strip delimiters if present: $$...$$ or $...$ or \[...\] or \(...\)
   let formula = text;
   let displayMode = false;
   
-  // Check for display math: $$formula$$
+  // Check for display math: $$formula$$ or \[formula\]
   if (formula.startsWith('$$') && formula.endsWith('$$')) {
     formula = formula.slice(2, -2);
     displayMode = true;
+  } else if (formula.startsWith('\\[') && formula.endsWith('\\]')) {
+    formula = formula.slice(2, -2);
+    displayMode = true;
   }
-  // Check for inline math: $formula$
+  // Check for inline math: $formula$ or \(formula\)
   else if (formula.startsWith('$') && formula.endsWith('$')) {
     formula = formula.slice(1, -1);
+  } else if (formula.startsWith('\\(') && formula.endsWith('\\)')) {
+    formula = formula.slice(2, -2);
   }
   
   // Check if formula contains LaTeX (contains backslash)
