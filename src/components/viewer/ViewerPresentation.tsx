@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../ui/button';
 import { supabase } from '../../../supabase/supabase';
-import { ArrowLeft, Maximize, Minimize, Grid, X } from 'lucide-react';
+import { ArrowLeft, Maximize, Minimize, Grid, X, BookOpen } from 'lucide-react';
 import { Slide, loadSlides } from '../../services/SlideService';
 import { SlideViewer } from './SlideViewer';
 import { ResultsPage } from './ResultsPage';
@@ -455,29 +455,41 @@ export default function ViewerPresentation() {
   const slideTextColor = currentSlide?.textColor || presentation.theme?.textColor || '#000000';
 
   return (
-    <div className="h-screen flex flex-col relative">
+    <div className="h-screen flex flex-col relative bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
       {/* Progress bar */}
-      <div className="h-2 bg-gray-200">
+      <div className="h-1 bg-gray-200/50 backdrop-blur-sm">
         <div
-          className="h-full bg-blue-500 transition-all"
+          className="h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 transition-all shadow-sm"
           style={{ width: `${((currentIndex + 1) / slides.length) * 100}%` }}
         />
       </div>
 
       {/* Header - Hidden in fullscreen */}
       {!isFullscreen && (
-        <div className="bg-white/95 backdrop-blur-sm border-b border-gray-200 px-4 py-3 flex items-center justify-between">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate('/')}
-            className="flex items-center gap-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            <span className="hidden sm:inline">Vissza</span>
-          </Button>
+        <div className="bg-white/80 backdrop-blur-md border-b border-gray-200/50 shadow-sm px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/')}
+              className="flex items-center gap-2 hover:bg-blue-50"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span className="hidden sm:inline">Vissza</span>
+            </Button>
+            
+            {/* MatekHelp Brand */}
+            <div className="hidden md:flex items-center gap-2 pl-3 border-l border-gray-300">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-sm">
+                <BookOpen className="w-5 h-5 text-white" />
+              </div>
+              <span className="font-semibold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
+                MatekHelp
+              </span>
+            </div>
+          </div>
           
-          <h1 className="text-base md:text-lg font-semibold text-center flex-1 px-4">
+          <h1 className="text-base md:text-lg font-semibold text-center flex-1 px-4 text-gray-800">
             {presentation.title}
           </h1>
           
@@ -486,7 +498,7 @@ export default function ViewerPresentation() {
               variant="ghost"
               size="sm"
               onClick={() => setShowThumbnails(!showThumbnails)}
-              className="flex items-center gap-1 md:gap-2"
+              className="flex items-center gap-1 md:gap-2 hover:bg-blue-50"
               title="Diaáttekintés"
             >
               <Grid className="h-4 w-4" />
@@ -496,7 +508,7 @@ export default function ViewerPresentation() {
               variant="ghost"
               size="sm"
               onClick={toggleFullscreen}
-              className="flex items-center gap-1 md:gap-2"
+              className="flex items-center gap-1 md:gap-2 hover:bg-blue-50"
               title="Teljes képernyő (F11)"
             >
               <Maximize className="h-4 w-4" />
@@ -513,7 +525,7 @@ export default function ViewerPresentation() {
             variant="secondary"
             size="sm"
             onClick={toggleFullscreen}
-            className="shadow-lg bg-white/90 backdrop-blur-sm hover:bg-white"
+            className="shadow-lg bg-white/95 backdrop-blur-md hover:bg-white border border-gray-200"
             title="Kilépés a teljes képernyőből (ESC vagy F11)"
           >
             <Minimize className="h-4 w-4 mr-2" />
@@ -527,25 +539,25 @@ export default function ViewerPresentation() {
         <>
           {/* Mobile overlay */}
           <div 
-            className="fixed inset-0 bg-black/50 z-40 md:hidden"
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 md:hidden"
             onClick={() => setShowThumbnails(false)}
           />
           
           {/* Sidebar */}
-          <div className="fixed md:absolute right-0 top-0 bottom-0 w-64 md:w-48 lg:w-64 bg-white/95 backdrop-blur-sm border-l border-gray-200 shadow-xl z-50 overflow-y-auto">
-            <div className="sticky top-0 bg-white/95 backdrop-blur-sm border-b border-gray-200 p-3 flex items-center justify-between">
-              <h3 className="font-semibold text-sm">Dia lista (összesen: {slides.length})</h3>
+          <div className="fixed md:absolute right-0 top-0 bottom-0 w-64 md:w-48 lg:w-64 bg-white/95 backdrop-blur-md border-l border-gray-200/50 shadow-2xl z-50 overflow-y-auto">
+            <div className="sticky top-0 bg-gradient-to-r from-blue-500 to-indigo-600 p-4 flex items-center justify-between shadow-sm">
+              <h3 className="font-semibold text-sm text-white">Dia lista ({slides.length})</h3>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowThumbnails(false)}
-                className="h-6 w-6 p-0"
+                className="h-6 w-6 p-0 text-white hover:bg-white/20"
               >
                 <X className="h-4 w-4" />
               </Button>
             </div>
             
-            <div className="p-2 space-y-2">
+            <div className="p-3 space-y-2">
               {slides.map((slide, index) => (
                 <button
                   key={index}
@@ -553,14 +565,18 @@ export default function ViewerPresentation() {
                     setCurrentIndex(index);
                     setShowThumbnails(false);
                   }}
-                  className={`w-full text-left p-2 rounded-lg border-2 transition-all hover:shadow-md ${
+                  className={`w-full text-left p-3 rounded-xl border-2 transition-all hover:shadow-md ${
                     index === currentIndex 
-                      ? 'border-blue-500 bg-blue-50' 
-                      : 'border-gray-200 bg-white hover:border-blue-300'
+                      ? 'border-blue-500 bg-gradient-to-br from-blue-50 to-indigo-50 shadow-sm' 
+                      : 'border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50/50'
                   }`}
                 >
                   <div className="flex items-start gap-2">
-                    <div className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-semibold">
+                    <div className={`flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold shadow-sm ${
+                      index === currentIndex
+                        ? 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white'
+                        : 'bg-gray-100 text-gray-600'
+                    }`}>
                       {index + 1}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -570,8 +586,11 @@ export default function ViewerPresentation() {
                       
                       {/* Answer indicator */}
                       {userAnswers[index] && (
-                        <div className="mt-1 text-xs text-green-600 font-medium">
-                          ✓ Megválaszolva
+                        <div className="mt-1 flex items-center gap-1">
+                          <div className="w-4 h-4 rounded-full bg-green-500 flex items-center justify-center">
+                            <span className="text-white text-[10px]">✓</span>
+                          </div>
+                          <span className="text-xs text-green-600 font-medium">Megválaszolva</span>
                         </div>
                       )}
                     </div>
@@ -585,105 +604,143 @@ export default function ViewerPresentation() {
 
       {/* Slide container */}
       <div
-        className={`flex-1 overflow-y-auto flex items-start p-3 md:p-8 transition-all ${
+        className={`flex-1 flex items-center justify-center transition-all ${
           showThumbnails && !isFullscreen ? 'md:mr-48 lg:mr-64' : ''
         }`}
-        style={{ backgroundColor: slideBackgroundColor, color: slideTextColor, minHeight: 'calc(100vh - 80px)' }}
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
       >
-        <div className="w-full">
-          <SlideViewer
-            slide={currentSlide}
-            userAnswer={userAnswers[currentIndex]}
-            onAnswer={(answer, slideIndex, elementIndex) => handleAnswer(answer, slideIndex, elementIndex)}
-            textColor={slideTextColor}
-            slideIndex={currentIndex}
-          />
+        <div className="w-full h-full flex items-center p-3 md:p-6">
+          {/* Slide Card */}
+          <div 
+            className="rounded-2xl shadow-2xl border border-gray-200/50 overflow-hidden backdrop-blur-sm w-full h-full"
+            style={{ backgroundColor: slideBackgroundColor }}
+          >
+            <div className="p-6 md:p-12 overflow-y-auto h-full" style={{ color: slideTextColor }}>
+              <SlideViewer
+                slide={currentSlide}
+                userAnswer={userAnswers[currentIndex]}
+                onAnswer={(answer, slideIndex, elementIndex) => handleAnswer(answer, slideIndex, elementIndex)}
+                textColor={slideTextColor}
+                slideIndex={currentIndex}
+              />
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Navigation Toolbar - Hidden in fullscreen */}
       {!isFullscreen && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-gray-200 p-2 md:p-4 shadow-lg">
+        <div className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-md border-t border-gray-200/50 shadow-lg z-40">
           {/* Mobile: Vertical Stack */}
-          <div className="flex md:hidden flex-col gap-2">
-          <div className="flex items-center justify-between px-2">
-            <span className="text-sm text-gray-500">
-              {currentIndex + 1} / {slides.length}
-            </span>
-            {user && (
-              <span className="text-sm font-semibold text-blue-600">
-                {Math.round(((currentIndex + 1) / slides.length) * 100)}%
+          <div className="flex md:hidden flex-col gap-3 p-3">
+            <div className="flex items-center justify-between px-2">
+              <span className="text-sm font-medium text-gray-600">
+                Dia {currentIndex + 1} / {slides.length}
               </span>
-            )}
-          </div>
-          <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              onClick={() => navigate('/')} 
-              className="flex-1 h-12 touch-manipulation"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <Button 
-              variant="outline" 
-              onClick={() => setCurrentIndex(Math.max(0, currentIndex - 1))} 
-              disabled={currentIndex === 0}
-              className="flex-1 h-12 touch-manipulation"
-            >
-              Előző
-            </Button>
-            {isLastSlide ? (
+              {user && (
+                <div className="flex items-center gap-2">
+                  <div className="h-2 w-24 bg-gray-200 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all"
+                      style={{ width: `${Math.round(((currentIndex + 1) / slides.length) * 100)}%` }}
+                    />
+                  </div>
+                  <span className="text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
+                    {Math.round(((currentIndex + 1) / slides.length) * 100)}%
+                  </span>
+                </div>
+              )}
+            </div>
+            <div className="flex gap-2">
               <Button 
-                onClick={() => setShowResults(true)} 
-                className="flex-1 h-12 touch-manipulation"
+                variant="outline" 
+                onClick={() => navigate('/')} 
+                className="flex-1 h-12 touch-manipulation border-2 hover:bg-red-50 hover:border-red-300"
               >
-                Eredmények
+                <ArrowLeft className="h-4 w-4" />
               </Button>
-            ) : (
               <Button 
-                onClick={() => setCurrentIndex(Math.min(slides.length - 1, currentIndex + 1))} 
-                className="flex-1 h-12 touch-manipulation"
+                variant="outline" 
+                onClick={() => setCurrentIndex(Math.max(0, currentIndex - 1))} 
+                disabled={currentIndex === 0}
+                className="flex-1 h-12 touch-manipulation border-2 hover:bg-blue-50 hover:border-blue-300"
               >
-                Következő
+                Előző
               </Button>
-            )}
+              {isLastSlide ? (
+                <Button 
+                  onClick={() => setShowResults(true)} 
+                  className="flex-1 h-12 touch-manipulation bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 shadow-md"
+                >
+                  Eredmények
+                </Button>
+              ) : (
+                <Button 
+                  onClick={() => setCurrentIndex(Math.min(slides.length - 1, currentIndex + 1))} 
+                  className="flex-1 h-12 touch-manipulation bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 shadow-md"
+                >
+                  Következő
+                </Button>
+              )}
+            </div>
           </div>
-        </div>
 
-        {/* Desktop: Horizontal Layout */}
-        <div className="hidden md:flex items-center justify-between">
-          <Button variant="outline" onClick={() => navigate('/')}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Kilépés a tananyagból
-          </Button>
-          <div className="flex items-center space-x-3">
-            <span className="text-sm text-gray-500">
-              {currentIndex + 1} / {slides.length}
-            </span>
-            {user && (
-              <span className="text-sm font-semibold text-blue-600">
-                {Math.round(((currentIndex + 1) / slides.length) * 100)}%
-              </span>
-            )}
-          </div>
-          <div className="flex space-x-2">
-            <Button variant="outline" onClick={() => setCurrentIndex(Math.max(0, currentIndex - 1))} disabled={currentIndex === 0}>
-              Előző
+          {/* Desktop: Horizontal Layout */}
+          <div className="hidden md:flex items-center justify-between p-4">
+            <Button 
+              variant="outline" 
+              onClick={() => navigate('/')}
+              className="border-2 hover:bg-red-50 hover:border-red-300"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Kilépés a tananyagból
             </Button>
-            {isLastSlide ? (
-              <Button onClick={() => setShowResults(true)}>
-                Eredmények megjelenítése
+            <div className="flex items-center space-x-4">
+              <span className="text-sm font-medium text-gray-600">
+                Dia {currentIndex + 1} / {slides.length}
+              </span>
+              {user && (
+                <div className="flex items-center gap-3">
+                  <div className="h-2 w-32 bg-gray-200 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all"
+                      style={{ width: `${Math.round(((currentIndex + 1) / slides.length) * 100)}%` }}
+                    />
+                  </div>
+                  <span className="text-base font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
+                    {Math.round(((currentIndex + 1) / slides.length) * 100)}%
+                  </span>
+                </div>
+              )}
+            </div>
+            <div className="flex space-x-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setCurrentIndex(Math.max(0, currentIndex - 1))} 
+                disabled={currentIndex === 0}
+                className="border-2 hover:bg-blue-50 hover:border-blue-300"
+              >
+                Előző
               </Button>
-            ) : (
-              <Button onClick={() => setCurrentIndex(Math.min(slides.length - 1, currentIndex + 1))}>
-                Következő
-              </Button>
-            )}
+              {isLastSlide ? (
+                <Button 
+                  onClick={() => setShowResults(true)}
+                  className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 shadow-md"
+                >
+                  Eredmények megjelenítése
+                </Button>
+              ) : (
+                <Button 
+                  onClick={() => setCurrentIndex(Math.min(slides.length - 1, currentIndex + 1))}
+                  className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 shadow-md"
+                >
+                  Következő
+                </Button>
+              )}
+            </div>
           </div>
-        </div>
         </div>
       )}
 
