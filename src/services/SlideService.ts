@@ -21,7 +21,14 @@ export const loadSlides = async (presentationId: string): Promise<Slide[]> => {
     .eq('presentation_id', presentationId)
     .order('sort_order');
 
-  return data || [];
+  if (!data) return [];
+
+  // Map database column names to interface properties
+  return data.map(slide => ({
+    ...slide,
+    backgroundColor: slide.background_color,
+    textColor: slide.text_color
+  }));
 };
 
 export const saveSlides = async (presentationId: string, slides: Slide[]) => {
