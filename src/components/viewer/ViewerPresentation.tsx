@@ -31,6 +31,7 @@ export default function ViewerPresentation() {
   const [isRetrying, setIsRetrying] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showThumbnails, setShowThumbnails] = useState(false);
+  const [furthestSlideReached, setFurthestSlideReached] = useState(0);
   const { toast } = useToast();
 
   const minSwipeDistance = 50;
@@ -145,6 +146,11 @@ export default function ViewerPresentation() {
 
   // Track progress when slide changes
   useEffect(() => {
+    // Update furthest slide reached
+    if (currentIndex > furthestSlideReached) {
+      setFurthestSlideReached(currentIndex);
+    }
+    
     const saveProgressAsync = async () => {
       if (user?.id && id && slides.length > 0 && !showResults) {
         const result = await UserProgressService.saveProgress(
@@ -556,24 +562,38 @@ export default function ViewerPresentation() {
             </div>
             
             <div className="p-3 space-y-2">
-              {slides.map((slide, index) => (
+              {slides.map((slide, index) => {
+                // Find the highest index of any answered slide
+                const lastAnsweredIndex = Math.max(
+                  ...Object.keys(userAnswers).map(key => parseInt(key)),
+                  -1
+                );
+                const isAccessible = index <= furthestSlideReached || index <= lastAnsweredIndex;
+                return (
                 <button
                   key={index}
                   onClick={() => {
-                    setCurrentIndex(index);
-                    setShowThumbnails(false);
+                    if (isAccessible) {
+                      setCurrentIndex(index);
+                      setShowThumbnails(false);
+                    }
                   }}
-                  className={`w-full text-left p-3 rounded-xl border-2 transition-all hover:shadow-lg group ${
-                    index === currentIndex 
-                      ? 'border-blue-500 bg-gradient-to-br from-blue-50 to-indigo-50 shadow-md' 
-                      : 'border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50/50'
+                  disabled={!isAccessible}
+                  className={`w-full text-left p-3 rounded-xl border-2 transition-all group ${
+                    !isAccessible
+                      ? 'opacity-50 cursor-not-allowed border-gray-300 bg-gray-100'
+                      : index === currentIndex 
+                        ? 'border-blue-500 bg-gradient-to-br from-blue-50 to-indigo-50 shadow-md hover:shadow-lg' 
+                        : 'border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50/50 hover:shadow-lg'
                   }`}
                 >
                   <div className="flex items-start gap-2">
                     <div className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shadow-sm transition-all ${
-                      index === currentIndex
-                        ? 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white'
-                        : 'bg-gray-200 text-gray-700 group-hover:bg-blue-500 group-hover:text-white'
+                      !isAccessible
+                        ? 'bg-gray-300 text-gray-500'
+                        : index === currentIndex
+                          ? 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white'
+                          : 'bg-gray-200 text-gray-700 group-hover:bg-blue-500 group-hover:text-white'
                     }`}>
                       {index + 1}
                     </div>
@@ -594,7 +614,7 @@ export default function ViewerPresentation() {
                     </div>
                   </div>
                 </button>
-              ))}
+              );})}
             </div>
           </div>
         </>
