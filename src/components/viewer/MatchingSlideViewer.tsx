@@ -13,36 +13,55 @@ const loadKatex = async () => {
 };
 
 const renderMathText = async (text: string): Promise<string> => {
-  // Strip delimiters if present: $$...$$ or $...$ or \[...\] or \(...\)
-  let formula = text;
-  let displayMode = false;
-  
-  // Check for display math: $$formula$$ or \[formula\]
-  if (formula.startsWith('$$') && formula.endsWith('$$')) {
-    formula = formula.slice(2, -2);
-    displayMode = true;
-  } else if (formula.startsWith('\\[') && formula.endsWith('\\]')) {
-    formula = formula.slice(2, -2);
-    displayMode = true;
-  }
-  // Check for inline math: $formula$ or \(formula\)
-  else if (formula.startsWith('$') && formula.endsWith('$')) {
-    formula = formula.slice(1, -1);
-  } else if (formula.startsWith('\\(') && formula.endsWith('\\)')) {
-    formula = formula.slice(2, -2);
+  if (!text) {
+    return text || '';
   }
   
-  // Check if formula contains LaTeX (contains backslash)
-  if (!formula.includes('\\')) {
+  // Check if text contains any LaTeX
+  const hasLatex = text.includes('\\') || text.includes('$');
+  if (!hasLatex) {
     return text;
   }
   
   try {
     const katex = await loadKatex();
-    return katex.renderToString(formula, {
-      throwOnError: false,
-      displayMode,
+    let html = text;
+    
+    // Handle display math first ($$...$$ and \[...\])
+    html = html.replace(/\$\$([^$]+)\$\$/g, (match, formula) => {
+      try {
+        return katex.renderToString(formula, { throwOnError: false, displayMode: true });
+      } catch {
+        return match;
+      }
     });
+    
+    html = html.replace(/\\\[([^]*?)\\\]/g, (match, formula) => {
+      try {
+        return katex.renderToString(formula, { throwOnError: false, displayMode: true });
+      } catch {
+        return match;
+      }
+    });
+    
+    // Handle inline math (\(...\) and $...$)
+    html = html.replace(/\\\(([^]*?)\\\)/g, (match, formula) => {
+      try {
+        return katex.renderToString(formula, { throwOnError: false, displayMode: false });
+      } catch {
+        return match;
+      }
+    });
+    
+    html = html.replace(/\$([^$]+)\$/g, (match, formula) => {
+      try {
+        return katex.renderToString(formula, { throwOnError: false, displayMode: false });
+      } catch {
+        return match;
+      }
+    });
+    
+    return html;
   } catch (e) {
     return text;
   }
@@ -161,7 +180,7 @@ const DropZone: React.FC<DropZoneProps> = ({ rightItem, index, color, matchedLef
     >
       <div className="flex items-center justify-between">
         <span><MathText text={rightItem} /></span>
-        {matchedLeftIndex !== null && (
+        {matchedLeftIndex !== null && leftItems[matchedLeftIndex] && (
           <div className="ml-2 text-sm text-gray-600 bg-blue-100 px-2 py-1 rounded">
             ← <MathText text={leftItems[matchedLeftIndex]} />
           </div>
