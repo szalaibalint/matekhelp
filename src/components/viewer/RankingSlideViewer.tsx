@@ -213,7 +213,7 @@ export const RankingSlideViewer: React.FC<RankingSlideViewerProps> = ({ slide, u
   return (
     <DndProvider backend={MultiBackend} options={backendOptions}>
       <CustomDragLayer />
-      <div className="w-full max-w-2xl">
+      <div className="w-full max-w-2xl mx-auto">
         <h2
           className="text-4xl font-bold mb-8 text-center"
           style={{ color: slide.content.questionColor || textColor }}
