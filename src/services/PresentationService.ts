@@ -27,6 +27,7 @@ export const loadPresentations = async (categoryId: string | null, categories?: 
   let query = supabase
     .from('presentations')
     .select('*')
+    .order('display_order', { ascending: true, nullsFirst: false })
     .order('updated_at', { ascending: false });
 
   if (categoryId && categories) {
@@ -135,5 +136,73 @@ export const updatePresentationSettings = async (editingPresentation: Presentati
       description: error.message,
       variant: 'destructive',
     });
+  }
+};
+
+export const reorderPresentations = async (
+  presentationId: string,
+  targetCategoryId: string | null,
+  insertBeforeId: string | null
+) => {
+  try {
+    // Get all presentations in the target category ordered by display_order
+    let query = supabase
+      .from('presentations')
+      .select('id, display_order')
+      .order('display_order', { ascending: true, nullsFirst: false });
+    
+    if (targetCategoryId) {
+      query = query.eq('category_id', targetCategoryId);
+    } else {
+      query = query.is('category_id', null);
+    }
+
+    const { data: presentations } = await query;
+    if (!presentations) return;
+
+    // Remove the presentation being moved from its current position
+    const otherPresentations = presentations.filter(p => p.id !== presentationId);
+
+    // Calculate new display orders
+    const updates = [];
+    let newDisplayOrder = 0;
+
+    for (const pres of otherPresentations) {
+      if (pres.id === insertBeforeId) {
+        // Insert the moved presentation before this one
+        updates.push({
+          id: presentationId,
+          display_order: newDisplayOrder,
+          category_id: targetCategoryId
+        });
+        newDisplayOrder++;
+      }
+      
+      updates.push({
+        id: pres.id,
+        display_order: newDisplayOrder
+      });
+      newDisplayOrder++;
+    }
+
+    // If insertBeforeId is null, add at the end
+    if (!insertBeforeId) {
+      updates.push({
+        id: presentationId,
+        display_order: newDisplayOrder,
+        category_id: targetCategoryId
+      });
+    }
+
+    // Apply all updates
+    for (const update of updates) {
+      await supabase
+        .from('presentations')
+        .update(update)
+        .eq('id', update.id);
+    }
+  } catch (error) {
+    console.error('Error reordering presentations:', error);
+    throw error;
   }
 };
