@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Category } from '../../services/CategoryService';
 import { Button } from '../ui/button';
 import { Folder, ChevronRight, ChevronDown } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 
 interface ViewerCategoryTreeProps {
   categories: Category[];
@@ -43,46 +44,55 @@ export const ViewerCategoryTree: React.FC<ViewerCategoryTreeProps> = ({
 
     return (
       <div key={category.id}>
-        <div
-          className={`flex items-center py-2.5 px-3 hover:bg-blue-50 rounded-lg cursor-pointer transition-colors ${
-            isSelected ? 'bg-blue-100 border-l-4 border-blue-600 shadow-sm' : ''
-          }`}
-          style={{ 
-            paddingLeft: `${12 + level * 20}px`,
-            marginLeft: level > 0 ? '8px' : '0'
-          }}
-          onClick={() => onSelectCategory(category.id)}
-        >
-          <div className="flex items-center flex-1 min-w-0">
-            {hasChildren && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 w-6 p-0 mr-2 hover:bg-blue-100"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleCategory(category.id);
+        <TooltipProvider delayDuration={300}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div
+                className={`flex items-center py-2.5 px-3 hover:bg-blue-50 rounded-lg cursor-pointer transition-colors ${
+                  isSelected ? 'bg-blue-100 border-l-4 border-blue-600 shadow-sm' : ''
+                }`}
+                style={{ 
+                  paddingLeft: `${12 + level * 4}px`,
+                  marginLeft: level > 0 ? '1px' : '0'
                 }}
+                onClick={() => onSelectCategory(category.id)}
               >
-                {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-              </Button>
-            )}
-            {!hasChildren && <div className="w-6 mr-2" />}
-            {category.image_url ? (
-              <img 
-                src={category.image_url} 
-                alt={category.name}
-                loading="lazy"
-                className="h-4 w-4 mr-2 flex-shrink-0 rounded object-cover"
-              />
-            ) : (
-              <Folder className={`h-4 w-4 mr-2 flex-shrink-0 ${isSelected ? 'text-blue-700' : 'text-blue-500'}`} />
-            )}
-            <span className={`text-sm truncate ${isSelected ? 'font-semibold text-blue-900' : 'text-gray-700'}`}>
-              {category.name}
-            </span>
-          </div>
-        </div>
+                <div className="flex items-center flex-1 min-w-0">
+                  {hasChildren && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0 mr-2 hover:bg-blue-100 flex-shrink-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleCategory(category.id);
+                      }}
+                    >
+                      {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                    </Button>
+                  )}
+                  {!hasChildren && <div className="w-6 mr-2 flex-shrink-0" />}
+                  {category.image_url ? (
+                    <img 
+                      src={category.image_url} 
+                      alt={category.name}
+                      loading="lazy"
+                      className="h-4 w-4 mr-2 flex-shrink-0 rounded object-cover"
+                    />
+                  ) : (
+                    <Folder className={`h-4 w-4 mr-2 flex-shrink-0 ${isSelected ? 'text-blue-700' : 'text-blue-500'}`} />
+                  )}
+                  <span className={`text-sm truncate ${isSelected ? 'font-semibold text-blue-900' : 'text-gray-700'}`} title={category.name}>
+                    {category.name}
+                  </span>
+                </div>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent side="right" className="max-w-xs">
+              <p>{category.name}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
         {isExpanded && hasChildren && (
           <div className="mt-1 border-l-2 border-gray-200 ml-3">
             {category.children!.map(child => renderCategory(child, level + 1))}
