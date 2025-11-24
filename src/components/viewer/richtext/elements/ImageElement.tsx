@@ -21,17 +21,18 @@ const ImageElement = ({ attributes, children, element }: any) => {
         textAlign: !isAbsolute && float === 'none' ? align as any : undefined,
       }}
     >
-      <div className="relative" style={{ display: 'inline-block' }}>
+      <div className="relative" style={{ display: 'inline-block', maxWidth: '100%' }}>
         <img
           src={element.url}
           alt=""
+          loading="lazy"
           style={{
-            width: element.width,
-            height: element.height,
-            transform: `rotate(${element.rotation || 0}deg)`,
+            width: element.width ? `${element.width}px` : '100%',
             maxWidth: '100%',
+            height: 'auto',
+            transform: `rotate(${element.rotation || 0}deg)`,
           }}
-          className={`block border-2 border-transparent`}
+          className={`block border-2 border-transparent w-full h-auto`}
         />
       </div>
       {children}

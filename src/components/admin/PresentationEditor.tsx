@@ -1722,7 +1722,12 @@ function PreviewMode({ slides, currentIndex, onNext, onPrev, onExit, theme }: { 
       case 'image':
         return (
           <div className="text-center">
-            <img src={currentSlide.content.url} alt={currentSlide.content.caption} className="max-w-full max-h-[70vh] mx-auto" />
+            <img 
+              src={currentSlide.content.url} 
+              alt={currentSlide.content.caption} 
+              loading="lazy"
+              className="max-w-full max-h-[70vh] mx-auto object-contain" 
+            />
             <p 
               className="text-lg mt-4"
               style={{ color: currentSlide.content.captionColor || '#666666' }}

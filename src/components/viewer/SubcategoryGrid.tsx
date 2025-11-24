@@ -24,7 +24,10 @@ export const SubcategoryGrid: React.FC<SubcategoryGridProps> = ({ subcategories,
                   <img 
                     src={category.image_url} 
                     alt={category.name}
+                    loading="lazy"
                     className="w-full h-full object-cover"
+                    srcSet={`${category.image_url}?w=80 80w, ${category.image_url}?w=160 160w`}
+                    sizes="80px"
                   />
                 </div>
               ) : (

@@ -25,7 +25,10 @@ export function InProgressCard({ progress }: InProgressCardProps) {
             <img 
               src={presentation.thumbnail_url} 
               alt={presentation.title}
+              loading="lazy"
               className="w-full h-full object-cover"
+              srcSet={`${presentation.thumbnail_url}?w=400 400w, ${presentation.thumbnail_url}?w=800 800w`}
+              sizes="(max-width: 640px) 250px, 300px"
             />
           ) : (
             <span className="text-4xl sm:text-6xl font-bold text-blue-200">

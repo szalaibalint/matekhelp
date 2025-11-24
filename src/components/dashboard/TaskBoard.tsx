@@ -175,6 +175,7 @@ const TaskBoard = ({
                           <img
                             src={task.assignee.avatar}
                             alt={task.assignee.name}
+                            loading="lazy"
                             className="w-7 h-7 rounded-full mr-2 border border-white shadow-sm"
                           />
                           <span className="text-sm text-gray-700 font-medium">

@@ -1434,6 +1434,7 @@ const ImageElement = forwardRef(({ attributes, children, element }: any, ref) =>
         <img
           src={element.url}
           alt=""
+          loading="lazy"
           style={{
             width: size.width,
             height: size.height,

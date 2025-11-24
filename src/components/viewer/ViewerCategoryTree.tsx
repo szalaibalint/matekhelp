@@ -72,6 +72,7 @@ export const ViewerCategoryTree: React.FC<ViewerCategoryTreeProps> = ({
               <img 
                 src={category.image_url} 
                 alt={category.name}
+                loading="lazy"
                 className="h-4 w-4 mr-2 flex-shrink-0 rounded object-cover"
               />
             ) : (

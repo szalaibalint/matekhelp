@@ -499,6 +499,7 @@ const ElementRenderer = ({ element, isThumb = false }: { element: SlideElement; 
         <img
           src={element.content.url}
           alt={element.content.alt}
+          loading="lazy"
           className="w-full h-full object-cover"
           style={{ borderRadius: element.style.borderRadius || 0 }}
         />
