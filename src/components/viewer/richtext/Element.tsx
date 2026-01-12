@@ -7,6 +7,7 @@ import HeadingThree from './elements/HeadingThree';
 import ListItem from './elements/ListItem';
 import NumberedList from './elements/NumberedList';
 import ImageElement from './elements/ImageElement';
+import AnimationElement from './elements/AnimationElement';
 import VideoElement from './elements/VideoElement';
 import LinkElement from './elements/LinkElement';
 import Table from './elements/Table';
@@ -34,6 +35,8 @@ const Element = (props: any) => {
       return <NumberedList {...props} />;
     case 'image':
       return <ImageElement {...props} />;
+    case 'animation':
+      return <AnimationElement {...props} />;
     case 'video':
       return <VideoElement {...props} />;
     case 'link':

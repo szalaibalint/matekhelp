@@ -19,6 +19,7 @@ import {
   Code,
   Image,
   Video,
+  Film,
   Table,
   Heading1,
   Heading2,
@@ -349,6 +350,7 @@ export function RichTextEditor({ content, onChange, enableDragBlanks = false, bl
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
+  const animationInputRef = useRef<HTMLInputElement>(null);
   const [videoUrl, setVideoUrl] = useState('');
   const [linkUrl, setLinkUrl] = useState('');
   const [linkText, setLinkText] = useState('');
@@ -524,6 +526,86 @@ export function RichTextEditor({ content, onChange, enableDragBlanks = false, bl
     };
     Transforms.insertNodes(editor, video);
     setVideoUrl('');
+  };
+
+  const handleAnimationUpload = async (file: File) => {
+    if (!file || !file.type.startsWith('video/')) {
+      toast({ title: 'Hiba', description: 'Kérlek válassz egy videófájlt!', variant: 'destructive' });
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadProgress(0);
+
+    try {
+      const filePath = `${Date.now()}-${file.name}`;
+      
+      // Simulate upload progress since Supabase doesn't provide it directly
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => Math.min(prev + 10, 90));
+      }, 100);
+      
+      const { error: uploadError } = await supabase.storage
+        .from('presentation-images')
+        .upload(filePath, file);
+
+      clearInterval(progressInterval);
+      setUploadProgress(100);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('presentation-images')
+        .getPublicUrl(filePath);
+
+      insertAnimation(publicUrl);
+      
+      setTimeout(() => {
+        setUploadProgress(0);
+        setIsUploading(false);
+      }, 500);
+    } catch (error: any) {
+      toast({ title: 'Hiba', description: error.message, variant: 'destructive' });
+      setIsUploading(false);
+      setUploadProgress(0);
+    }
+  };
+
+  const insertAnimation = (url: string) => {
+    // Create a video element to get dimensions
+    const video = document.createElement('video');
+    video.src = url;
+    video.onloadedmetadata = () => {
+      const animation = {
+        type: 'animation',
+        url,
+        width: video.videoWidth || 640,
+        height: video.videoHeight || 480,
+        rotation: 0,
+        float: 'none',
+        align: 'left',
+        position: { x: 0, y: 0 },
+        isAbsolute: false,
+        children: [{ text: '' }],
+      };
+      Transforms.insertNodes(editor, animation);
+    };
+    video.onerror = () => {
+      // If metadata loading fails, use default dimensions
+      const animation = {
+        type: 'animation',
+        url,
+        width: 640,
+        height: 480,
+        rotation: 0,
+        float: 'none',
+        align: 'left',
+        position: { x: 0, y: 0 },
+        isAbsolute: false,
+        children: [{ text: '' }],
+      };
+      Transforms.insertNodes(editor, animation);
+    };
   };
 
   const insertLink = (url: string, text: string) => {
@@ -840,6 +922,47 @@ export function RichTextEditor({ content, onChange, enableDragBlanks = false, bl
                 <Button onClick={() => insertImage(imageUrl)} disabled={!imageUrl || isUploading} className="w-full">
                   Kép beillesztése
                 </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+          
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="ghost" size="sm">
+                <Film className="h-4 w-4" />
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Animáció beillesztése</DialogTitle>
+                <p className="text-sm text-gray-500">Automatikusan lejátszódó, ismétlődő videó (hang nélkül)</p>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Videófájl feltöltése</label>
+                  <input
+                    ref={animationInputRef}
+                    type="file"
+                    accept="video/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleAnimationUpload(file);
+                    }}
+                    className="block w-full text-sm text-gray-500
+                      file:mr-4 file:py-2 file:px-4
+                      file:rounded-md file:border-0
+                      file:text-sm file:font-semibold
+                      file:bg-blue-50 file:text-blue-700
+                      hover:file:bg-blue-100"
+                    disabled={isUploading}
+                  />
+                  {isUploading && (
+                    <div className="mt-2">
+                      <Progress value={uploadProgress} className="h-2" />
+                      <p className="text-xs text-gray-500 mt-1">Feltöltés: {uploadProgress}%</p>
+                    </div>
+                  )}
+                </div>
               </div>
             </DialogContent>
           </Dialog>
@@ -1197,6 +1320,8 @@ const Element = ({ attributes, children, element }: any) => {
       );
     case 'image':
       return <ImageElement {...attributes} element={element}>{children}</ImageElement>;
+    case 'animation':
+      return <AnimationElement {...attributes} element={element}>{children}</AnimationElement>;
     case 'video':
       return <VideoElement {...attributes} element={element}>{children}</VideoElement>;
     case 'link':
@@ -1542,6 +1667,273 @@ const ImageElement = forwardRef(({ attributes, children, element }: any, ref) =>
             )}
           </div>
         </div>
+      </div>
+      {children}
+    </div>
+  );
+});
+
+const AnimationElement = forwardRef(({ attributes, children, element }: any, ref) => {
+  const editor = useSlate();
+  const selected = useSelected();
+  const focused = useFocused();
+  const [size, setSize] = useState({ width: element.width || 640, height: element.height || 480 });
+  const [rotation, setRotation] = useState(element.rotation || 0);
+  const [float, setFloat] = useState(element.float || 'none');
+  const [align, setAlign] = useState(element.align || 'left');
+  const [position, setPosition] = useState(element.position || { x: 0, y: 0 });
+  const [isAbsolute, setIsAbsolute] = useState(element.isAbsolute || false);
+  const [isResizing, setIsResizing] = useState(false);
+  const [isRotating, setIsRotating] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [startPos, setStartPos] = useState({ x: 0, y: 0 });
+  const [startSize, setStartSize] = useState({ width: 0, height: 0 });
+  const [startRotation, setStartRotation] = useState(0);
+  const [aspectRatio, setAspectRatio] = useState(1);
+  const [editorBounds, setEditorBounds] = useState<DOMRect | null>(null);
+
+  // Get parent block alignment
+  let parentAlign = align;
+  try {
+    const path = ReactEditor.findPath(editor, element);
+    const [parentNode] = Editor.parent(editor, path);
+    parentAlign = (parentNode as any)?.align || align;
+  } catch (e) {
+    // If we can't get the parent, use animation's own alignment
+  }
+
+  useEffect(() => {
+    if (isResizing) {
+      const handleMouseMove = (e: MouseEvent) => {
+        const deltaX = e.clientX - startPos.x;
+        const deltaY = e.clientY - startPos.y;
+        
+        if (e.shiftKey) {
+          // Maintain aspect ratio when Shift is held
+          const newWidth = Math.max(100, startSize.width + deltaX);
+          const newHeight = Math.round(newWidth / aspectRatio);
+          setSize({ width: newWidth, height: newHeight });
+        } else {
+          // Free resize
+          const newWidth = Math.max(100, startSize.width + deltaX);
+          const newHeight = Math.max(100, startSize.height + deltaY);
+          setSize({ width: newWidth, height: newHeight });
+        }
+      };
+
+      const handleMouseUp = () => {
+        setIsResizing(false);
+        const path = ReactEditor.findPath(editor, element);
+        Transforms.setNodes(editor, { width: size.width, height: size.height }, { at: path });
+      };
+
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+      return () => {
+        window.removeEventListener('mousemove', handleMouseMove);
+        window.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [isResizing, startPos, startSize, size, aspectRatio, editor, element]);
+
+  useEffect(() => {
+    if (isDragging) {
+      const handleMouseMove = (e: MouseEvent) => {
+        const deltaX = e.clientX - startPos.x;
+        const deltaY = e.clientY - startPos.y;
+        
+        setPosition({
+          x: Math.max(0, element.position.x + deltaX),
+          y: Math.max(0, element.position.y + deltaY),
+        });
+      };
+
+      const handleMouseUp = () => {
+        setIsDragging(false);
+        const path = ReactEditor.findPath(editor, element);
+        
+        // Get container width to save as reference
+        const editorContainer = document.querySelector('.prose') as HTMLElement;
+        const containerWidth = editorContainer ? editorContainer.clientWidth : 850;
+        
+        Transforms.setNodes(editor, { position, referenceWidth: containerWidth } as any, { at: path });
+      };
+
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+      return () => {
+        window.removeEventListener('mousemove', handleMouseMove);
+        window.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [isDragging, startPos, position, editor, element]);
+
+  useEffect(() => {
+    if (isRotating) {
+      const handleMouseMove = (e: MouseEvent) => {
+        const rect = (e.currentTarget as any)?.getBoundingClientRect();
+        if (!rect) return;
+        
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+        const angle = Math.atan2(e.clientY - centerY, e.clientX - centerX);
+        const deg = angle * (180 / Math.PI);
+        setRotation((deg + 360) % 360);
+      };
+
+      const handleMouseUp = () => {
+        setIsRotating(false);
+        const path = ReactEditor.findPath(editor, element);
+        Transforms.setNodes(editor, { rotation }, { at: path });
+      };
+
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+      return () => {
+        window.removeEventListener('mousemove', handleMouseMove);
+        window.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [isRotating, rotation, editor, element]);
+
+  const handleFloatChange = (newFloat: string) => {
+    setFloat(newFloat);
+    setIsAbsolute(newFloat === 'absolute');
+    const path = ReactEditor.findPath(editor, element);
+    
+    if (newFloat === 'absolute') {
+      const editorContainer = document.querySelector('.prose');
+      if (editorContainer) {
+        setEditorBounds(editorContainer.getBoundingClientRect());
+      }
+      Transforms.setNodes(editor, { float: 'none', isAbsolute: true } as any, { at: path });
+    } else {
+      Transforms.setNodes(editor, { float: newFloat, isAbsolute: false, position: { x: 0, y: 0 } } as any, { at: path });
+    }
+  };
+
+  const handleAlignChange = (newAlign: string) => {
+    setAlign(newAlign);
+    const path = ReactEditor.findPath(editor, element);
+    Transforms.setNodes(editor, { align: newAlign }, { at: path });
+  };
+
+  const deleteAnimation = () => {
+    const path = ReactEditor.findPath(editor, element);
+    Transforms.removeNodes(editor, { at: path });
+  };
+
+  return (
+    <div 
+      {...attributes} 
+      className="group my-4"
+      contentEditable={false}
+      style={{
+        position: isAbsolute ? 'absolute' : 'relative',
+        left: isAbsolute ? `${position.x}px` : undefined,
+        top: isAbsolute ? `${position.y}px` : undefined,
+        float: !isAbsolute && float !== 'none' ? float as any : undefined,
+        margin: !isAbsolute && float !== 'none' ? '0 10px' : isAbsolute ? 0 : '0 auto',
+        zIndex: isAbsolute ? 1 : undefined,
+        display: isAbsolute ? 'block' : float === 'none' ? 'block' : 'inline-block',
+        textAlign: !isAbsolute && float === 'none' ? parentAlign as any : undefined,
+      }}
+    >
+      <div className="relative" style={{ display: 'inline-block' }} onMouseDown={(e) => e.stopPropagation()}>
+        <video
+          src={element.url}
+          autoPlay
+          loop
+          muted
+          playsInline
+          style={{
+            width: size.width,
+            height: size.height,
+            transform: `rotate(${rotation}deg)`,
+            maxWidth: '100%',
+            objectFit: 'cover',
+            display: 'block',
+          }}
+          className={`transition-all ${selected && focused ? 'ring-2 ring-blue-500' : 'group-hover:ring-2 group-hover:ring-blue-300'}`}
+        />
+        
+        <div
+          className="absolute inset-0"
+          style={{ cursor: isAbsolute ? 'move' : 'default', zIndex: 1 }}
+          onMouseDown={(e) => {
+            if (isAbsolute && !isResizing && !isRotating) {
+              e.preventDefault();
+              e.stopPropagation();
+              setIsDragging(true);
+              setStartPos({ x: e.clientX, y: e.clientY });
+            }
+          }}
+        />
+        
+        <div
+          className="absolute bottom-0 right-0 w-4 h-4 bg-blue-500 cursor-se-resize opacity-0 group-hover:opacity-100 transition-opacity"
+          style={{ zIndex: 10 }}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setIsResizing(true);
+            setStartPos({ x: e.clientX, y: e.clientY });
+            setStartSize(size);
+            setAspectRatio(size.width / size.height);
+          }}
+        />
+
+        <div
+          className="absolute top-0 right-0 w-4 h-4 bg-green-500 rounded-full cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
+          style={{ transform: 'translate(50%, -50%)', zIndex: 10 }}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setIsRotating(true);
+            setStartRotation(rotation);
+          }}
+        />
+
+        {(selected && focused) && (
+          <div 
+            className="absolute -top-10 left-0 flex gap-1 bg-white border border-gray-300 rounded shadow-lg p-1"
+            style={{ zIndex: 20 }}
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            <select
+              value={isAbsolute ? 'absolute' : float}
+              onChange={(e) => handleFloatChange(e.target.value)}
+              className="text-xs px-1 py-0.5 border border-gray-300 rounded cursor-pointer"
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              <option value="none">Normál</option>
+              <option value="left">Bal</option>
+              <option value="right">Jobb</option>
+              <option value="absolute">Abszolút</option>
+            </select>
+            
+            {!isAbsolute && (
+              <select
+                value={align}
+                onChange={(e) => handleAlignChange(e.target.value)}
+                className="text-xs px-1 py-0.5 border border-gray-300 rounded cursor-pointer"
+                onMouseDown={(e) => e.stopPropagation()}
+              >
+                <option value="left">Balra</option>
+                <option value="center">Középre</option>
+                <option value="right">Jobbra</option>
+              </select>
+            )}
+            
+            <button
+              onClick={deleteAnimation}
+              onMouseDown={(e) => e.stopPropagation()}
+              className="text-xs px-2 py-0.5 bg-red-500 text-white rounded hover:bg-red-600 cursor-pointer"
+            >
+              Törlés
+            </button>
+          </div>
+        )}
       </div>
       {children}
     </div>

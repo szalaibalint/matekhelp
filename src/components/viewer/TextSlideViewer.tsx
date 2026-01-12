@@ -51,6 +51,22 @@ const renderElement = (element: any) => {
           }}
         />
       );
+    case 'animation':
+      return (
+        <video
+          src={element.content.url}
+          autoPlay
+          loop
+          muted
+          playsInline
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            borderRadius: element.style?.borderRadius || 0,
+          }}
+        />
+      );
     case 'video':
       return (
         <video
