@@ -1375,7 +1375,16 @@ const ImageElement = forwardRef(({ attributes, children, element }: any, ref) =>
       const handleMouseUp = () => {
         setIsDragging(false);
         const path = ReactEditor.findPath(editor, element);
-        Transforms.setNodes(editor, { position } as any, { at: path });
+        
+        // Get the editor container width to save as reference
+        const editorEl = ReactEditor.toDOMNode(editor, editor);
+        const editorContainer = editorEl.closest('.flex-1.p-4.overflow-visible') as HTMLElement;
+        const containerWidth = editorContainer ? editorContainer.clientWidth : 850;
+        
+        Transforms.setNodes(editor, { 
+          position, 
+          referenceWidth: containerWidth 
+        } as any, { at: path });
       };
 
       window.addEventListener('mousemove', handleMouseMove);

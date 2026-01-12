@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 import { Slider } from '../ui/slider';
+import { ResponsiveSlideContainer, CANVAS_WIDTH, CANVAS_HEIGHT } from '../shared/ResponsiveSlideContainer';
 
 interface Slide {
   id: string;
@@ -276,22 +277,22 @@ export function SlideEditor({ content, onChange }: SlideEditorProps) {
               onClick={() => setSelectedSlideIndex(index)}
             >
               <div className="aspect-video bg-white border border-gray-100 rounded mb-2 overflow-hidden">
-                <div className="w-full h-full relative" style={{ backgroundColor: slide.content.background?.value || '#ffffff' }}>
+                <ResponsiveSlideContainer backgroundColor={slide.content.background?.value || '#ffffff'}>
                   {slide.content.elements.map((element) => (
                     <div
                       key={element.id}
                       className="absolute"
                       style={{
-                        left: `${(element.position.x / 800) * 100}%`,
-                        top: `${(element.position.y / 600) * 100}%`,
-                        width: `${(element.size.width / 800) * 100}%`,
-                        height: `${(element.size.height / 600) * 100}%`,
+                        left: `${(element.position.x / CANVAS_WIDTH) * 100}%`,
+                        top: `${(element.position.y / CANVAS_HEIGHT) * 100}%`,
+                        width: `${(element.size.width / CANVAS_WIDTH) * 100}%`,
+                        height: `${(element.size.height / CANVAS_HEIGHT) * 100}%`,
                       }}
                     >
                       <ElementRenderer element={element} isThumb />
                     </div>
                   ))}
-                </div>
+                </ResponsiveSlideContainer>
               </div>
               <div className="text-xs font-medium truncate">{slide.title}</div>
               <div className="text-xs text-gray-500">Dia {index + 1}</div>
@@ -437,24 +438,22 @@ export function SlideEditor({ content, onChange }: SlideEditorProps) {
 }
 
 const SlideCanvas = ({ slide, selectedElementId, onElementSelect, onElementUpdate }: any) => (
-  <div 
-    className="w-full h-full relative overflow-hidden rounded-lg"
-    style={{ backgroundColor: slide.content.background?.value || '#ffffff' }}
-  >
-    {slide.content.elements.map((element: SlideElement) => (
-      <div
-        key={element.id}
-        className={`absolute cursor-pointer border-2 ${
-          selectedElementId === element.id ? 'border-blue-500' : 'border-transparent hover:border-gray-300'
-        }`}
-        style={{
-          left: element.position.x,
-          top: element.position.y,
-          width: element.size.width,
-          height: element.size.height,
-        }}
-        onClick={() => onElementSelect(element.id)}
-      >
+  <div className="w-full h-full bg-gray-100 rounded-lg overflow-hidden">
+    <ResponsiveSlideContainer backgroundColor={slide.content.background?.value || '#ffffff'}>
+      {slide.content.elements.map((element: SlideElement) => (
+        <div
+          key={element.id}
+          className={`absolute cursor-pointer border-2 ${
+            selectedElementId === element.id ? 'border-blue-500' : 'border-transparent hover:border-gray-300'
+          }`}
+          style={{
+            left: `${(element.position.x / CANVAS_WIDTH) * 100}%`,
+            top: `${(element.position.y / CANVAS_HEIGHT) * 100}%`,
+            width: `${(element.size.width / CANVAS_WIDTH) * 100}%`,
+            height: `${(element.size.height / CANVAS_HEIGHT) * 100}%`,
+          }}
+          onClick={() => onElementSelect(element.id)}
+        >
         <ElementRenderer element={element} />
         {selectedElementId === element.id && (
           <div className="absolute -top-1 -right-1">
@@ -473,6 +472,7 @@ const SlideCanvas = ({ slide, selectedElementId, onElementSelect, onElementUpdat
         )}
       </div>
     ))}
+    </ResponsiveSlideContainer>
   </div>
 );
 
@@ -696,19 +696,20 @@ const ElementProperties = ({ element, onUpdate, onDelete }: any) => (
 const SlidePreview = ({ slide }: { slide: Slide }) => (
   <div 
     className="relative bg-white rounded-lg shadow-2xl"
-    style={{ width: 1000, height: 750, backgroundColor: slide.content.background?.value || '#ffffff' }}
+    style={{ width: 1000, height: 563 }}
   >
-    {slide.content.elements.map((element) => (
-      <div
-        key={element.id}
-        className="absolute"
-        style={{
-          left: (element.position.x / 800) * 1000,
-          top: (element.position.y / 600) * 750,
-          width: (element.size.width / 800) * 1000,
-          height: (element.size.height / 600) * 750,
-        }}
-      >
+    <ResponsiveSlideContainer backgroundColor={slide.content.background?.value || '#ffffff'}>
+      {slide.content.elements.map((element) => (
+        <div
+          key={element.id}
+          className="absolute"
+          style={{
+            left: `${(element.position.x / CANVAS_WIDTH) * 100}%`,
+            top: `${(element.position.y / CANVAS_HEIGHT) * 100}%`,
+            width: `${(element.size.width / CANVAS_WIDTH) * 100}%`,
+            height: `${(element.size.height / CANVAS_HEIGHT) * 100}%`,
+          }}
+        >
         <ElementRenderer element={{
           ...element,
           content: element.type === 'text' ? {
@@ -718,5 +719,6 @@ const SlidePreview = ({ slide }: { slide: Slide }) => (
         }} />
       </div>
     ))}
+    </ResponsiveSlideContainer>
   </div>
 );
