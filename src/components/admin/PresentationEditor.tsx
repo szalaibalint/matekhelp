@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
@@ -24,7 +24,26 @@ import {
   X,
   ArrowRight,
   Sigma,
-  Loader2
+  Loader2,
+  Settings,
+  MessageSquare,
+  Sparkles,
+  PaintBucket,
+  LayoutTemplate,
+  Share2,
+  Eye,
+  ChevronRight,
+  ListOrdered,
+  Link2,
+  ToggleLeft,
+  PenLine,
+  BarChart3,
+  FileText as FileTextIcon,
+  Edit3,
+  SlidersHorizontal,
+  PanelRightClose,
+  PanelRightOpen,
+  ImagePlus
 } from 'lucide-react';
 import { supabase } from '../../../supabase/supabase';
 import { toast } from '../ui/use-toast';
@@ -123,6 +142,8 @@ export function PresentationEditor({ presentationId, onBack }: PresentationEdito
   const [previewIndex, setPreviewIndex] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isRightPanelCollapsed, setIsRightPanelCollapsed] = useState(false);
+  const [activeRightTab, setActiveRightTab] = useState<'edit' | 'settings' | 'themes'>('edit');
 
   useEffect(() => {
     loadPresentation();
@@ -368,171 +389,1124 @@ export function PresentationEditor({ presentationId, onBack }: PresentationEdito
 
   const selectedSlide = slides[selectedSlideIndex];
 
+  // Get slide type display info
+  const getSlideTypeInfo = (type: Slide['type']) => {
+    const types: Record<string, { label: string; icon: any }> = {
+      'heading': { label: 'Címsor', icon: Heading },
+      'text': { label: 'Szöveg', icon: Type },
+      'image': { label: 'Kép', icon: ImageIcon },
+      'multiple_choice': { label: 'Feleletválasztós', icon: BarChart3 },
+      'ranking': { label: 'Sorrendbe rakás', icon: ListOrdered },
+      'matching': { label: 'Párosítás', icon: Link2 },
+      'true_false': { label: 'Igaz/Hamis', icon: ToggleLeft },
+      'fill_in_blanks': { label: 'Szöveg kiegészítés', icon: PenLine }
+    };
+    return types[type] || { label: type, icon: Type };
+  };
+
   return (
-    <div className="h-full flex flex-col bg-white">
-      {/* Header */}
-      <div className="border-b border-gray-200 p-4 flex items-center justify-between">
+    <div className="h-screen flex flex-col bg-gray-100">
+      {/* Header - Mentimeter style */}
+      <header className="bg-white border-b border-gray-200 px-4 py-2 flex items-center justify-between z-10">
         <div className="flex items-center space-x-4">
-          <Button variant="ghost" size="sm" onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}>
-            {isSidebarCollapsed ? <PanelLeftOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
+          <Button variant="ghost" size="icon" onClick={onBack} className="text-gray-600">
+            <ArrowLeft className="h-5 w-5" />
           </Button>
-          <Button variant="ghost" onClick={onBack}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Vissza
-          </Button>
-          <div>
+          <div className="flex flex-col">
             <Input
               value={presentation.title}
               onChange={(e) => setPresentation({ ...presentation, title: e.target.value })}
-              className="text-xl font-semibold border-none p-0 h-auto"
+              className="text-lg font-semibold border-none p-0 h-auto bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
+              placeholder="Prezentáció címe"
             />
-            <p className="text-sm text-gray-500">{slides.length} dia • {getTotalPoints()} pont</p>
+            <span className="text-xs text-gray-500">{slides.length} dia • {getTotalPoints()} pont</span>
           </div>
         </div>
-        <div className="flex items-center space-x-2">
-          <Button variant="outline" onClick={() => setIsPreviewMode(true)} disabled={slides.length === 0}>
-            <Play className="h-4 w-4 mr-2" />
+
+        {/* Center navigation tabs */}
+        <div className="flex items-center space-x-1 bg-gray-100 rounded-lg p-1">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="rounded-md px-4 bg-white shadow-sm text-sm font-medium"
+          >
+            Szerkesztés
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="rounded-md px-4 text-gray-500 hover:text-gray-700 text-sm font-medium"
+            onClick={() => setIsPreviewMode(true)}
+            disabled={slides.length === 0}
+          >
             Előnézet
           </Button>
-          <Button onClick={saveAll} disabled={isSaving}>
+        </div>
+
+        {/* Right side actions */}
+        <div className="flex items-center space-x-2">
+          <Button variant="ghost" size="icon" className="text-gray-600">
+            <Eye className="h-5 w-5" />
+          </Button>
+          <Button 
+            onClick={saveAll} 
+            disabled={isSaving}
+            className="bg-purple-600 hover:bg-purple-700 text-white rounded-full px-6"
+          >
             {isSaving ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Mentés...
+              </>
             ) : (
-              <Save className="h-4 w-4 mr-2" />
+              <>
+                <Save className="h-4 w-4 mr-2" />
+                Mentés
+              </>
             )}
-            {isSaving ? 'Mentés...' : 'Mentés'}
           </Button>
         </div>
-      </div>
+      </header>
 
-      {/* Main Content */}
+      {/* Main Content Area */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Slides Panel */}
-        {!isSidebarCollapsed && (
-          <div className="w-80 border-r border-gray-200 flex flex-col bg-gray-50">
-            <div className="p-4 border-b border-gray-200">
-              <Select value="" onValueChange={(type) => {
-                if (type) {
-                  addSlide(type as Slide['type']);
-                }
-              }}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Dia hozzáadása" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="heading">Címsor</SelectItem>
-                  <SelectItem value="text">Szöveg</SelectItem>
-                  <SelectItem value="image">Kép</SelectItem>
-                  <SelectItem value="multiple_choice">Feleletválasztós</SelectItem>
-                  <SelectItem value="ranking">Sorrendbe rakás</SelectItem>
-                  <SelectItem value="matching">Párosítás</SelectItem>
-                  <SelectItem value="true_false">Igaz/Hamis</SelectItem>
-                  <SelectItem value="fill_in_blanks">Szöveg kiegészítés</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+        {/* Left Sidebar - Slide Thumbnails */}
+        <div className={`bg-white border-r border-gray-200 flex flex-col transition-all duration-300 ${isSidebarCollapsed ? 'w-0 overflow-hidden' : 'w-52'}`}>
+          {/* Add New Slide Button */}
+          <div className="p-3 border-b border-gray-200">
+            <Select value="" onValueChange={(type) => {
+              if (type) {
+                addSlide(type as Slide['type']);
+              }
+            }}>
+              <SelectTrigger className="w-full bg-purple-600 hover:bg-purple-700 text-white border-0 rounded-full">
+                <div className="flex items-center justify-center w-full">
+                  <Plus className="h-4 w-4 mr-2" />
+                  <span className="font-medium">Új dia</span>
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="heading">
+                  <div className="flex items-center">
+                    <Heading className="h-4 w-4 mr-2" />
+                    Címsor
+                  </div>
+                </SelectItem>
+                <SelectItem value="text">
+                  <div className="flex items-center">
+                    <Type className="h-4 w-4 mr-2" />
+                    Szöveg
+                  </div>
+                </SelectItem>
+                <SelectItem value="image">
+                  <div className="flex items-center">
+                    <ImageIcon className="h-4 w-4 mr-2" />
+                    Kép
+                  </div>
+                </SelectItem>
+                <SelectItem value="multiple_choice">
+                  <div className="flex items-center">
+                    <BarChart3 className="h-4 w-4 mr-2" />
+                    Feleletválasztós
+                  </div>
+                </SelectItem>
+                <SelectItem value="ranking">
+                  <div className="flex items-center">
+                    <ListOrdered className="h-4 w-4 mr-2" />
+                    Sorrendbe rakás
+                  </div>
+                </SelectItem>
+                <SelectItem value="matching">
+                  <div className="flex items-center">
+                    <Link2 className="h-4 w-4 mr-2" />
+                    Párosítás
+                  </div>
+                </SelectItem>
+                <SelectItem value="true_false">
+                  <div className="flex items-center">
+                    <ToggleLeft className="h-4 w-4 mr-2" />
+                    Igaz/Hamis
+                  </div>
+                </SelectItem>
+                <SelectItem value="fill_in_blanks">
+                  <div className="flex items-center">
+                    <PenLine className="h-4 w-4 mr-2" />
+                    Szöveg kiegészítés
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-            <div className="flex-1 overflow-y-auto p-3 space-y-2">
-              {slides.map((slide, index) => (
-                <Card
+          {/* Slide Thumbnails */}
+          <div className="flex-1 overflow-y-auto p-2 space-y-2">
+            {slides.map((slide, index) => {
+              const typeInfo = getSlideTypeInfo(slide.type);
+              const TypeIcon = typeInfo.icon;
+              return (
+                <div
                   key={slide.id}
-                  className={`cursor-pointer transition-all ${
-                    selectedSlideIndex === index ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:bg-gray-100'
+                  className={`relative group cursor-pointer rounded-lg transition-all ${
+                    selectedSlideIndex === index 
+                      ? 'ring-2 ring-purple-500' 
+                      : 'hover:ring-2 hover:ring-gray-300'
                   }`}
                   onClick={() => setSelectedSlideIndex(index)}
                 >
-                  <CardContent className="p-3">
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex items-center space-x-2">
-                        {getSlideIcon(slide.type)}
-                        <Badge variant="outline" className="text-xs">
-                          {index + 1}
-                        </Badge>
-                        {(typeof slide.points === 'string' ? parseInt(slide.points) || 0 : slide.points || 0) > 0 && (
-                          <Badge className="text-xs bg-green-500">
-                            {slide.points} pont
-                          </Badge>
-                        )}
+                  {/* Slide number */}
+                  <div className="absolute -left-1 top-2 text-xs text-gray-400 font-medium">
+                    {index + 1}
+                  </div>
+                  
+                  {/* Thumbnail */}
+                  <div 
+                    className="ml-4 aspect-[16/9] bg-white rounded-lg border border-gray-200 overflow-hidden flex items-center justify-center relative"
+                    style={{ backgroundColor: slide.backgroundColor || '#ffffff' }}
+                  >
+                    <TypeIcon className="h-6 w-6 text-gray-400" />
+                    
+                    {/* Points badge */}
+                    {(typeof slide.points === 'string' ? parseInt(slide.points) || 0 : slide.points || 0) > 0 && (
+                      <div className="absolute bottom-1 right-1 bg-green-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">
+                        {slide.points}p
                       </div>
-                      <div className="flex space-x-1">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-6 w-6 p-0"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            moveSlide(index, Math.max(0, index - 1));
-                          }}
-                          disabled={index === 0}
-                        >
-                          <ChevronUp className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-6 w-6 p-0"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            moveSlide(index, Math.min(slides.length - 1, index + 1));
-                          }}
-                          disabled={index === slides.length - 1}
-                        >
-                          <ChevronDown className="h-3 w-3" />
-                        </Button>
+                    )}
+                  </div>
+                  
+                  {/* Hover actions */}
+                  <div className="absolute -right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col space-y-1">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-6 w-6 p-0 bg-white shadow-sm rounded-full"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        moveSlide(index, Math.max(0, index - 1));
+                      }}
+                      disabled={index === 0}
+                    >
+                      <ChevronUp className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-6 w-6 p-0 bg-white shadow-sm rounded-full"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        moveSlide(index, Math.min(slides.length - 1, index + 1));
+                      }}
+                      disabled={index === slides.length - 1}
+                    >
+                      <ChevronDown className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Toggle Left Sidebar Button */}
+        <button 
+          onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+          className="absolute left-0 top-1/2 -translate-y-1/2 z-20 bg-white border border-gray-200 rounded-r-lg p-1 hover:bg-gray-50 shadow-sm"
+          style={{ left: isSidebarCollapsed ? '0' : '208px' }}
+        >
+          {isSidebarCollapsed ? <ChevronRight className="h-4 w-4" /> : <ArrowLeft className="h-4 w-4" />}
+        </button>
+
+        {/* Center - Slide Canvas/Preview */}
+        <div className="flex-1 p-6 overflow-auto bg-gray-100 flex items-center justify-center">
+          {selectedSlide ? (
+            <div className="relative w-full" style={{ maxWidth: '900px' }}>
+              {/* Slide container with exact 16:9 aspect ratio using scaled iframe-like approach */}
+              <div 
+                className="relative bg-white rounded-lg shadow-lg overflow-hidden"
+                style={{ 
+                  paddingBottom: '56.25%', /* 16:9 aspect ratio */
+                }}
+              >
+                {/* This creates a properly scaled preview by rendering at a fixed size and scaling */}
+                <div className="absolute inset-0">
+                  <ScaledSlidePreview slide={selectedSlide} theme={presentation.theme} />
+                </div>
+              </div>
+              
+              {/* Slide actions overlay */}
+              <div className="absolute bottom-4 right-4 flex items-center space-x-2 opacity-0 hover:opacity-100 transition-opacity">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="bg-white/90 shadow-sm"
+                  onClick={() => duplicateSlide(selectedSlideIndex)}
+                >
+                  <Copy className="h-3 w-3 mr-1" />
+                  Másolás
+                </Button>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="bg-white/90 shadow-sm text-red-600 hover:text-red-700"
+                  onClick={() => deleteSlide(selectedSlideIndex)}
+                >
+                  <Trash2 className="h-3 w-3 mr-1" />
+                  Törlés
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="w-full max-w-4xl">
+              <div 
+                className="relative bg-white rounded-lg shadow-lg overflow-hidden"
+                style={{ paddingBottom: '56.25%' }}
+              >
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-center">
+                    <Type className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">Még nincsenek diák</h3>
+                    <p className="text-gray-500 mb-4">Hozd létre az első diádat a kezdéshez.</p>
+                    <Select value="" onValueChange={(type) => {
+                      if (type) {
+                        addSlide(type as Slide['type']);
+                      }
+                    }}>
+                      <SelectTrigger className="w-48 mx-auto">
+                        <SelectValue placeholder="Dia hozzáadása" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="heading">Címsor</SelectItem>
+                        <SelectItem value="text">Szöveg</SelectItem>
+                        <SelectItem value="image">Kép</SelectItem>
+                        <SelectItem value="multiple_choice">Feleletválasztós</SelectItem>
+                        <SelectItem value="ranking">Sorrendbe rakás</SelectItem>
+                        <SelectItem value="matching">Párosítás</SelectItem>
+                        <SelectItem value="true_false">Igaz/Hamis</SelectItem>
+                        <SelectItem value="fill_in_blanks">Szöveg kiegészítés</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Right Sidebar - Settings Panel */}
+        <div className={`bg-white border-l border-gray-200 flex transition-all duration-300 ${isRightPanelCollapsed ? 'w-14' : 'w-80'}`}>
+          {/* Settings Content */}
+          {!isRightPanelCollapsed && (
+            <div className="flex-1 overflow-y-auto">
+              {/* Edit Tab Content */}
+              {activeRightTab === 'edit' && selectedSlide && (
+                <>
+                  {/* Panel Header */}
+                  <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between">
+                    <h3 className="font-semibold text-gray-900">Dia szerkesztése</h3>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-6 w-6"
+                      onClick={() => setIsRightPanelCollapsed(true)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+
+                  {/* Slide Type Selector */}
+                  <div className="p-4 border-b border-gray-200">
+                    <label className="text-sm font-medium text-gray-700 block mb-2">Dia típus</label>
+                    <Select 
+                      value={selectedSlide.type}
+                      onValueChange={(type) => {
+                        updateSlide(selectedSlideIndex, { 
+                          type: type as Slide['type'],
+                          content: getDefaultContent(type as Slide['type']),
+                          title: getDefaultTitle(type as Slide['type'])
+                        });
+                      }}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="heading">
+                          <div className="flex items-center">
+                            <Heading className="h-4 w-4 mr-2 text-purple-500" />
+                            Címsor
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="text">
+                          <div className="flex items-center">
+                            <Type className="h-4 w-4 mr-2 text-blue-500" />
+                            Szöveg
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="image">
+                          <div className="flex items-center">
+                            <ImageIcon className="h-4 w-4 mr-2 text-green-500" />
+                            Kép
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="multiple_choice">
+                          <div className="flex items-center">
+                            <BarChart3 className="h-4 w-4 mr-2 text-orange-500" />
+                            Feleletválasztós
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="ranking">
+                          <div className="flex items-center">
+                            <ListOrdered className="h-4 w-4 mr-2 text-yellow-600" />
+                            Sorrendbe rakás
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="matching">
+                          <div className="flex items-center">
+                            <Link2 className="h-4 w-4 mr-2 text-pink-500" />
+                            Párosítás
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="true_false">
+                          <div className="flex items-center">
+                            <ToggleLeft className="h-4 w-4 mr-2 text-cyan-500" />
+                            Igaz/Hamis
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="fill_in_blanks">
+                          <div className="flex items-center">
+                            <PenLine className="h-4 w-4 mr-2 text-indigo-500" />
+                            Szöveg kiegészítés
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Slide Editor Content */}
+                  <div className="p-4">
+                    <SlideEditorPanel
+                      slide={selectedSlide}
+                      onChange={(updates) => updateSlide(selectedSlideIndex, updates)}
+                      theme={presentation.theme}
+                    />
+                  </div>
+
+                  {/* Background Section */}
+                  <div className="p-4 border-t border-gray-200">
+                    <h4 className="text-sm font-medium text-gray-700 mb-3">Háttér</h4>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">Háttérszín</span>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className="w-10 h-10 p-0 rounded-lg"
+                              style={{ backgroundColor: selectedSlide.backgroundColor || presentation.theme?.background || '#ffffff' }}
+                            />
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="end">
+                            <SketchPicker
+                              color={selectedSlide.backgroundColor || presentation.theme?.background || '#ffffff'}
+                              onChange={(color) => updateSlide(selectedSlideIndex, { backgroundColor: color.hex })}
+                            />
+                          </PopoverContent>
+                        </Popover>
                       </div>
                     </div>
-                    <p className="text-sm font-medium truncate mb-1">{slide.title}</p>
-                    <div className="flex space-x-1">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-6 px-2 text-xs"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          duplicateSlide(index);
-                        }}
-                      >
-                        <Copy className="h-3 w-3 mr-1" />
-                        Másolás
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-6 px-2 text-xs text-red-600"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          deleteSlide(index);
-                        }}
-                      >
-                        <Trash2 className="h-3 w-3 mr-1" />
-                        Törlés
-                      </Button>
+                  </div>
+                </>
+              )}
+
+              {/* Settings Tab Content */}
+              {activeRightTab === 'settings' && (
+                <>
+                  <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between">
+                    <h3 className="font-semibold text-gray-900">Prezentáció beállítások</h3>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-6 w-6"
+                      onClick={() => setIsRightPanelCollapsed(true)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div className="p-4 space-y-4">
+                    {/* Presentation Title */}
+                    <div>
+                      <Label className="text-sm font-medium text-gray-700">Prezentáció címe</Label>
+                      <Input
+                        value={presentation.title}
+                        onChange={(e) => setPresentation(prev => ({ ...prev, title: e.target.value }))}
+                        className="mt-1"
+                        placeholder="Prezentáció címe"
+                      />
                     </div>
-                  </CardContent>
-                </Card>
+
+                    {/* Presentation Description */}
+                    <div>
+                      <Label className="text-sm font-medium text-gray-700">Leírás</Label>
+                      <Textarea
+                        value={presentation.description || ''}
+                        onChange={(e) => setPresentation(prev => ({ ...prev, description: e.target.value }))}
+                        className="mt-1"
+                        placeholder="Prezentáció rövid leírása"
+                        rows={3}
+                      />
+                    </div>
+
+                    {/* Visibility Setting */}
+                    <div>
+                      <Label className="text-sm font-medium text-gray-700">Láthatóság</Label>
+                      <Select
+                        value={presentation.is_public ? 'public' : 'private'}
+                        onValueChange={(value) => setPresentation(prev => ({ ...prev, is_public: value === 'public' }))}
+                      >
+                        <SelectTrigger className="mt-1">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="public">Nyilvános</SelectItem>
+                          <SelectItem value="private">Privát</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {presentation.is_public 
+                          ? 'Mindenki láthatja a prezentációt' 
+                          : 'Csak te láthatod a prezentációt'}
+                      </p>
+                    </div>
+
+                    {/* Default Text Color */}
+                    <div>
+                      <Label className="text-sm font-medium text-gray-700">Alapértelmezett szövegszín</Label>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className="w-10 h-10 p-0 rounded-lg"
+                              style={{ backgroundColor: presentation.theme?.textColor || '#000000' }}
+                            />
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <SketchPicker
+                              color={presentation.theme?.textColor || '#000000'}
+                              onChange={(color) => setPresentation(prev => ({ 
+                                ...prev, 
+                                theme: { ...prev.theme, textColor: color.hex } 
+                              }))}
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <span className="text-sm text-gray-600">{presentation.theme?.textColor || '#000000'}</span>
+                      </div>
+                    </div>
+
+                    {/* Default Background Color */}
+                    <div>
+                      <Label className="text-sm font-medium text-gray-700">Alapértelmezett háttérszín</Label>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className="w-10 h-10 p-0 rounded-lg"
+                              style={{ backgroundColor: presentation.theme?.background || '#ffffff' }}
+                            />
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <SketchPicker
+                              color={presentation.theme?.background || '#ffffff'}
+                              onChange={(color) => setPresentation(prev => ({ 
+                                ...prev, 
+                                theme: { ...prev.theme, background: color.hex } 
+                              }))}
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <span className="text-sm text-gray-600">{presentation.theme?.background || '#ffffff'}</span>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Themes Tab Content */}
+              {activeRightTab === 'themes' && (
+                <>
+                  <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between">
+                    <h3 className="font-semibold text-gray-900">Témák</h3>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-6 w-6"
+                      onClick={() => setIsRightPanelCollapsed(true)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div className="p-4">
+                    <p className="text-sm text-gray-500 mb-4">Válassz egy témát a prezentációhoz</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      {/* Light Theme */}
+                      <button
+                        onClick={() => setPresentation(prev => ({
+                          ...prev,
+                          theme: { background: '#ffffff', textColor: '#000000' }
+                        }))}
+                        className={`p-3 rounded-xl border-2 transition-all hover:shadow-md ${
+                          presentation.theme?.background === '#ffffff' && presentation.theme?.textColor === '#000000'
+                            ? 'border-purple-500 ring-2 ring-purple-200'
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        <div className="w-full aspect-video bg-white rounded-lg border border-gray-200 mb-2 flex items-center justify-center">
+                          <span className="text-xs font-medium text-black">Aa</span>
+                        </div>
+                        <span className="text-xs font-medium text-gray-700">Világos</span>
+                      </button>
+
+                      {/* Dark Theme */}
+                      <button
+                        onClick={() => setPresentation(prev => ({
+                          ...prev,
+                          theme: { background: '#1a1a2e', textColor: '#ffffff' }
+                        }))}
+                        className={`p-3 rounded-xl border-2 transition-all hover:shadow-md ${
+                          presentation.theme?.background === '#1a1a2e'
+                            ? 'border-purple-500 ring-2 ring-purple-200'
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        <div className="w-full aspect-video bg-[#1a1a2e] rounded-lg border border-gray-700 mb-2 flex items-center justify-center">
+                          <span className="text-xs font-medium text-white">Aa</span>
+                        </div>
+                        <span className="text-xs font-medium text-gray-700">Sötét</span>
+                      </button>
+
+                      {/* Blue Theme */}
+                      <button
+                        onClick={() => setPresentation(prev => ({
+                          ...prev,
+                          theme: { background: '#1e40af', textColor: '#ffffff' }
+                        }))}
+                        className={`p-3 rounded-xl border-2 transition-all hover:shadow-md ${
+                          presentation.theme?.background === '#1e40af'
+                            ? 'border-purple-500 ring-2 ring-purple-200'
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        <div className="w-full aspect-video bg-[#1e40af] rounded-lg mb-2 flex items-center justify-center">
+                          <span className="text-xs font-medium text-white">Aa</span>
+                        </div>
+                        <span className="text-xs font-medium text-gray-700">Kék</span>
+                      </button>
+
+                      {/* Green Theme */}
+                      <button
+                        onClick={() => setPresentation(prev => ({
+                          ...prev,
+                          theme: { background: '#166534', textColor: '#ffffff' }
+                        }))}
+                        className={`p-3 rounded-xl border-2 transition-all hover:shadow-md ${
+                          presentation.theme?.background === '#166534'
+                            ? 'border-purple-500 ring-2 ring-purple-200'
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        <div className="w-full aspect-video bg-[#166534] rounded-lg mb-2 flex items-center justify-center">
+                          <span className="text-xs font-medium text-white">Aa</span>
+                        </div>
+                        <span className="text-xs font-medium text-gray-700">Zöld</span>
+                      </button>
+
+                      {/* Purple Theme */}
+                      <button
+                        onClick={() => setPresentation(prev => ({
+                          ...prev,
+                          theme: { background: '#7c3aed', textColor: '#ffffff' }
+                        }))}
+                        className={`p-3 rounded-xl border-2 transition-all hover:shadow-md ${
+                          presentation.theme?.background === '#7c3aed'
+                            ? 'border-purple-500 ring-2 ring-purple-200'
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        <div className="w-full aspect-video bg-[#7c3aed] rounded-lg mb-2 flex items-center justify-center">
+                          <span className="text-xs font-medium text-white">Aa</span>
+                        </div>
+                        <span className="text-xs font-medium text-gray-700">Lila</span>
+                      </button>
+
+                      {/* Gradient Theme */}
+                      <button
+                        onClick={() => setPresentation(prev => ({
+                          ...prev,
+                          theme: { background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', textColor: '#ffffff' }
+                        }))}
+                        className={`p-3 rounded-xl border-2 transition-all hover:shadow-md ${
+                          presentation.theme?.background?.includes('gradient')
+                            ? 'border-purple-500 ring-2 ring-purple-200'
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        <div 
+                          className="w-full aspect-video rounded-lg mb-2 flex items-center justify-center"
+                          style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}
+                        >
+                          <span className="text-xs font-medium text-white">Aa</span>
+                        </div>
+                        <span className="text-xs font-medium text-gray-700">Gradiens</span>
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Show prompt when no slide selected on edit tab */}
+              {activeRightTab === 'edit' && !selectedSlide && (
+                <div className="p-4">
+                  <div className="text-center py-8 text-gray-500">
+                    <Type className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                    <p className="text-sm">Válassz ki egy diát a szerkesztéshez</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Right Tab Bar - Mentimeter style vertical toolbar */}
+          <div className="w-14 border-l border-gray-200 bg-gray-50 flex flex-col items-center py-2 space-y-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              className={`w-12 h-12 flex flex-col items-center justify-center rounded-lg ${
+                activeRightTab === 'edit' && !isRightPanelCollapsed ? 'bg-white shadow-sm' : ''
+              }`}
+              onClick={() => {
+                setActiveRightTab('edit');
+                setIsRightPanelCollapsed(false);
+              }}
+            >
+              <Edit3 className="h-5 w-5 mb-1" />
+              <span className="text-[10px]">Szerk.</span>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className={`w-12 h-12 flex flex-col items-center justify-center rounded-lg ${
+                activeRightTab === 'settings' && !isRightPanelCollapsed ? 'bg-white shadow-sm' : ''
+              }`}
+              onClick={() => {
+                setActiveRightTab('settings');
+                setIsRightPanelCollapsed(false);
+              }}
+            >
+              <SlidersHorizontal className="h-5 w-5 mb-1" />
+              <span className="text-[10px]">Beáll.</span>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className={`w-12 h-12 flex flex-col items-center justify-center rounded-lg ${
+                activeRightTab === 'themes' && !isRightPanelCollapsed ? 'bg-white shadow-sm' : ''
+              }`}
+              onClick={() => {
+                setActiveRightTab('themes');
+                setIsRightPanelCollapsed(false);
+              }}
+            >
+              <Palette className="h-5 w-5 mb-1" />
+              <span className="text-[10px]">Témák</span>
+            </Button>
+            <div className="flex-1" />
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-12 h-12 flex flex-col items-center justify-center rounded-lg"
+              onClick={() => setIsPreviewMode(true)}
+              disabled={slides.length === 0}
+            >
+              <Play className="h-5 w-5 mb-1" />
+              <span className="text-[10px]">Indítás</span>
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Slide Preview Content Component
+function SlidePreviewContent({ slide, theme }: { slide: Slide; theme: any }) {
+  switch (slide.type) {
+    case 'heading':
+      return (
+        <div className="text-center">
+          <h1 
+            className="font-bold mb-2"
+            style={{ 
+              color: slide.content?.textColor || theme?.textColor || '#000000',
+              fontSize: slide.content?.fontSize || '48px',
+              fontFamily: slide.content?.fontFamily || 'Inter'
+            }}
+          >
+            {slide.content?.text || 'Címsor'}
+          </h1>
+          {slide.content?.subtitle && (
+            <p 
+              style={{ 
+                color: slide.content?.subtitleColor || '#666666',
+                fontSize: slide.content?.subtitleFontSize || '24px',
+                fontFamily: slide.content?.subtitleFontFamily || 'Inter'
+              }}
+            >
+              {slide.content.subtitle}
+            </p>
+          )}
+        </div>
+      );
+    case 'text':
+      return (
+        <div className="w-full h-full overflow-auto">
+          <RichTextRenderer content={slide.content} />
+        </div>
+      );
+    case 'image':
+      return (
+        <div className="text-center">
+          {slide.content?.url ? (
+            <>
+              <img 
+                src={slide.content.url} 
+                alt={slide.content.caption || ''} 
+                className="max-w-full max-h-[60%] mx-auto object-contain rounded-lg"
+              />
+              {slide.content.caption && (
+                <p className="text-gray-600 mt-2 text-sm">{slide.content.caption}</p>
+              )}
+            </>
+          ) : (
+            <div className="flex flex-col items-center text-gray-400">
+              <ImagePlus className="h-16 w-16 mb-2" />
+              <span>Kép hozzáadása</span>
+            </div>
+          )}
+        </div>
+      );
+    case 'multiple_choice':
+      return (
+        <div className="w-full">
+          <h2 className="text-2xl font-bold mb-6 text-center" style={{ color: slide.content?.questionColor || '#000000' }}>
+            {slide.content?.question || 'Kérdés'}
+          </h2>
+          <div className="grid grid-cols-2 gap-3 max-w-2xl mx-auto">
+            {(slide.content?.options || []).slice(0, 4).map((option: any, index: number) => (
+              <div 
+                key={index} 
+                className="p-3 rounded-lg text-center text-sm border-2"
+                style={{ 
+                  color: option.textColor || '#000000',
+                  backgroundColor: option.bgColor || '#ffffff',
+                  borderColor: option.borderColor || '#d1d5db',
+                }}
+              >
+                {option.text || option}
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    case 'ranking':
+      return (
+        <div className="w-full">
+          <h2 className="text-2xl font-bold mb-6 text-center" style={{ color: slide.content?.questionColor || '#000000' }}>
+            {slide.content?.question || 'Rakd sorrendbe'}
+          </h2>
+          <div className="space-y-2 max-w-md mx-auto">
+            {(slide.content?.items || []).slice(0, 4).map((item: any, index: number) => (
+              <div 
+                key={index} 
+                className="p-3 rounded-lg text-sm border-2 flex items-center"
+                style={{ 
+                  color: item.textColor || '#000000',
+                  backgroundColor: item.bgColor || '#ffffff',
+                  borderColor: item.borderColor || '#d1d5db',
+                }}
+              >
+                <span className="font-bold mr-3">{index + 1}.</span>
+                {item.text || item}
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    case 'matching':
+      return (
+        <div className="w-full">
+          <h2 className="text-2xl font-bold mb-6 text-center" style={{ color: slide.content?.questionColor || '#000000' }}>
+            {slide.content?.question || 'Párosítsd össze'}
+          </h2>
+          <div className="grid grid-cols-2 gap-6 max-w-2xl mx-auto">
+            <div className="space-y-2">
+              {(slide.content?.pairs || []).slice(0, 3).map((pair: any, index: number) => (
+                <div key={index} className="p-2 rounded-lg text-sm border-2 text-center" style={{ backgroundColor: pair.leftColor || '#ffffff' }}>
+                  {pair.left}
+                </div>
+              ))}
+            </div>
+            <div className="space-y-2">
+              {(slide.content?.pairs || []).slice(0, 3).map((pair: any, index: number) => (
+                <div key={index} className="p-2 rounded-lg text-sm border-2 border-dashed text-center" style={{ backgroundColor: pair.rightColor || '#ffffff' }}>
+                  {pair.right}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    case 'true_false':
+      return (
+        <div className="w-full text-center">
+          <h2 className="text-2xl font-bold mb-8" style={{ color: slide.content?.statementColor || '#000000' }}>
+            {slide.content?.statement || 'Állítás'}
+          </h2>
+          <div className="grid grid-cols-2 gap-4 max-w-md mx-auto">
+            <div className="p-4 rounded-lg border-2 border-green-500 bg-green-50">
+              <span className="text-xl font-bold text-green-600">IGAZ</span>
+            </div>
+            <div className="p-4 rounded-lg border-2 border-red-500 bg-red-50">
+              <span className="text-xl font-bold text-red-600">HAMIS</span>
+            </div>
+          </div>
+        </div>
+      );
+    case 'fill_in_blanks':
+      return (
+        <div className="w-full">
+          <div className="text-lg leading-relaxed">
+            <RichTextRenderer content={slide.content?.content || []} />
+          </div>
+        </div>
+      );
+    default:
+      return (
+        <div className="text-center text-gray-400">
+          <Type className="h-12 w-12 mx-auto mb-2" />
+          <span>Dia előnézet</span>
+        </div>
+      );
+  }
+}
+
+// Scaled Slide Preview Component - Renders the slide at full size and scales it down
+function ScaledSlidePreview({ slide, theme }: { slide: Slide; theme: any }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+
+  useEffect(() => {
+    const updateScale = () => {
+      if (containerRef.current) {
+        const parent = containerRef.current.parentElement;
+        if (parent) {
+          const parentWidth = parent.offsetWidth;
+          const newScale = parentWidth / 1600;
+          setScale(newScale);
+        }
+      }
+    };
+
+    updateScale();
+    window.addEventListener('resize', updateScale);
+    
+    // Use ResizeObserver for more accurate tracking
+    const resizeObserver = new ResizeObserver(updateScale);
+    if (containerRef.current?.parentElement) {
+      resizeObserver.observe(containerRef.current.parentElement);
+    }
+
+    return () => {
+      window.removeEventListener('resize', updateScale);
+      resizeObserver.disconnect();
+    };
+  }, []);
+
+  const backgroundColor = slide.backgroundColor || theme?.background || '#ffffff';
+  const textColor = slide.textColor || theme?.textColor || '#000000';
+  
+  // Check if background is a gradient
+  const isGradient = backgroundColor.includes('gradient');
+  const backgroundStyle = isGradient 
+    ? { background: backgroundColor }
+    : { backgroundColor };
+
+  return (
+    <div 
+      ref={containerRef}
+      className="origin-top-left"
+      style={{
+        width: '1600px',
+        height: '900px',
+        transform: `scale(${scale})`,
+      }}
+    >
+      <div 
+        className="w-full h-full flex flex-col items-center justify-center"
+        style={{ 
+          ...backgroundStyle,
+          color: textColor,
+        }}
+      >
+        {/* Render the same layout as the actual viewer */}
+        {slide.type === 'heading' && (
+          <div className="text-center px-16">
+            <h1
+              className="font-bold mb-4"
+              style={{ 
+                color: slide.content?.textColor || textColor,
+                fontSize: slide.content?.fontSize || '48px',
+                fontFamily: slide.content?.fontFamily || 'Inter'
+              }}
+            >
+              {slide.content?.text || 'Címsor'}
+            </h1>
+            {slide.content?.subtitle && (
+              <p
+                style={{ 
+                  color: slide.content?.subtitleColor || '#666666',
+                  fontSize: slide.content?.subtitleFontSize || '24px',
+                  fontFamily: slide.content?.subtitleFontFamily || 'Inter'
+                }}
+              >
+                {slide.content.subtitle}
+              </p>
+            )}
+          </div>
+        )}
+
+        {slide.type === 'text' && (
+          <div className="w-full h-full overflow-auto p-16">
+            <RichTextRenderer content={slide.content} />
+          </div>
+        )}
+
+        {slide.type === 'image' && (
+          <div className="text-center px-16">
+            {slide.content?.url ? (
+              <>
+                <img 
+                  src={slide.content.url} 
+                  alt={slide.content.caption || ''} 
+                  className="max-w-full max-h-[700px] mx-auto object-contain rounded-lg"
+                />
+                {slide.content.caption && (
+                  <p className="text-gray-600 mt-4 text-xl">{slide.content.caption}</p>
+                )}
+              </>
+            ) : (
+              <div className="flex flex-col items-center text-gray-400">
+                <ImagePlus className="h-24 w-24 mb-4" />
+                <span className="text-2xl">Kép hozzáadása</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {slide.type === 'multiple_choice' && (
+          <div className="w-full px-16">
+            <h2 className="text-4xl font-bold mb-12 text-center" style={{ color: slide.content?.questionColor || textColor }}>
+              {slide.content?.question || 'Kérdés'}
+            </h2>
+            <div className="grid grid-cols-2 gap-6 max-w-4xl mx-auto">
+              {(slide.content?.options || []).map((option: any, index: number) => (
+                <div 
+                  key={index} 
+                  className="p-6 rounded-xl text-center text-xl font-medium border-2"
+                  style={{ 
+                    color: option.textColor || textColor,
+                    backgroundColor: option.bgColor || '#ffffff',
+                    borderColor: option.borderColor || '#d1d5db',
+                  }}
+                >
+                  {option.text || option}
+                </div>
               ))}
             </div>
           </div>
         )}
 
-        {/* Editor Panel */}
-        <div className="flex-1 overflow-y-auto">
-          {selectedSlide ? (
-            <SlideEditor
-              slide={selectedSlide}
-              onChange={(updates) => updateSlide(selectedSlideIndex, updates)}
-              theme={presentation.theme}
-            />
-          ) : (
-            <div className="h-full flex items-center justify-center">
-              <div className="text-center">
-                <Type className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Még nincsenek diák</h3>
-                <p className="text-gray-500 mb-4">Hozd létre az első diádat a kezdéshez.</p>
+        {slide.type === 'ranking' && (
+          <div className="w-full px-16">
+            <h2 className="text-4xl font-bold mb-12 text-center" style={{ color: slide.content?.questionColor || textColor }}>
+              {slide.content?.question || 'Rakd sorrendbe'}
+            </h2>
+            <div className="space-y-4 max-w-2xl mx-auto">
+              {(slide.content?.items || []).map((item: any, index: number) => (
+                <div 
+                  key={index} 
+                  className="p-5 rounded-xl text-xl font-medium border-2 flex items-center"
+                  style={{ 
+                    color: item.textColor || textColor,
+                    backgroundColor: item.bgColor || '#ffffff',
+                    borderColor: item.borderColor || '#d1d5db',
+                  }}
+                >
+                  <span className="font-bold mr-4 text-2xl">{index + 1}.</span>
+                  {item.text || item}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {slide.type === 'matching' && (
+          <div className="w-full px-16">
+            <h2 className="text-4xl font-bold mb-12 text-center" style={{ color: slide.content?.questionColor || textColor }}>
+              {slide.content?.question || 'Párosítsd össze'}
+            </h2>
+            <div className="grid grid-cols-2 gap-12 max-w-4xl mx-auto">
+              <div className="space-y-4">
+                {(slide.content?.pairs || []).map((pair: any, index: number) => (
+                  <div key={index} className="p-4 rounded-xl text-xl font-medium border-2 text-center" style={{ backgroundColor: pair.leftColor || '#ffffff' }}>
+                    {pair.left}
+                  </div>
+                ))}
+              </div>
+              <div className="space-y-4">
+                {(slide.content?.pairs || []).map((pair: any, index: number) => (
+                  <div key={index} className="p-4 rounded-xl text-xl font-medium border-2 border-dashed text-center" style={{ backgroundColor: pair.rightColor || '#ffffff' }}>
+                    {pair.right}
+                  </div>
+                ))}
               </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
+
+        {slide.type === 'true_false' && (
+          <div className="w-full text-center px-16">
+            <h2 className="text-4xl font-bold mb-16" style={{ color: slide.content?.statementColor || textColor }}>
+              {slide.content?.statement || 'Állítás'}
+            </h2>
+            <div className="grid grid-cols-2 gap-8 max-w-2xl mx-auto">
+              <div className="p-8 rounded-xl border-4 border-green-500 bg-green-50">
+                <span className="text-3xl font-bold text-green-600">IGAZ</span>
+              </div>
+              <div className="p-8 rounded-xl border-4 border-red-500 bg-red-50">
+                <span className="text-3xl font-bold text-red-600">HAMIS</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {slide.type === 'fill_in_blanks' && (
+          <div className="w-full px-16">
+            <div className="text-2xl leading-relaxed">
+              <RichTextRenderer content={slide.content?.content || []} />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -559,97 +1533,77 @@ function calculateInputFieldPoints(content: any[]): number {
   return totalPoints;
 }
 
-// Slide Editor Component
-function SlideEditor({ slide, onChange, theme }: { slide: Slide; onChange: (updates: Partial<Slide>) => void; theme: any }) {
+// Slide Editor Panel Component (Right sidebar content editor)
+function SlideEditorPanel({ slide, onChange, theme }: { slide: Slide; onChange: (updates: Partial<Slide>) => void; theme: any }) {
   const [showBgColorPicker, setShowBgColorPicker] = useState(false);
 
   return (
-    <div className="p-6 space-y-4">
+    <div className="space-y-4">
+      {/* Slide Title */}
       <div>
-        <Label>Dia címe</Label>
+        <Label className="text-sm font-medium text-gray-700">Dia címe</Label>
         <Input
           value={slide.title}
           onChange={(e) => onChange({ title: e.target.value })}
+          className="mt-1"
         />
-      </div>
-
-      <div>
-        <Label>Háttérszín</Label>
-        <div className="flex items-center space-x-2">
-          <Popover open={showBgColorPicker} onOpenChange={setShowBgColorPicker}>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className="w-12 h-12 p-0"
-                style={{ backgroundColor: slide.backgroundColor || theme?.background || '#ffffff' }}
-              >
-                <Palette className="h-4 w-4" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0">
-              <SketchPicker
-                color={slide.backgroundColor || theme?.background || '#ffffff'}
-                onChange={(color) => onChange({ backgroundColor: color.hex })}
-              />
-            </PopoverContent>
-          </Popover>
-          <span className="text-sm text-gray-500">
-            {slide.backgroundColor || theme?.background || '#ffffff'}
-          </span>
-        </div>
       </div>
 
       {slide.type === 'text' && (
         <>
-          <div>
-            <Label>Tartalom</Label>
-            <RichTextEditor
-              content={slide.content as Descendant[]}
-              onChange={(content) => {
-                const inputFieldPoints = calculateInputFieldPoints(content);
-                onChange({ 
-                  content,
-                  points: inputFieldPoints
-                });
-              }}
-            />
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-gray-700">Tartalom</Label>
+            <div className="border border-gray-200 rounded-lg overflow-hidden">
+              <RichTextEditor
+                content={slide.content as Descendant[]}
+                onChange={(content) => {
+                  const inputFieldPoints = calculateInputFieldPoints(content);
+                  onChange({ 
+                    content,
+                    points: inputFieldPoints
+                  });
+                }}
+              />
+            </div>
           </div>
         </>
       )}
 
       {slide.type === 'heading' && (
         <>
-          <div>
-            <Label className="flex items-center space-x-2">
-              <span>Címsor színe</span>
+          {/* Main Title */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-medium text-gray-700">Címsor</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
                     size="sm"
-                    className="w-8 h-8 p-0"
+                    className="h-7 w-7 p-0"
                     style={{ backgroundColor: slide.content.textColor || theme?.textColor || '#000000' }}
                   />
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
+                <PopoverContent className="w-auto p-0" align="end">
                   <SketchPicker
                     color={slide.content.textColor || theme?.textColor || '#000000'}
                     onChange={(color) => onChange({ content: { ...slide.content, textColor: color.hex } })}
                   />
                 </PopoverContent>
               </Popover>
-            </Label>
+            </div>
             <Input
               value={slide.content.text || ''}
               onChange={(e) => onChange({ content: { ...slide.content, text: e.target.value } })}
-              className="text-2xl font-bold"
+              className="text-lg font-semibold"
+              placeholder="Címsor szövege"
             />
-            <div className="flex gap-2 mt-2">
+            <div className="flex gap-2">
               <Select 
                 value={slide.content.fontSize || '48px'} 
                 onValueChange={(value) => onChange({ content: { ...slide.content, fontSize: value } })}
               >
-                <SelectTrigger className="w-[120px] h-8">
+                <SelectTrigger className="flex-1 h-8">
                   <SelectValue placeholder="Méret" />
                 </SelectTrigger>
                 <SelectContent>
@@ -668,7 +1622,7 @@ function SlideEditor({ slide, onChange, theme }: { slide: Slide; onChange: (upda
                 value={slide.content.fontFamily || 'Inter'} 
                 onValueChange={(value) => onChange({ content: { ...slide.content, fontFamily: value } })}
               >
-                <SelectTrigger className="w-[160px] h-8">
+                <SelectTrigger className="flex-1 h-8">
                   <SelectValue placeholder="Betűtípus" />
                 </SelectTrigger>
                 <SelectContent>
@@ -686,36 +1640,39 @@ function SlideEditor({ slide, onChange, theme }: { slide: Slide; onChange: (upda
               </Select>
             </div>
           </div>
-          <div>
-            <Label className="flex items-center space-x-2">
-              <span>Alcím színe</span>
+
+          {/* Subtitle */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-medium text-gray-700">Alcím</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
                     size="sm"
-                    className="w-8 h-8 p-0"
+                    className="h-7 w-7 p-0"
                     style={{ backgroundColor: slide.content.subtitleColor || theme?.textColor || '#666666' }}
                   />
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
+                <PopoverContent className="w-auto p-0" align="end">
                   <SketchPicker
                     color={slide.content.subtitleColor || theme?.textColor || '#666666'}
                     onChange={(color) => onChange({ content: { ...slide.content, subtitleColor: color.hex } })}
                   />
                 </PopoverContent>
               </Popover>
-            </Label>
+            </div>
             <Input
               value={slide.content.subtitle || ''}
               onChange={(e) => onChange({ content: { ...slide.content, subtitle: e.target.value } })}
+              placeholder="Alcím szövege (opcionális)"
             />
-            <div className="flex gap-2 mt-2">
+            <div className="flex gap-2">
               <Select 
                 value={slide.content.subtitleFontSize || '24px'} 
                 onValueChange={(value) => onChange({ content: { ...slide.content, subtitleFontSize: value } })}
               >
-                <SelectTrigger className="w-[120px] h-8">
+                <SelectTrigger className="flex-1 h-8">
                   <SelectValue placeholder="Méret" />
                 </SelectTrigger>
                 <SelectContent>
@@ -734,7 +1691,7 @@ function SlideEditor({ slide, onChange, theme }: { slide: Slide; onChange: (upda
                 value={slide.content.subtitleFontFamily || 'Inter'} 
                 onValueChange={(value) => onChange({ content: { ...slide.content, subtitleFontFamily: value } })}
               >
-                <SelectTrigger className="w-[160px] h-8">
+                <SelectTrigger className="flex-1 h-8">
                   <SelectValue placeholder="Betűtípus" />
                 </SelectTrigger>
                 <SelectContent>
@@ -757,37 +1714,59 @@ function SlideEditor({ slide, onChange, theme }: { slide: Slide; onChange: (upda
 
       {slide.type === 'image' && (
         <>
-          <div>
-            <Label>Kép URL</Label>
-            <Input
-              value={slide.content.url || ''}
-              onChange={(e) => onChange({ content: { ...slide.content, url: e.target.value } })}
-              placeholder="https://..."
-            />
+          {/* Image Section - Mentimeter style */}
+          <div className="space-y-3">
+            <Label className="text-sm font-medium text-gray-700">Kép</Label>
+            <p className="text-xs text-gray-500">Támogatott formátumok: png, gif, jpg, jpeg és svg</p>
+            
+            {/* Image Upload Area */}
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-purple-400 transition-colors cursor-pointer">
+              <div className="flex flex-col items-center space-y-2">
+                <ImagePlus className="h-8 w-8 text-gray-400" />
+                <div className="text-sm">
+                  <span className="text-gray-600">Húzd ide vagy </span>
+                  <span className="text-purple-600 hover:underline">kattints a feltöltéshez</span>
+                </div>
+              </div>
+            </div>
+
+            {/* URL Input */}
+            <div className="space-y-1">
+              <Label className="text-xs text-gray-500">vagy adj meg URL-t</Label>
+              <Input
+                value={slide.content.url || ''}
+                onChange={(e) => onChange({ content: { ...slide.content, url: e.target.value } })}
+                placeholder="https://..."
+                className="text-sm"
+              />
+            </div>
           </div>
-          <div>
-            <Label className="flex items-center space-x-2">
-              <span>Képaláírás</span>
+          
+          {/* Caption */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-medium text-gray-700">Képaláírás</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
                     size="sm"
-                    className="w-8 h-8 p-0"
+                    className="h-7 w-7 p-0"
                     style={{ backgroundColor: slide.content.captionColor || '#666666' }}
                   />
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
+                <PopoverContent className="w-auto p-0" align="end">
                   <SketchPicker
                     color={slide.content.captionColor || '#666666'}
                     onChange={(color) => onChange({ content: { ...slide.content, captionColor: color.hex } })}
                   />
                 </PopoverContent>
               </Popover>
-            </Label>
+            </div>
             <Input
               value={slide.content.caption || ''}
               onChange={(e) => onChange({ content: { ...slide.content, caption: e.target.value } })}
+              placeholder="Képaláírás (opcionális)"
             />
           </div>
         </>
@@ -795,69 +1774,71 @@ function SlideEditor({ slide, onChange, theme }: { slide: Slide; onChange: (upda
 
       {slide.type === 'multiple_choice' && (
         <>
-          <div>
-            <Label className="flex items-center space-x-2">
-              <span>Kérdés színe</span>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-8 h-8 p-0"
-                    style={{ backgroundColor: slide.content.questionColor || theme?.textColor || '#000000' }}
-                  />
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <SketchPicker
-                    color={slide.content.questionColor || theme?.textColor || '#000000'}
-                    onChange={(color) => onChange({ content: { ...slide.content, questionColor: color.hex } })}
-                  />
-                </PopoverContent>
-              </Popover>
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-8 h-8 p-0"
-                    title="Matematikai kifejezés"
-                  >
-                    <Sigma className="h-4 w-4" />
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Matematikai kifejezés beillesztése</DialogTitle>
-                  </DialogHeader>
-                  <MathFormulaInsert
-                    onInsert={(formula) => {
-                      const currentQuestion = slide.content.question || '';
-                      onChange({ content: { ...slide.content, question: currentQuestion ? `${currentQuestion} ${formula}` : formula } });
-                    }}
-                  />
-                </DialogContent>
-              </Dialog>
-            </Label>
+          {/* Question Section */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-medium text-gray-700">Kérdés</Label>
+              <div className="flex items-center space-x-1">
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0" title="Matematikai kifejezés">
+                      <Sigma className="h-4 w-4" />
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Matematikai kifejezés beillesztése</DialogTitle>
+                    </DialogHeader>
+                    <MathFormulaInsert
+                      onInsert={(formula) => {
+                        const currentQuestion = slide.content.question || '';
+                        onChange({ content: { ...slide.content, question: currentQuestion ? `${currentQuestion} ${formula}` : formula } });
+                      }}
+                    />
+                  </DialogContent>
+                </Dialog>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className="h-7 w-7 p-0"
+                      style={{ backgroundColor: slide.content.questionColor || theme?.textColor || '#000000' }}
+                    />
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="end">
+                    <SketchPicker
+                      color={slide.content.questionColor || theme?.textColor || '#000000'}
+                      onChange={(color) => onChange({ content: { ...slide.content, questionColor: color.hex } })}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
             <Textarea
               value={slide.content.question || ''}
               onChange={(e) => onChange({ content: { ...slide.content, question: e.target.value } })}
-              rows={3}
+              rows={2}
+              placeholder="Írd ide a kérdést..."
+              className="resize-none"
             />
           </div>
-          <div className="flex items-center space-x-2">
+
+          {/* Multiple correct toggle */}
+          <div className="flex items-center space-x-2 py-2">
             <Checkbox
+              id="multipleCorrect"
               checked={slide.content.multipleCorrect || false}
               onCheckedChange={(checked) => onChange({ 
                 content: { ...slide.content, multipleCorrect: checked },
                 correct_answer: checked ? [] : 0
               })}
             />
-            <Label>Több helyes válasz</Label>
+            <Label htmlFor="multipleCorrect" className="text-sm text-gray-600">Több helyes válasz</Label>
           </div>
-          <div>
-            <Label>Válaszlehetőségek</Label>
+
+          {/* Options */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-gray-700">Válaszlehetőségek</Label>
             {(slide.content.options || []).map((option: any, index: number) => (
-              <div key={index} className="border rounded-lg p-3 mb-3 space-y-2">
+              <div key={index} className="border border-gray-200 rounded-lg p-2 space-y-2 hover:border-purple-300 transition-colors">
                 <div className="flex items-center space-x-2">
                   {slide.content.multipleCorrect ? (
                     <Checkbox
@@ -889,17 +1870,13 @@ function SlideEditor({ slide, onChange, theme }: { slide: Slide; onChange: (upda
                       }
                       onChange({ content: { ...slide.content, options: newOptions } });
                     }}
-                    className="flex-1"
+                    className="flex-1 h-8 text-sm"
+                    placeholder={`${index + 1}. válasz`}
                   />
                   <Dialog>
                     <DialogTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-8 h-8 p-0"
-                        title="Matematikai kifejezés"
-                      >
-                        <Sigma className="h-4 w-4" />
+                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0" title="Matematikai kifejezés">
+                        <Sigma className="h-3 w-3" />
                       </Button>
                     </DialogTrigger>
                     <DialogContent>
@@ -924,22 +1901,21 @@ function SlideEditor({ slide, onChange, theme }: { slide: Slide; onChange: (upda
                   <Button
                     size="sm"
                     variant="ghost"
+                    className="h-7 w-7 p-0 text-gray-400 hover:text-red-500"
                     onClick={() => {
                       const newOptions = slide.content.options.filter((_: any, i: number) => i !== index);
                       onChange({ content: { ...slide.content, options: newOptions } });
                     }}
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className="h-3 w-3" />
                   </Button>
                 </div>
-                <div className="flex items-center space-x-2 ml-8">
-                  <Label className="text-xs">Szöveg</Label>
+                {/* Color options - Collapsible */}
+                <div className="flex items-center space-x-2 ml-6 pt-1 border-t border-gray-100">
+                  <span className="text-[10px] text-gray-400">Szín:</span>
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-6 h-6 p-0"
+                      <Button variant="outline" size="sm" className="w-5 h-5 p-0 rounded"
                         style={{ backgroundColor: option.textColor || '#000000' }}
                       />
                     </PopoverTrigger>
@@ -954,14 +1930,9 @@ function SlideEditor({ slide, onChange, theme }: { slide: Slide; onChange: (upda
                       />
                     </PopoverContent>
                   </Popover>
-                  
-                  <Label className="text-xs ml-2">Háttér</Label>
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-6 h-6 p-0"
+                      <Button variant="outline" size="sm" className="w-5 h-5 p-0 rounded"
                         style={{ backgroundColor: option.bgColor || '#ffffff' }}
                       />
                     </PopoverTrigger>
@@ -976,14 +1947,9 @@ function SlideEditor({ slide, onChange, theme }: { slide: Slide; onChange: (upda
                       />
                     </PopoverContent>
                   </Popover>
-                  
-                  <Label className="text-xs ml-2">Keret</Label>
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-6 h-6 p-0"
+                      <Button variant="outline" size="sm" className="w-5 h-5 p-0 rounded"
                         style={{ backgroundColor: option.borderColor || '#d1d5db' }}
                       />
                     </PopoverTrigger>
@@ -1004,22 +1970,26 @@ function SlideEditor({ slide, onChange, theme }: { slide: Slide; onChange: (upda
             <Button
               size="sm"
               variant="outline"
+              className="w-full mt-2 border-dashed"
               onClick={() => {
                 const newOptions = [...(slide.content.options || []), { text: `Opció ${(slide.content.options?.length || 0) + 1}`, textColor: '#000000', bgColor: '#ffffff', borderColor: '#d1d5db' }];
                 onChange({ content: { ...slide.content, options: newOptions } });
               }}
             >
               <Plus className="h-4 w-4 mr-2" />
-              Válaszlehetőség hozzáadása
+              Válasz hozzáadása
             </Button>
           </div>
-          <div>
-            <Label>Pontszám</Label>
+
+          {/* Points */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-gray-700">Pontszám</Label>
             <Input
               type="number"
               value={slide.points ?? ''}
               onChange={(e) => onChange({ points: e.target.value })}
               onBlur={(e) => onChange({ points: parseInt(e.target.value) || 0 })}
+              className="w-full"
             />
           </div>
         </>
@@ -1027,38 +1997,40 @@ function SlideEditor({ slide, onChange, theme }: { slide: Slide; onChange: (upda
 
       {slide.type === 'ranking' && (
         <>
-          <div>
-            <Label className="flex items-center space-x-2">
-              <span>Kérdés színe</span>
+          {/* Question */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-medium text-gray-700">Kérdés</Label>
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-8 h-8 p-0"
+                  <Button variant="outline" size="sm" className="h-7 w-7 p-0"
                     style={{ backgroundColor: slide.content.questionColor || theme?.textColor || '#000000' }}
                   />
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
+                <PopoverContent className="w-auto p-0" align="end">
                   <SketchPicker
                     color={slide.content.questionColor || theme?.textColor || '#000000'}
                     onChange={(color) => onChange({ content: { ...slide.content, questionColor: color.hex } })}
                   />
                 </PopoverContent>
               </Popover>
-            </Label>
+            </div>
             <Textarea
               value={slide.content.question || ''}
               onChange={(e) => onChange({ content: { ...slide.content, question: e.target.value } })}
-              rows={3}
+              rows={2}
+              placeholder="Rakd sorrendbe..."
+              className="resize-none"
             />
           </div>
-          <div>
-            <Label>Elemek</Label>
+
+          {/* Items */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-gray-700">Elemek (helyes sorrendben)</Label>
             {(slide.content.items || []).map((item: any, index: number) => (
-              <div key={index} className="border rounded-lg p-3 mb-3 space-y-2">
+              <div key={index} className="border border-gray-200 rounded-lg p-2 space-y-1 hover:border-purple-300 transition-colors">
                 <div className="flex items-center space-x-2">
-                  <span className="text-sm font-medium w-6">{index + 1}.</span>
+                  <span className="text-xs font-medium text-gray-500 w-5">{index + 1}.</span>
                   <Input
                     value={item.text || item}
                     onChange={(e) => {
@@ -1070,11 +2042,13 @@ function SlideEditor({ slide, onChange, theme }: { slide: Slide; onChange: (upda
                       }
                       onChange({ content: { ...slide.content, items: newItems } });
                     }}
-                    className="flex-1"
+                    className="flex-1 h-8 text-sm"
+                    placeholder={`${index + 1}. elem`}
                   />
                   <Button
                     size="sm"
                     variant="ghost"
+                    className="h-7 w-7 p-0 text-gray-400 hover:text-red-500"
                     onClick={() => {
                       const newItems = slide.content.items.filter((_: any, i: number) => i !== index);
                       const newOrder = Array.from({ length: newItems.length }, (_, i) => i);
@@ -1083,17 +2057,15 @@ function SlideEditor({ slide, onChange, theme }: { slide: Slide; onChange: (upda
                       });
                     }}
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className="h-3 w-3" />
                   </Button>
                 </div>
-                <div className="flex items-center space-x-2 ml-8">
-                  <Label className="text-xs">Szöveg</Label>
+                {/* Colors */}
+                <div className="flex items-center space-x-2 ml-5 pt-1 border-t border-gray-100">
+                  <span className="text-[10px] text-gray-400">Szín:</span>
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-6 h-6 p-0"
+                      <Button variant="outline" size="sm" className="w-5 h-5 p-0 rounded"
                         style={{ backgroundColor: item.textColor || '#000000' }}
                       />
                     </PopoverTrigger>
@@ -1108,14 +2080,9 @@ function SlideEditor({ slide, onChange, theme }: { slide: Slide; onChange: (upda
                       />
                     </PopoverContent>
                   </Popover>
-                  
-                  <Label className="text-xs ml-2">Háttér</Label>
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-6 h-6 p-0"
+                      <Button variant="outline" size="sm" className="w-5 h-5 p-0 rounded"
                         style={{ backgroundColor: item.bgColor || '#ffffff' }}
                       />
                     </PopoverTrigger>
@@ -1130,14 +2097,9 @@ function SlideEditor({ slide, onChange, theme }: { slide: Slide; onChange: (upda
                       />
                     </PopoverContent>
                   </Popover>
-                  
-                  <Label className="text-xs ml-2">Keret</Label>
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-6 h-6 p-0"
+                      <Button variant="outline" size="sm" className="w-5 h-5 p-0 rounded"
                         style={{ backgroundColor: item.borderColor || '#d1d5db' }}
                       />
                     </PopoverTrigger>
@@ -1158,6 +2120,7 @@ function SlideEditor({ slide, onChange, theme }: { slide: Slide; onChange: (upda
             <Button
               size="sm"
               variant="outline"
+              className="w-full border-dashed"
               onClick={() => {
                 const newItems = [...(slide.content.items || []), { text: `Elem ${(slide.content.items?.length || 0) + 1}`, textColor: '#000000', bgColor: '#ffffff', borderColor: '#d1d5db' }];
                 const newOrder = Array.from({ length: newItems.length }, (_, i) => i);
@@ -1168,8 +2131,10 @@ function SlideEditor({ slide, onChange, theme }: { slide: Slide; onChange: (upda
               Elem hozzáadása
             </Button>
           </div>
-          <div>
-            <Label>Pontszám</Label>
+
+          {/* Points */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-gray-700">Pontszám</Label>
             <Input
               type="number"
               value={slide.points ?? ''}
@@ -1182,41 +2147,44 @@ function SlideEditor({ slide, onChange, theme }: { slide: Slide; onChange: (upda
 
       {slide.type === 'matching' && (
         <>
-          <div>
-            <Label className="flex items-center space-x-2">
-              <span>Kérdés színe</span>
+          {/* Question */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-medium text-gray-700">Kérdés</Label>
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-8 h-8 p-0"
+                  <Button variant="outline" size="sm" className="h-7 w-7 p-0"
                     style={{ backgroundColor: slide.content.questionColor || theme?.textColor || '#000000' }}
                   />
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
+                <PopoverContent className="w-auto p-0" align="end">
                   <SketchPicker
                     color={slide.content.questionColor || theme?.textColor || '#000000'}
                     onChange={(color) => onChange({ content: { ...slide.content, questionColor: color.hex } })}
                   />
                 </PopoverContent>
               </Popover>
-            </Label>
+            </div>
             <Textarea
               value={slide.content.question || ''}
               onChange={(e) => onChange({ content: { ...slide.content, question: e.target.value } })}
-              rows={3}
+              rows={2}
+              placeholder="Párosítsd össze..."
+              className="resize-none"
             />
           </div>
-          <div>
-            <Label>Párok (Bal oldal ↔ Jobb oldal)</Label>
+
+          {/* Pairs */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-gray-700">Párok</Label>
             {(slide.content.pairs || []).map((pair: any, index: number) => (
-              <div key={index} className="border rounded-lg p-3 mb-3 space-y-2">
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm font-medium w-6">{index + 1}.</span>
+              <div key={index} className="border border-gray-200 rounded-lg p-2 space-y-2 hover:border-purple-300 transition-colors">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-gray-500">{index + 1}. pár</span>
                   <Button
                     size="sm"
                     variant="ghost"
+                    className="h-6 w-6 p-0 text-gray-400 hover:text-red-500"
                     onClick={() => {
                       const newPairs = slide.content.pairs.filter((_: any, i: number) => i !== index);
                       const pointsPerPair = slide.content.pointsPerPair ?? 1;
@@ -1227,19 +2195,16 @@ function SlideEditor({ slide, onChange, theme }: { slide: Slide; onChange: (upda
                       });
                     }}
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className="h-3 w-3" />
                   </Button>
                 </div>
-                <div className="grid grid-cols-2 gap-2 ml-8">
-                  <div>
-                    <Label className="text-xs flex items-center space-x-1">
-                      <span>Bal oldal</span>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <div className="flex items-center space-x-1">
+                      <span className="text-[10px] text-gray-500">Bal</span>
                       <Popover>
                         <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="w-5 h-5 p-0 ml-1"
+                          <Button variant="outline" size="sm" className="w-4 h-4 p-0 rounded"
                             style={{ backgroundColor: pair.leftColor || '#ffffff' }}
                           />
                         </PopoverTrigger>
@@ -1256,12 +2221,7 @@ function SlideEditor({ slide, onChange, theme }: { slide: Slide; onChange: (upda
                       </Popover>
                       <Dialog>
                         <DialogTrigger asChild>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="w-5 h-5 p-0 ml-1"
-                            title="Matematikai kifejezés"
-                          >
+                          <Button variant="ghost" size="sm" className="w-4 h-4 p-0">
                             <Sigma className="h-3 w-3" />
                           </Button>
                         </DialogTrigger>
@@ -1279,7 +2239,7 @@ function SlideEditor({ slide, onChange, theme }: { slide: Slide; onChange: (upda
                           />
                         </DialogContent>
                       </Dialog>
-                    </Label>
+                    </div>
                     <Input
                       value={pair.left}
                       onChange={(e) => {
@@ -1287,18 +2247,16 @@ function SlideEditor({ slide, onChange, theme }: { slide: Slide; onChange: (upda
                         newPairs[index] = { ...newPairs[index], left: e.target.value };
                         onChange({ content: { ...slide.content, pairs: newPairs } });
                       }}
-                      className="font-mono text-sm"
+                      className="h-8 text-sm"
+                      placeholder="Bal oldal"
                     />
                   </div>
-                  <div>
-                    <Label className="text-xs flex items-center space-x-1">
-                      <span>Jobb oldal</span>
+                  <div className="space-y-1">
+                    <div className="flex items-center space-x-1">
+                      <span className="text-[10px] text-gray-500">Jobb</span>
                       <Popover>
                         <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="w-5 h-5 p-0 ml-1"
+                          <Button variant="outline" size="sm" className="w-4 h-4 p-0 rounded"
                             style={{ backgroundColor: pair.rightColor || '#ffffff' }}
                           />
                         </PopoverTrigger>
@@ -1315,12 +2273,7 @@ function SlideEditor({ slide, onChange, theme }: { slide: Slide; onChange: (upda
                       </Popover>
                       <Dialog>
                         <DialogTrigger asChild>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="w-5 h-5 p-0 ml-1"
-                            title="Matematikai kifejezés"
-                          >
+                          <Button variant="ghost" size="sm" className="w-4 h-4 p-0">
                             <Sigma className="h-3 w-3" />
                           </Button>
                         </DialogTrigger>
@@ -1338,7 +2291,7 @@ function SlideEditor({ slide, onChange, theme }: { slide: Slide; onChange: (upda
                           />
                         </DialogContent>
                       </Dialog>
-                    </Label>
+                    </div>
                     <Input
                       value={pair.right}
                       onChange={(e) => {
@@ -1346,7 +2299,8 @@ function SlideEditor({ slide, onChange, theme }: { slide: Slide; onChange: (upda
                         newPairs[index] = { ...newPairs[index], right: e.target.value };
                         onChange({ content: { ...slide.content, pairs: newPairs } });
                       }}
-                      className="font-mono text-sm"
+                      className="h-8 text-sm"
+                      placeholder="Jobb oldal"
                     />
                   </div>
                 </div>
@@ -1355,6 +2309,7 @@ function SlideEditor({ slide, onChange, theme }: { slide: Slide; onChange: (upda
             <Button
               size="sm"
               variant="outline"
+              className="w-full border-dashed"
               onClick={() => {
                 const newPairs = [...(slide.content.pairs || []), { 
                   left: `Elem ${(slide.content.pairs?.length || 0) + 1}`, 
@@ -1374,92 +2329,95 @@ function SlideEditor({ slide, onChange, theme }: { slide: Slide; onChange: (upda
               Pár hozzáadása
             </Button>
           </div>
-          <div>
-            <Label>Pont per helyes párosítás</Label>
-            <Input
-              type="number"
-              value={slide.content.pointsPerPair ?? 1}
-              onChange={(e) => {
-                const pointsPerPair = parseInt(e.target.value) || 0;
-                const totalPoints = pointsPerPair * (slide.content.pairs?.length || 0);
-                onChange({ 
-                  content: { ...slide.content, pointsPerPair },
-                  points: totalPoints
-                });
-              }}
-              min={0}
-            />
+
+          {/* Points */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className="text-sm font-medium text-gray-700">Pont/pár</Label>
+              <Input
+                type="number"
+                value={slide.content.pointsPerPair ?? 1}
+                onChange={(e) => {
+                  const pointsPerPair = parseInt(e.target.value) || 0;
+                  const totalPoints = pointsPerPair * (slide.content.pairs?.length || 0);
+                  onChange({ 
+                    content: { ...slide.content, pointsPerPair },
+                    points: totalPoints
+                  });
+                }}
+                min={0}
+                className="h-8"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-sm font-medium text-gray-700">Összesen</Label>
+              <Input
+                type="number"
+                value={slide.points || 0}
+                readOnly
+                className="h-8 bg-gray-50"
+              />
+            </div>
           </div>
-          <div>
-            <Label>Összes pontszám</Label>
-            <Input
-              type="number"
-              value={slide.points || 0}
-              readOnly
-              className="bg-gray-50"
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              {slide.content.pairs?.length || 0} pár × {slide.content.pointsPerPair ?? 1} pont
-            </p>
-          </div>
+          <p className="text-xs text-gray-500">
+            {slide.content.pairs?.length || 0} pár × {slide.content.pointsPerPair ?? 1} pont
+          </p>
         </>
       )}
 
       {slide.type === 'true_false' && (
         <>
-          <div>
-            <Label className="flex items-center space-x-2">
-              <span>Állítás színe</span>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-8 h-8 p-0"
-                    style={{ backgroundColor: slide.content.statementColor || theme?.textColor || '#000000' }}
-                  />
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <SketchPicker
-                    color={slide.content.statementColor || theme?.textColor || '#000000'}
-                    onChange={(color) => onChange({ content: { ...slide.content, statementColor: color.hex } })}
-                  />
-                </PopoverContent>
-              </Popover>
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-8 h-8 p-0"
-                    title="Matematikai kifejezés"
-                  >
-                    <Sigma className="h-4 w-4" />
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Matematikai kifejezés beillesztése</DialogTitle>
-                  </DialogHeader>
-                  <MathFormulaInsert
-                    onInsert={(formula) => {
-                      const currentStatement = slide.content.statement || '';
-                      const newStatement = currentStatement ? `${currentStatement} ${formula}` : formula;
-                      onChange({ content: { ...slide.content, statement: newStatement } });
-                    }}
-                  />
-                </DialogContent>
-              </Dialog>
-            </Label>
+          {/* Statement */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-medium text-gray-700">Állítás</Label>
+              <div className="flex items-center space-x-1">
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0" title="Matematikai kifejezés">
+                      <Sigma className="h-4 w-4" />
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Matematikai kifejezés beillesztése</DialogTitle>
+                    </DialogHeader>
+                    <MathFormulaInsert
+                      onInsert={(formula) => {
+                        const currentStatement = slide.content.statement || '';
+                        const newStatement = currentStatement ? `${currentStatement} ${formula}` : formula;
+                        onChange({ content: { ...slide.content, statement: newStatement } });
+                      }}
+                    />
+                  </DialogContent>
+                </Dialog>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className="h-7 w-7 p-0"
+                      style={{ backgroundColor: slide.content.statementColor || theme?.textColor || '#000000' }}
+                    />
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="end">
+                    <SketchPicker
+                      color={slide.content.statementColor || theme?.textColor || '#000000'}
+                      onChange={(color) => onChange({ content: { ...slide.content, statementColor: color.hex } })}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
             <Textarea
               value={slide.content.statement || ''}
               onChange={(e) => onChange({ content: { ...slide.content, statement: e.target.value } })}
-              rows={4}
-              className="font-mono text-sm"
+              rows={3}
+              placeholder="Írd ide az állítást..."
+              className="resize-none"
             />
           </div>
-          <div>
-            <Label>Helyes válasz</Label>
+
+          {/* Correct Answer */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-gray-700">Helyes válasz</Label>
             <Select
               value={slide.content.correctAnswer === false ? 'false' : 'true'}
               onValueChange={(value) => onChange({ 
@@ -1467,17 +2425,23 @@ function SlideEditor({ slide, onChange, theme }: { slide: Slide; onChange: (upda
                 correct_answer: value === 'true'
               })}
             >
-              <SelectTrigger>
+              <SelectTrigger className="h-9">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="true">Igaz</SelectItem>
-                <SelectItem value="false">Hamis</SelectItem>
+                <SelectItem value="true">
+                  <span className="text-green-600 font-medium">✓ Igaz</span>
+                </SelectItem>
+                <SelectItem value="false">
+                  <span className="text-red-600 font-medium">✗ Hamis</span>
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
-          <div>
-            <Label>Pontszám</Label>
+
+          {/* Points */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-gray-700">Pontszám</Label>
             <Input
               type="number"
               value={slide.points ?? ''}
@@ -1490,25 +2454,30 @@ function SlideEditor({ slide, onChange, theme }: { slide: Slide; onChange: (upda
 
       {slide.type === 'fill_in_blanks' && (
         <>
-          <div>
-            <Label>Szöveg tartalom</Label>
-            <RichTextEditor
-              content={slide.content.content || []}
-              onChange={(content) => onChange({ content: { ...slide.content, content } })}
-              enableDragBlanks={true}
-              blanks={slide.content.blanks || []}
-              onBlanksChange={(blanks) => onChange({ content: { ...slide.content, blanks } })}
-            />
+          {/* Content Editor */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-gray-700">Szöveg tartalom</Label>
+            <div className="border border-gray-200 rounded-lg overflow-hidden">
+              <RichTextEditor
+                content={slide.content.content || []}
+                onChange={(content) => onChange({ content: { ...slide.content, content } })}
+                enableDragBlanks={true}
+                blanks={slide.content.blanks || []}
+                onBlanksChange={(blanks) => onChange({ content: { ...slide.content, blanks } })}
+              />
+            </div>
           </div>
-          <div>
-            <Label>Kitöltendő mezők</Label>
-            <p className="text-sm text-gray-500 mb-2">
-              Előbb hozz létre kitöltendő mezőket, majd illessz be üres dobozokat a szövegbe.
+
+          {/* Blanks */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-gray-700">Kitöltendő mezők</Label>
+            <p className="text-xs text-gray-500">
+              Hozz létre mezőket, majd illessz be dobozokat a szövegbe.
             </p>
             {(slide.content.blanks || []).map((blank: any, index: number) => (
-              <div key={index} className="border rounded-lg p-3 mb-3 space-y-2">
+              <div key={index} className="border border-gray-200 rounded-lg p-2 space-y-2 hover:border-purple-300 transition-colors">
                 <div className="flex items-center space-x-2">
-                  <span className="text-sm font-medium">#{index + 1}</span>
+                  <span className="text-xs font-medium text-purple-600 bg-purple-100 px-2 py-0.5 rounded">#{index + 1}</span>
                   <Input
                     value={blank.answer || ''}
                     onChange={(e) => {
@@ -1517,16 +2486,12 @@ function SlideEditor({ slide, onChange, theme }: { slide: Slide; onChange: (upda
                       onChange({ content: { ...slide.content, blanks: newBlanks } });
                     }}
                     placeholder="Helyes válasz"
-                    className="flex-1"
+                    className="flex-1 h-8 text-sm"
                   />
                   <Dialog>
                     <DialogTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        title="Matematikai kifejezés beszúrása"
-                      >
-                        <Sigma className="h-4 w-4" />
+                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                        <Sigma className="h-3 w-3" />
                       </Button>
                     </DialogTrigger>
                     <DialogContent>
@@ -1544,10 +2509,7 @@ function SlideEditor({ slide, onChange, theme }: { slide: Slide; onChange: (upda
                   </Dialog>
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-8 h-8 p-0"
+                      <Button variant="outline" size="sm" className="w-7 h-7 p-0 rounded"
                         style={{ backgroundColor: blank.color || '#ffffff' }}
                       />
                     </PopoverTrigger>
@@ -1565,16 +2527,17 @@ function SlideEditor({ slide, onChange, theme }: { slide: Slide; onChange: (upda
                   <Button
                     size="sm"
                     variant="ghost"
+                    className="h-7 w-7 p-0 text-gray-400 hover:text-red-500"
                     onClick={() => {
                       const newBlanks = (slide.content.blanks || []).filter((_: any, i: number) => i !== index);
                       onChange({ content: { ...slide.content, blanks: newBlanks } });
                     }}
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className="h-3 w-3" />
                   </Button>
                 </div>
                 {blank.answer && blank.answer.includes('\\') && (
-                  <div className="pl-8 pt-2 border-t">
+                  <div className="pl-2 pt-1 border-t border-gray-100">
                     <span className="text-xs text-gray-500">Előnézet: </span>
                     <MathText text={blank.answer} />
                   </div>
@@ -1592,25 +2555,27 @@ function SlideEditor({ slide, onChange, theme }: { slide: Slide; onChange: (upda
               }}
               variant="outline"
               size="sm"
+              className="w-full border-dashed"
             >
               <Plus className="h-4 w-4 mr-2" />
-              Új kitöltendő mező
+              Új mező
             </Button>
           </div>
-          <div>
-            <Label>Összpontszám</Label>
+
+          {/* Points */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-gray-700">Összpontszám</Label>
             <Input
               type="number"
               value={slide.points ?? ''}
               onChange={(e) => onChange({ points: e.target.value })}
               onBlur={(e) => onChange({ points: parseInt(e.target.value) || 0 })}
             />
-            <p className="text-sm text-gray-500 mt-1">
-              A pontok egyenlően oszlanak meg a kitöltendő mezők között.
-              {(slide.content.blanks || []).length > 0 && (
-                <span> ({Math.floor((typeof slide.points === 'string' ? parseInt(slide.points) || 0 : slide.points || 0) / (slide.content.blanks || []).length)} pont / mező)</span>
-              )}
-            </p>
+            {(slide.content.blanks || []).length > 0 && (
+              <p className="text-xs text-gray-500">
+                {Math.floor((typeof slide.points === 'string' ? parseInt(slide.points) || 0 : slide.points || 0) / (slide.content.blanks || []).length)} pont / mező
+              </p>
+            )}
           </div>
         </>
       )}
