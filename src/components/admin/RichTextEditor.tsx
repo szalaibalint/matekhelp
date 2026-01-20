@@ -31,7 +31,9 @@ import {
   Palette,
   Move,
   Minus,
-  Sigma
+  Sigma,
+  X,
+  Trash2
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
@@ -770,18 +772,18 @@ export function RichTextEditor({ content, onChange, enableDragBlanks = false, bl
         initialValue={initialValue}
         onChange={(value) => onChange(value)}
       >
-        <div className="border-b border-gray-200 p-3 flex flex-wrap items-center gap-1">
-          <MarkButton format="bold" icon={<Bold className="h-4 w-4" />} />
-          <MarkButton format="italic" icon={<Italic className="h-4 w-4" />} />
-          <MarkButton format="underline" icon={<Underline className="h-4 w-4" />} />
-          <MarkButton format="code" icon={<Code className="h-4 w-4" />} />
+        <div className="border-b border-gray-200 p-4 flex flex-wrap items-center gap-2">
+          <MarkButton format="bold" icon={<Bold className="h-5 w-5" />} />
+          <MarkButton format="italic" icon={<Italic className="h-5 w-5" />} />
+          <MarkButton format="underline" icon={<Underline className="h-5 w-5" />} />
+          <MarkButton format="code" icon={<Code className="h-5 w-5" />} />
           
-          <Separator orientation="vertical" className="h-6" />
+          <Separator orientation="vertical" className="h-8" />
           
           <Popover open={showColorPicker} onOpenChange={setShowColorPicker}>
             <PopoverTrigger asChild>
-              <Button variant="ghost" size="sm" title="Szöveg szín">
-                <Palette className="h-4 w-4" style={{ color: textColor }} />
+              <Button variant="ghost" size="sm" className="h-9 w-9 p-0" title="Szöveg szín">
+                <Palette className="h-5 w-5" style={{ color: textColor }} />
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0">
@@ -794,8 +796,8 @@ export function RichTextEditor({ content, onChange, enableDragBlanks = false, bl
 
           <Popover open={showBgColorPicker} onOpenChange={setShowBgColorPicker}>
             <PopoverTrigger asChild>
-              <Button variant="ghost" size="sm" title="Háttér szín">
-                <div className="h-4 w-4 rounded border border-gray-400" style={{ backgroundColor: bgColor }}></div>
+              <Button variant="ghost" size="sm" className="h-9 w-9 p-0" title="Háttér szín">
+                <div className="h-5 w-5 rounded border border-gray-400" style={{ backgroundColor: bgColor }}></div>
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0">
@@ -806,10 +808,10 @@ export function RichTextEditor({ content, onChange, enableDragBlanks = false, bl
             </PopoverContent>
           </Popover>
           
-          <Separator orientation="vertical" className="h-6" />
+          <Separator orientation="vertical" className="h-8" />
           
           <Select value={fontSize} onValueChange={applyFontSize}>
-            <SelectTrigger className="w-[100px] h-8">
+            <SelectTrigger className="w-[100px] h-9">
               <SelectValue placeholder="Méret" />
             </SelectTrigger>
             <SelectContent>
@@ -828,7 +830,7 @@ export function RichTextEditor({ content, onChange, enableDragBlanks = false, bl
           </Select>
 
           <Select value={fontFamily} onValueChange={applyFontFamily}>
-            <SelectTrigger className="w-[140px] h-8">
+            <SelectTrigger className="w-[140px] h-9">
               <SelectValue placeholder="Betűtípus" />
             </SelectTrigger>
             <SelectContent>
@@ -845,31 +847,31 @@ export function RichTextEditor({ content, onChange, enableDragBlanks = false, bl
             </SelectContent>
           </Select>
           
-          <Separator orientation="vertical" className="h-6" />
+          <Separator orientation="vertical" className="h-8" />
           
-          <BlockButton format="heading-one" icon={<Heading1 className="h-4 w-4" />} />
-          <BlockButton format="heading-two" icon={<Heading2 className="h-4 w-4" />} />
-          <BlockButton format="heading-three" icon={<Heading3 className="h-4 w-4" />} />
-          <BlockButton format="paragraph" icon={<Type className="h-4 w-4" />} />
+          <BlockButton format="heading-one" icon={<Heading1 className="h-5 w-5" />} />
+          <BlockButton format="heading-two" icon={<Heading2 className="h-5 w-5" />} />
+          <BlockButton format="heading-three" icon={<Heading3 className="h-5 w-5" />} />
+          <BlockButton format="paragraph" icon={<Type className="h-5 w-5" />} />
           
-          <Separator orientation="vertical" className="h-6" />
+          <Separator orientation="vertical" className="h-8" />
           
-          <BlockButton format="left" icon={<AlignLeft className="h-4 w-4" />} />
-          <BlockButton format="center" icon={<AlignCenter className="h-4 w-4" />} />
-          <BlockButton format="right" icon={<AlignRight className="h-4 w-4" />} />
+          <BlockButton format="left" icon={<AlignLeft className="h-5 w-5" />} />
+          <BlockButton format="center" icon={<AlignCenter className="h-5 w-5" />} />
+          <BlockButton format="right" icon={<AlignRight className="h-5 w-5" />} />
           
-          <Separator orientation="vertical" className="h-6" />
+          <Separator orientation="vertical" className="h-8" />
           
-          <BlockButton format="bulleted-list" icon={<List className="h-4 w-4" />} />
-          <BlockButton format="numbered-list" icon={<ListOrdered className="h-4 w-4" />} />
-          <BlockButton format="block-quote" icon={<Quote className="h-4 w-4" />} />
+          <BlockButton format="bulleted-list" icon={<List className="h-5 w-5" />} />
+          <BlockButton format="numbered-list" icon={<ListOrdered className="h-5 w-5" />} />
+          <BlockButton format="block-quote" icon={<Quote className="h-5 w-5" />} />
           
-          <Separator orientation="vertical" className="h-6" />
+          <Separator orientation="vertical" className="h-8" />
           
           <Dialog>
             <DialogTrigger asChild>
-              <Button variant="ghost" size="sm">
-                <Image className="h-4 w-4" />
+              <Button variant="ghost" size="sm" className="h-9 w-9 p-0">
+                <Image className="h-5 w-5" />
               </Button>
             </DialogTrigger>
             <DialogContent>
@@ -969,8 +971,8 @@ export function RichTextEditor({ content, onChange, enableDragBlanks = false, bl
           
           <Dialog>
             <DialogTrigger asChild>
-              <Button variant="ghost" size="sm">
-                <Video className="h-4 w-4" />
+              <Button variant="ghost" size="sm" className="h-9 w-9 p-0">
+                <Video className="h-5 w-5" />
               </Button>
             </DialogTrigger>
             <DialogContent>
@@ -1032,8 +1034,8 @@ export function RichTextEditor({ content, onChange, enableDragBlanks = false, bl
           
           <Dialog>
             <DialogTrigger asChild>
-              <Button variant="ghost" size="sm">
-                <Link className="h-4 w-4" />
+              <Button variant="ghost" size="sm" className="h-9 w-9 p-0">
+                <Link className="h-5 w-5" />
               </Button>
             </DialogTrigger>
             <DialogContent>
@@ -1058,18 +1060,19 @@ export function RichTextEditor({ content, onChange, enableDragBlanks = false, bl
             </DialogContent>
           </Dialog>
           
-          <Button variant="ghost" size="sm" onClick={insertTable}>
-            <Table className="h-4 w-4" />
+          <Button variant="ghost" size="sm" className="h-9 w-9 p-0" onClick={insertTable}>
+            <Table className="h-5 w-5" />
           </Button>
           <Dialog open={showInputDialog} onOpenChange={setShowInputDialog}>
             <DialogTrigger asChild>
               <Button 
                 variant="ghost" 
-                size="sm" 
+                size="sm"
+                className="h-9 w-9 p-0"
                 title="Kitöltendő mező"
                 onClick={() => openInputFieldDialog()}
               >
-                <Minus className="h-4 w-4" />
+                <Minus className="h-5 w-5" />
               </Button>
             </DialogTrigger>
             <DialogContent>
@@ -1151,10 +1154,11 @@ export function RichTextEditor({ content, onChange, enableDragBlanks = false, bl
               <DialogTrigger asChild>
                 <Button 
                   variant="ghost" 
-                  size="sm" 
+                  size="sm"
+                  className="h-9 w-9 p-0"
                   title="Húzható doboz beszúrása"
                 >
-                  <span className="text-xs font-bold">📦</span>
+                  <span className="text-base font-bold">📦</span>
                 </Button>
               </DialogTrigger>
               <DialogContent>
@@ -1193,10 +1197,9 @@ export function RichTextEditor({ content, onChange, enableDragBlanks = false, bl
           )}
           
           <Dialog>
-```
             <DialogTrigger asChild>
-              <Button variant="ghost" size="sm" title="Matematikai kifejezés">
-                <Sigma className="h-4 w-4" />
+              <Button variant="ghost" size="sm" className="h-9 w-9 p-0" title="Matematikai kifejezés">
+                <Sigma className="h-5 w-5" />
               </Button>
             </DialogTrigger>
             <DialogContent>
@@ -1208,32 +1211,34 @@ export function RichTextEditor({ content, onChange, enableDragBlanks = false, bl
           </Dialog>
         </div>
 
-        <div className="flex-1 p-4 overflow-visible relative min-h-[400px]">
-          <Editable
-            renderElement={renderElement}
-            renderLeaf={renderLeaf}
-            placeholder="Kezd el itt írni a tartalmat..."
-            spellCheck
-            autoFocus
-            onKeyDown={(event) => {
-              // Handle TAB key
-              if (event.key === 'Tab') {
-                event.preventDefault();
-                editor.insertText('\t');
-                return;
-              }
-
-              for (const hotkey in HOTKEYS) {
-                if (isHotkey(hotkey, event as any)) {
+        <div className="flex-1 p-8 overflow-visible relative min-h-[400px]">
+          <div className="prose prose-lg max-w-none relative">
+            <Editable
+              renderElement={renderElement}
+              renderLeaf={renderLeaf}
+              placeholder="Kezd el itt írni a tartalmat..."
+              spellCheck
+              autoFocus
+              onKeyDown={(event) => {
+                // Handle TAB key
+                if (event.key === 'Tab') {
                   event.preventDefault();
-                  const mark = HOTKEYS[hotkey];
-                  toggleMark(editor, mark);
+                  editor.insertText('\t');
+                  return;
                 }
-              }
-            }}
-            className="min-h-full focus:outline-none"
-            style={{ whiteSpace: 'pre-wrap' }}
-          />
+
+                for (const hotkey in HOTKEYS) {
+                  if (isHotkey(hotkey, event as any)) {
+                    event.preventDefault();
+                    const mark = HOTKEYS[hotkey];
+                    toggleMark(editor, mark);
+                  }
+                }
+              }}
+              className="min-h-full focus:outline-none"
+              style={{ whiteSpace: 'pre-wrap' }}
+            />
+          </div>
         </div>
       </Slate>
     </div>
@@ -1246,6 +1251,7 @@ const MarkButton = ({ format, icon }: { format: string; icon: React.ReactNode })
     <Button
       variant={isMarkActive(editor, format) ? "default" : "ghost"}
       size="sm"
+      className="h-9 w-9 p-0"
       onMouseDown={(event) => {
         event.preventDefault();
         toggleMark(editor, format);
@@ -1262,6 +1268,7 @@ const BlockButton = ({ format, icon }: { format: string; icon: React.ReactNode }
     <Button
       variant={isBlockActive(editor, format, TEXT_ALIGN_TYPES.includes(format) ? 'align' : 'type') ? "default" : "ghost"}
       size="sm"
+      className="h-9 w-9 p-0"
       onMouseDown={(event) => {
         event.preventDefault();
         toggleBlock(editor, format);
@@ -1383,27 +1390,58 @@ const Element = ({ attributes, children, element }: any) => {
   }
 };
 
+// Slide canvas dimensions
+const SLIDE_WIDTH = 1600;
+const SLIDE_HEIGHT = 900;
+
 const ImageElement = forwardRef(({ attributes, children, element }: any, ref) => {
   const editor = useSlate();
   const selected = useSelected();
   const focused = useFocused();
+  const imageRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: element.width || 400, height: element.height || 300 });
   const [rotation, setRotation] = useState(element.rotation || 0);
   const [float, setFloat] = useState(element.float || 'none');
   const [align, setAlign] = useState(element.align || 'left');
   const [position, setPosition] = useState(element.position || { x: 0, y: 0 });
   const [isAbsolute, setIsAbsolute] = useState(element.isAbsolute || false);
-  const [isResizing, setIsResizing] = useState(false);
-  const [isRotating, setIsRotating] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
-  const [startPos, setStartPos] = useState({ x: 0, y: 0 });
-  const [startSize, setStartSize] = useState({ width: 0, height: 0 });
-  const [startRotation, setStartRotation] = useState(0);
-  const [aspectRatio, setAspectRatio] = useState(1);
-  const [editorBounds, setEditorBounds] = useState<DOMRect | null>(null);
+  
+  // Refs for smooth dragging/resizing - no re-renders during drag
+  const dragStateRef = useRef({
+    isDragging: false,
+    isResizing: false,
+    isRotating: false,
+    resizeCorner: '',
+    startX: 0,
+    startY: 0,
+    startWidth: 0,
+    startHeight: 0,
+    startRotation: 0,
+    startPosX: 0,
+    startPosY: 0,
+    aspectRatio: 1,
+    scale: 1,
+  });
+
+  // Get the current scale from the editor container's CSS transform
+  const getScale = () => {
+    if (!imageRef.current) return 1;
+    let parent: HTMLElement | null = imageRef.current;
+    while (parent) {
+      const transform = window.getComputedStyle(parent).transform;
+      if (transform && transform !== 'none') {
+        const match = transform.match(/matrix\(([^,]+)/);
+        if (match) {
+          return parseFloat(match[1]) || 1;
+        }
+      }
+      parent = parent.parentElement;
+    }
+    return 1;
+  };
 
   // Get parent block alignment
-  let parentAlign = align; // Use image's own alignment instead of parent's
+  let parentAlign = align;
   try {
     const path = ReactEditor.findPath(editor, element);
     const [parentNode] = Editor.parent(editor, path);
@@ -1412,114 +1450,209 @@ const ImageElement = forwardRef(({ attributes, children, element }: any, ref) =>
     // If we can't get the parent, use image's own alignment
   }
 
+  // Unified mouse handler for all interactions
   useEffect(() => {
-    if (isResizing) {
-      const handleMouseMove = (e: MouseEvent) => {
-        const deltaX = e.clientX - startPos.x;
-        const deltaY = e.clientY - startPos.y;
+    const handleMouseMove = (e: MouseEvent) => {
+      const state = dragStateRef.current;
+      const scale = state.scale || 1;
+      
+      if (state.isResizing) {
+        e.preventDefault();
+        // Compensate for scale - divide by scale to get true canvas pixels
+        const deltaX = (e.clientX - state.startX) / scale;
+        const deltaY = (e.clientY - state.startY) / scale;
         
-        if (e.shiftKey) {
-          // Maintain aspect ratio when Shift is held
-          const newWidth = Math.max(100, startSize.width + deltaX);
-          const newHeight = Math.round(newWidth / aspectRatio);
-          setSize({ width: newWidth, height: newHeight });
-        } else {
-          // Free resize
-          const newWidth = Math.max(100, startSize.width + deltaX);
-          const newHeight = Math.max(75, startSize.height + deltaY);
-          setSize({ width: newWidth, height: newHeight });
+        let newWidth = state.startWidth;
+        let newHeight = state.startHeight;
+        let newPosX = state.startPosX;
+        let newPosY = state.startPosY;
+        
+        // Handle different corners - resize from the corner being dragged
+        if (state.resizeCorner.includes('e')) {
+          newWidth = Math.max(50, state.startWidth + deltaX);
         }
-      };
-
-      const handleMouseUp = () => {
-        setIsResizing(false);
-        const path = ReactEditor.findPath(editor, element);
-        Transforms.setNodes(editor, { width: size.width, height: size.height }, { at: path });
-      };
-
-      window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('mouseup', handleMouseUp);
-      return () => {
-        window.removeEventListener('mousemove', handleMouseMove);
-        window.removeEventListener('mouseup', handleMouseUp);
-      };
-    }
-  }, [isResizing, startPos, startSize, size, editor, element]);
-
-  useEffect(() => {
-    if (isRotating) {
-      const handleMouseMove = (e: MouseEvent) => {
-        const deltaX = e.clientX - startPos.x;
-        const newRotation = startRotation + deltaX;
+        if (state.resizeCorner.includes('w')) {
+          newWidth = Math.max(50, state.startWidth - deltaX);
+          // Move position to keep right edge fixed
+          if (isAbsolute) {
+            newPosX = state.startPosX + (state.startWidth - newWidth);
+          }
+        }
+        if (state.resizeCorner.includes('s')) {
+          newHeight = Math.max(50, state.startHeight + deltaY);
+        }
+        if (state.resizeCorner.includes('n')) {
+          newHeight = Math.max(50, state.startHeight - deltaY);
+          // Move position to keep bottom edge fixed
+          if (isAbsolute) {
+            newPosY = state.startPosY + (state.startHeight - newHeight);
+          }
+        }
+        
+        // Maintain aspect ratio with Shift key
+        if (e.shiftKey) {
+          if (Math.abs(deltaX) > Math.abs(deltaY)) {
+            const oldHeight = newHeight;
+            newHeight = Math.round(newWidth / state.aspectRatio);
+            // Adjust position for north corners when maintaining aspect ratio
+            if (state.resizeCorner.includes('n') && isAbsolute) {
+              newPosY = state.startPosY + (state.startHeight - newHeight);
+            }
+          } else {
+            const oldWidth = newWidth;
+            newWidth = Math.round(newHeight * state.aspectRatio);
+            // Adjust position for west corners when maintaining aspect ratio
+            if (state.resizeCorner.includes('w') && isAbsolute) {
+              newPosX = state.startPosX + (state.startWidth - newWidth);
+            }
+          }
+        }
+        
+        // Constrain to slide bounds for absolute positioned images
+        if (isAbsolute) {
+          // Ensure image stays within slide
+          newPosX = Math.max(0, Math.min(newPosX, SLIDE_WIDTH - newWidth));
+          newPosY = Math.max(0, Math.min(newPosY, SLIDE_HEIGHT - newHeight));
+          // Adjust size if position was clamped
+          if (newPosX === 0 && state.resizeCorner.includes('w')) {
+            newWidth = state.startPosX + state.startWidth;
+          }
+          if (newPosY === 0 && state.resizeCorner.includes('n')) {
+            newHeight = state.startPosY + state.startHeight;
+          }
+          setPosition({ x: newPosX, y: newPosY });
+        }
+        
+        setSize({ width: Math.round(newWidth), height: Math.round(newHeight) });
+      }
+      
+      if (state.isRotating) {
+        e.preventDefault();
+        if (!imageRef.current) return;
+        
+        const rect = imageRef.current.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+        
+        const angle = Math.atan2(e.clientY - centerY, e.clientX - centerX);
+        const startAngle = Math.atan2(state.startY - centerY, state.startX - centerX);
+        const deltaAngle = ((angle - startAngle) * 180) / Math.PI;
+        
+        let newRotation = state.startRotation + deltaAngle;
+        
+        // Snap to 15 degree increments when holding Shift
+        if (e.shiftKey) {
+          newRotation = Math.round(newRotation / 15) * 15;
+        }
+        
         setRotation(newRotation);
-      };
+      }
+      
+      if (state.isDragging) {
+        e.preventDefault();
+        // Compensate for scale - divide by scale to get true canvas pixels
+        const deltaX = (e.clientX - state.startX) / scale;
+        const deltaY = (e.clientY - state.startY) / scale;
+        
+        let newX = state.startPosX + deltaX;
+        let newY = state.startPosY + deltaY;
+        
+        // Constrain to slide bounds (keep image fully within the slide)
+        newX = Math.max(0, Math.min(newX, SLIDE_WIDTH - size.width));
+        newY = Math.max(0, Math.min(newY, SLIDE_HEIGHT - size.height));
+        
+        setPosition({ x: Math.round(newX), y: Math.round(newY) });
+      }
+    };
 
-      const handleMouseUp = () => {
-        setIsRotating(false);
-        const path = ReactEditor.findPath(editor, element);
-        Transforms.setNodes(editor, { rotation }, { at: path });
-      };
+    const handleMouseUp = () => {
+      const state = dragStateRef.current;
+      
+      if (state.isResizing || state.isRotating || state.isDragging) {
+        try {
+          const path = ReactEditor.findPath(editor, element);
+          
+          if (state.isResizing) {
+            const updates: any = { width: size.width, height: size.height };
+            if (isAbsolute) {
+              updates.position = position;
+            }
+            Transforms.setNodes(editor, updates, { at: path });
+          }
+          if (state.isRotating) {
+            Transforms.setNodes(editor, { rotation }, { at: path });
+          }
+          if (state.isDragging) {
+            Transforms.setNodes(editor, { position } as any, { at: path });
+          }
+        } catch (e) {
+          // Element may have been removed
+        }
+        
+        state.isDragging = false;
+        state.isResizing = false;
+        state.isRotating = false;
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+      }
+    };
 
-      window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('mouseup', handleMouseUp);
-      return () => {
-        window.removeEventListener('mousemove', handleMouseMove);
-        window.removeEventListener('mouseup', handleMouseUp);
-      };
-    }
-  }, [isRotating, startPos, startRotation, rotation, editor, element]);
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [editor, element, size, rotation, position, isAbsolute]);
 
-  useEffect(() => {
-    if (isDragging) {
-      const handleMouseMove = (e: MouseEvent) => {
-        // Get the specific editor container
-        const editorEl = ReactEditor.toDOMNode(editor, editor);
-        const editorContainer = editorEl.closest('.flex-1.p-4.overflow-visible') as HTMLElement;
-        if (!editorContainer) return;
-        
-        const containerRect = editorContainer.getBoundingClientRect();
-        
-        const deltaX = e.clientX - startPos.x;
-        const deltaY = e.clientY - startPos.y;
-        
-        // Calculate new position with bounds checking
-        let newX = position.x + deltaX;
-        let newY = position.y + deltaY;
-        
-        // Constrain within editor container (accounting for image size and padding)
-        const maxX = containerRect.width - size.width - 32; // 32 for padding
-        const maxY = containerRect.height - size.height - 32;
-        
-        newX = Math.max(0, Math.min(newX, maxX));
-        newY = Math.max(0, Math.min(newY, maxY));
-        
-        setPosition({ x: newX, y: newY });
-        setStartPos({ x: e.clientX, y: e.clientY });
-      };
+  const startResize = (e: React.MouseEvent, corner: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const state = dragStateRef.current;
+    state.isResizing = true;
+    state.resizeCorner = corner;
+    state.startX = e.clientX;
+    state.startY = e.clientY;
+    state.startWidth = size.width;
+    state.startHeight = size.height;
+    state.startPosX = position.x;
+    state.startPosY = position.y;
+    state.aspectRatio = size.width / size.height;
+    state.scale = getScale();
+    document.body.style.cursor = corner.includes('n') || corner.includes('s') 
+      ? (corner === 'n' || corner === 's' ? 'ns-resize' : corner === 'nw' || corner === 'se' ? 'nwse-resize' : 'nesw-resize')
+      : 'ew-resize';
+    document.body.style.userSelect = 'none';
+  };
 
-      const handleMouseUp = () => {
-        setIsDragging(false);
-        const path = ReactEditor.findPath(editor, element);
-        
-        // Get the editor container width to save as reference
-        const editorEl = ReactEditor.toDOMNode(editor, editor);
-        const editorContainer = editorEl.closest('.flex-1.p-4.overflow-visible') as HTMLElement;
-        const containerWidth = editorContainer ? editorContainer.clientWidth : 850;
-        
-        Transforms.setNodes(editor, { 
-          position, 
-          referenceWidth: containerWidth 
-        } as any, { at: path });
-      };
+  const startRotate = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const state = dragStateRef.current;
+    state.isRotating = true;
+    state.startX = e.clientX;
+    state.startY = e.clientY;
+    state.startRotation = rotation;
+    state.scale = getScale();
+    document.body.style.cursor = 'grabbing';
+    document.body.style.userSelect = 'none';
+  };
 
-      window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('mouseup', handleMouseUp);
-      return () => {
-        window.removeEventListener('mousemove', handleMouseMove);
-        window.removeEventListener('mouseup', handleMouseUp);
-      };
-    }
-  }, [isDragging, startPos, position, editor, element, size]);
+  const startDrag = (e: React.MouseEvent) => {
+    if (!isAbsolute) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const state = dragStateRef.current;
+    state.isDragging = true;
+    state.startX = e.clientX;
+    state.startY = e.clientY;
+    state.startPosX = position.x;
+    state.startPosY = position.y;
+    state.scale = getScale();
+    document.body.style.cursor = 'grabbing';
+    document.body.style.userSelect = 'none';
+  };
 
   const handleFloatChange = (newFloat: string) => {
     setFloat(newFloat);
@@ -1538,15 +1671,20 @@ const ImageElement = forwardRef(({ attributes, children, element }: any, ref) =>
     setIsAbsolute(newIsAbsolute);
     const path = ReactEditor.findPath(editor, element);
     if (newIsAbsolute) {
-      // Switch to absolute positioning
       Transforms.setNodes(editor, { isAbsolute: true, position, float: 'none' } as any, { at: path });
       setFloat('none');
     } else {
-      // Switch back to inline/float positioning
       Transforms.setNodes(editor, { isAbsolute: false, position: { x: 0, y: 0 } } as any, { at: path });
       setPosition({ x: 0, y: 0 });
     }
   };
+
+  const deleteImage = () => {
+    const path = ReactEditor.findPath(editor, element);
+    Transforms.removeNodes(editor, { at: path });
+  };
+
+  const isSelected = selected && focused;
 
   return (
     <div 
@@ -1559,113 +1697,159 @@ const ImageElement = forwardRef(({ attributes, children, element }: any, ref) =>
         top: isAbsolute ? `${position.y}px` : undefined,
         float: !isAbsolute && float !== 'none' ? float as any : undefined,
         margin: !isAbsolute && float !== 'none' ? '0 10px' : isAbsolute ? 0 : '0 auto',
-        zIndex: isAbsolute ? 1 : undefined,
+        zIndex: isAbsolute ? 10 : undefined,
         display: isAbsolute ? 'block' : float === 'none' ? 'block' : 'inline-block',
         textAlign: !isAbsolute && float === 'none' ? parentAlign as any : undefined,
       }}
     >
-      <div className="relative" style={{ display: 'inline-block' }}>
+      <div 
+        ref={imageRef}
+        className="relative" 
+        style={{ 
+          display: 'inline-block',
+          transform: `rotate(${rotation}deg)`,
+        }}
+      >
         <img
           src={element.url}
           alt=""
           loading="lazy"
+          draggable={false}
           style={{
             width: size.width,
             height: size.height,
-            transform: `rotate(${rotation}deg)`,
-            maxWidth: '100%',
-            cursor: isAbsolute ? 'move' : 'default',
+            maxWidth: 'none',
+            cursor: isAbsolute ? 'grab' : 'default',
           }}
-          className={`block border-2 transition-all ${selected && focused ? 'border-blue-500' : 'border-transparent group-hover:border-blue-300'}`}
-          onMouseDown={(e) => {
-            if (isAbsolute && !isResizing && !isRotating) {
-              e.preventDefault();
-              setIsDragging(true);
-              setStartPos({ x: e.clientX, y: e.clientY });
-            }
-          }}
+          className={`block transition-shadow ${isSelected ? 'ring-2 ring-purple-500 ring-offset-2' : 'group-hover:ring-2 group-hover:ring-purple-300 group-hover:ring-offset-1'}`}
+          onMouseDown={startDrag}
         />
         
-        <div
-          className="absolute bottom-0 right-0 w-4 h-4 bg-blue-500 cursor-se-resize opacity-0 group-hover:opacity-100 transition-opacity"
-          onMouseDown={(e) => {
-            e.preventDefault();
-            setIsResizing(true);
-            setStartPos({ x: e.clientX, y: e.clientY });
-            setStartSize(size);
-            setAspectRatio(size.width / size.height);
-          }}
-        />
+        {/* Resize handles - all corners and edges */}
+        <div className={`absolute inset-0 pointer-events-none transition-opacity ${isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+          {/* Corner handles */}
+          <div 
+            className="absolute -top-2 -left-2 w-4 h-4 bg-purple-500 rounded-full cursor-nw-resize pointer-events-auto shadow-md hover:bg-purple-600 hover:scale-110 transition-all"
+            onMouseDown={(e) => startResize(e, 'nw')}
+          />
+          <div 
+            className="absolute -top-2 -right-2 w-4 h-4 bg-purple-500 rounded-full cursor-ne-resize pointer-events-auto shadow-md hover:bg-purple-600 hover:scale-110 transition-all"
+            onMouseDown={(e) => startResize(e, 'ne')}
+          />
+          <div 
+            className="absolute -bottom-2 -left-2 w-4 h-4 bg-purple-500 rounded-full cursor-sw-resize pointer-events-auto shadow-md hover:bg-purple-600 hover:scale-110 transition-all"
+            onMouseDown={(e) => startResize(e, 'sw')}
+          />
+          <div 
+            className="absolute -bottom-2 -right-2 w-4 h-4 bg-purple-500 rounded-full cursor-se-resize pointer-events-auto shadow-md hover:bg-purple-600 hover:scale-110 transition-all"
+            onMouseDown={(e) => startResize(e, 'se')}
+          />
+          
+          {/* Edge handles */}
+          <div 
+            className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-8 h-3 bg-purple-500 rounded-full cursor-n-resize pointer-events-auto shadow-md hover:bg-purple-600 hover:scale-110 transition-all"
+            onMouseDown={(e) => startResize(e, 'n')}
+          />
+          <div 
+            className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-8 h-3 bg-purple-500 rounded-full cursor-s-resize pointer-events-auto shadow-md hover:bg-purple-600 hover:scale-110 transition-all"
+            onMouseDown={(e) => startResize(e, 's')}
+          />
+          <div 
+            className="absolute top-1/2 -left-1.5 -translate-y-1/2 w-3 h-8 bg-purple-500 rounded-full cursor-w-resize pointer-events-auto shadow-md hover:bg-purple-600 hover:scale-110 transition-all"
+            onMouseDown={(e) => startResize(e, 'w')}
+          />
+          <div 
+            className="absolute top-1/2 -right-1.5 -translate-y-1/2 w-3 h-8 bg-purple-500 rounded-full cursor-e-resize pointer-events-auto shadow-md hover:bg-purple-600 hover:scale-110 transition-all"
+            onMouseDown={(e) => startResize(e, 'e')}
+          />
+          
+          {/* Rotation handle */}
+          <div 
+            className="absolute -top-10 left-1/2 -translate-x-1/2 flex flex-col items-center pointer-events-auto"
+            onMouseDown={startRotate}
+          >
+            <div className="w-6 h-6 bg-gradient-to-br from-purple-500 to-purple-700 rounded-full cursor-grab shadow-lg hover:from-purple-600 hover:to-purple-800 hover:scale-110 transition-all flex items-center justify-center">
+              <RotateCw className="h-3 w-3 text-white" />
+            </div>
+            <div className="w-0.5 h-4 bg-purple-500" />
+          </div>
+        </div>
         
-        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-          <div className="flex flex-col space-y-1 bg-white rounded shadow-lg p-1">
+        {/* Floating toolbar */}
+        <div className={`absolute -top-12 left-0 transition-all ${isSelected ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0'}`}>
+          <div className="flex items-center gap-1 bg-gray-900/90 backdrop-blur-sm rounded-lg p-1.5 shadow-xl border border-gray-700">
             <Button
               size="sm"
-              variant="secondary"
-              className="h-8 w-8 p-0"
-              onMouseDown={(e) => {
-                e.preventDefault();
-                setIsRotating(true);
-                setStartPos({ x: e.clientX, y: e.clientY });
-                setStartRotation(rotation);
-              }}
-              title="Tartsa lenyomva a forgatáshoz"
-            >
-              <RotateCw className="h-3 w-3" />
-            </Button>
-            <Button
-              size="sm"
-              variant={isAbsolute ? "default" : "secondary"}
-              className="h-8 w-8 p-0"
+              variant={isAbsolute ? "default" : "ghost"}
+              className={`h-7 w-7 p-0 ${isAbsolute ? 'bg-purple-600 hover:bg-purple-700' : 'text-gray-300 hover:text-white hover:bg-gray-700'}`}
               onClick={toggleAbsolutePosition}
               title={isAbsolute ? "Vissza a szövegbe" : "Szabadon mozgatható"}
             >
-              <Move className="h-3 w-3" />
+              <Move className="h-3.5 w-3.5" />
             </Button>
-            {!isAbsolute && float === 'none' && (
+            
+            {!isAbsolute && (
               <>
+                <div className="w-px h-5 bg-gray-600" />
                 <Button
                   size="sm"
-                  variant={align === 'left' ? "default" : "secondary"}
-                  className="h-8 w-8 p-0"
+                  variant={align === 'left' ? "default" : "ghost"}
+                  className={`h-7 w-7 p-0 ${align === 'left' ? 'bg-purple-600 hover:bg-purple-700' : 'text-gray-300 hover:text-white hover:bg-gray-700'}`}
                   onClick={() => handleAlignChange('left')}
                   title="Balra igazítás"
                 >
-                  <AlignLeft className="h-3 w-3" />
+                  <AlignLeft className="h-3.5 w-3.5" />
                 </Button>
                 <Button
                   size="sm"
-                  variant={align === 'center' ? "default" : "secondary"}
-                  className="h-8 w-8 p-0"
+                  variant={align === 'center' ? "default" : "ghost"}
+                  className={`h-7 w-7 p-0 ${align === 'center' ? 'bg-purple-600 hover:bg-purple-700' : 'text-gray-300 hover:text-white hover:bg-gray-700'}`}
                   onClick={() => handleAlignChange('center')}
                   title="Középre igazítás"
                 >
-                  <AlignCenter className="h-3 w-3" />
+                  <AlignCenter className="h-3.5 w-3.5" />
                 </Button>
                 <Button
                   size="sm"
-                  variant={align === 'right' ? "default" : "secondary"}
-                  className="h-8 w-8 p-0"
+                  variant={align === 'right' ? "default" : "ghost"}
+                  className={`h-7 w-7 p-0 ${align === 'right' ? 'bg-purple-600 hover:bg-purple-700' : 'text-gray-300 hover:text-white hover:bg-gray-700'}`}
                   onClick={() => handleAlignChange('right')}
                   title="Jobbra igazítás"
                 >
-                  <AlignRight className="h-3 w-3" />
+                  <AlignRight className="h-3.5 w-3.5" />
                 </Button>
+                <div className="w-px h-5 bg-gray-600" />
+                <Select value={float} onValueChange={handleFloatChange}>
+                  <SelectTrigger className="h-7 w-24 text-xs bg-transparent border-gray-600 text-gray-300 hover:text-white">
+                    <span className="truncate">{float === 'none' ? 'Sorban' : float === 'left' ? 'Balra' : 'Jobbra'}</span>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Sorban</SelectItem>
+                    <SelectItem value="left">Balra úsztatás</SelectItem>
+                    <SelectItem value="right">Jobbra úsztatás</SelectItem>
+                  </SelectContent>
+                </Select>
               </>
             )}
-            {!isAbsolute && (
-              <Select value={float} onValueChange={handleFloatChange}>
-                <SelectTrigger className="h-8 w-20 text-xs">
-                  <Palette className="h-3 w-3" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Sorban</SelectItem>
-                  <SelectItem value="left">Balra úsztatás</SelectItem>
-                  <SelectItem value="right">Jobbra úsztatás</SelectItem>
-                </SelectContent>
-              </Select>
-            )}
+            
+            <div className="w-px h-5 bg-gray-600" />
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 w-7 p-0 text-red-400 hover:text-red-300 hover:bg-red-900/50"
+              onClick={deleteImage}
+              title="Kép törlése"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
           </div>
+        </div>
+        
+        {/* Size indicator */}
+        <div className={`absolute -bottom-8 left-1/2 -translate-x-1/2 transition-opacity ${isSelected ? 'opacity-100' : 'opacity-0'}`}>
+          <span className="text-xs bg-gray-900/80 text-white px-2 py-1 rounded">
+            {Math.round(size.width)} × {Math.round(size.height)} • {Math.round(rotation)}°
+          </span>
         </div>
       </div>
       {children}
@@ -1677,20 +1861,29 @@ const AnimationElement = forwardRef(({ attributes, children, element }: any, ref
   const editor = useSlate();
   const selected = useSelected();
   const focused = useFocused();
+  const animRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: element.width || 640, height: element.height || 480 });
   const [rotation, setRotation] = useState(element.rotation || 0);
   const [float, setFloat] = useState(element.float || 'none');
   const [align, setAlign] = useState(element.align || 'left');
   const [position, setPosition] = useState(element.position || { x: 0, y: 0 });
   const [isAbsolute, setIsAbsolute] = useState(element.isAbsolute || false);
-  const [isResizing, setIsResizing] = useState(false);
-  const [isRotating, setIsRotating] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
-  const [startPos, setStartPos] = useState({ x: 0, y: 0 });
-  const [startSize, setStartSize] = useState({ width: 0, height: 0 });
-  const [startRotation, setStartRotation] = useState(0);
-  const [aspectRatio, setAspectRatio] = useState(1);
-  const [editorBounds, setEditorBounds] = useState<DOMRect | null>(null);
+  
+  // Refs for smooth dragging/resizing
+  const dragStateRef = useRef({
+    isDragging: false,
+    isResizing: false,
+    isRotating: false,
+    resizeCorner: '',
+    startX: 0,
+    startY: 0,
+    startWidth: 0,
+    startHeight: 0,
+    startRotation: 0,
+    startPosX: 0,
+    startPosY: 0,
+    aspectRatio: 1,
+  });
 
   // Get parent block alignment
   let parentAlign = align;
@@ -1698,103 +1891,131 @@ const AnimationElement = forwardRef(({ attributes, children, element }: any, ref
     const path = ReactEditor.findPath(editor, element);
     const [parentNode] = Editor.parent(editor, path);
     parentAlign = (parentNode as any)?.align || align;
-  } catch (e) {
-    // If we can't get the parent, use animation's own alignment
-  }
+  } catch (e) {}
 
+  // Unified mouse handler
   useEffect(() => {
-    if (isResizing) {
-      const handleMouseMove = (e: MouseEvent) => {
-        const deltaX = e.clientX - startPos.x;
-        const deltaY = e.clientY - startPos.y;
+    const handleMouseMove = (e: MouseEvent) => {
+      const state = dragStateRef.current;
+      
+      if (state.isResizing) {
+        e.preventDefault();
+        const deltaX = e.clientX - state.startX;
+        const deltaY = e.clientY - state.startY;
         
-        if (e.shiftKey) {
-          // Maintain aspect ratio when Shift is held
-          const newWidth = Math.max(100, startSize.width + deltaX);
-          const newHeight = Math.round(newWidth / aspectRatio);
-          setSize({ width: newWidth, height: newHeight });
-        } else {
-          // Free resize
-          const newWidth = Math.max(100, startSize.width + deltaX);
-          const newHeight = Math.max(100, startSize.height + deltaY);
-          setSize({ width: newWidth, height: newHeight });
+        let newWidth = state.startWidth;
+        let newHeight = state.startHeight;
+        
+        if (state.resizeCorner.includes('e')) newWidth = Math.max(100, state.startWidth + deltaX);
+        else if (state.resizeCorner.includes('w')) newWidth = Math.max(100, state.startWidth - deltaX);
+        
+        if (state.resizeCorner.includes('s')) newHeight = Math.max(100, state.startHeight + deltaY);
+        else if (state.resizeCorner.includes('n')) newHeight = Math.max(100, state.startHeight - deltaY);
+        
+        if (e.shiftKey || state.resizeCorner === 'se' || state.resizeCorner === 'nw') {
+          if (Math.abs(deltaX) > Math.abs(deltaY)) {
+            newHeight = Math.round(newWidth / state.aspectRatio);
+          } else {
+            newWidth = Math.round(newHeight * state.aspectRatio);
+          }
         }
-      };
-
-      const handleMouseUp = () => {
-        setIsResizing(false);
-        const path = ReactEditor.findPath(editor, element);
-        Transforms.setNodes(editor, { width: size.width, height: size.height }, { at: path });
-      };
-
-      window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('mouseup', handleMouseUp);
-      return () => {
-        window.removeEventListener('mousemove', handleMouseMove);
-        window.removeEventListener('mouseup', handleMouseUp);
-      };
-    }
-  }, [isResizing, startPos, startSize, size, aspectRatio, editor, element]);
-
-  useEffect(() => {
-    if (isDragging) {
-      const handleMouseMove = (e: MouseEvent) => {
-        const deltaX = e.clientX - startPos.x;
-        const deltaY = e.clientY - startPos.y;
         
-        setPosition({
-          x: Math.max(0, element.position.x + deltaX),
-          y: Math.max(0, element.position.y + deltaY),
-        });
-      };
-
-      const handleMouseUp = () => {
-        setIsDragging(false);
-        const path = ReactEditor.findPath(editor, element);
+        setSize({ width: newWidth, height: newHeight });
+      }
+      
+      if (state.isRotating) {
+        e.preventDefault();
+        if (!animRef.current) return;
         
-        // Get container width to save as reference
-        const editorContainer = document.querySelector('.prose') as HTMLElement;
-        const containerWidth = editorContainer ? editorContainer.clientWidth : 850;
-        
-        Transforms.setNodes(editor, { position, referenceWidth: containerWidth } as any, { at: path });
-      };
-
-      window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('mouseup', handleMouseUp);
-      return () => {
-        window.removeEventListener('mousemove', handleMouseMove);
-        window.removeEventListener('mouseup', handleMouseUp);
-      };
-    }
-  }, [isDragging, startPos, position, editor, element]);
-
-  useEffect(() => {
-    if (isRotating) {
-      const handleMouseMove = (e: MouseEvent) => {
-        const rect = (e.currentTarget as any)?.getBoundingClientRect();
-        if (!rect) return;
-        
+        const rect = animRef.current.getBoundingClientRect();
         const centerX = rect.left + rect.width / 2;
         const centerY = rect.top + rect.height / 2;
+        
         const angle = Math.atan2(e.clientY - centerY, e.clientX - centerX);
-        const deg = angle * (180 / Math.PI);
-        setRotation((deg + 360) % 360);
-      };
+        const startAngle = Math.atan2(state.startY - centerY, state.startX - centerX);
+        const deltaAngle = ((angle - startAngle) * 180) / Math.PI;
+        
+        let newRotation = state.startRotation + deltaAngle;
+        if (e.shiftKey) newRotation = Math.round(newRotation / 15) * 15;
+        
+        setRotation(newRotation);
+      }
+      
+      if (state.isDragging) {
+        e.preventDefault();
+        const deltaX = e.clientX - state.startX;
+        const deltaY = e.clientY - state.startY;
+        setPosition({ x: state.startPosX + deltaX, y: state.startPosY + deltaY });
+      }
+    };
 
-      const handleMouseUp = () => {
-        setIsRotating(false);
-        const path = ReactEditor.findPath(editor, element);
-        Transforms.setNodes(editor, { rotation }, { at: path });
-      };
+    const handleMouseUp = () => {
+      const state = dragStateRef.current;
+      
+      if (state.isResizing || state.isRotating || state.isDragging) {
+        try {
+          const path = ReactEditor.findPath(editor, element);
+          if (state.isResizing) Transforms.setNodes(editor, { width: size.width, height: size.height }, { at: path });
+          if (state.isRotating) Transforms.setNodes(editor, { rotation }, { at: path });
+          if (state.isDragging) Transforms.setNodes(editor, { position } as any, { at: path });
+        } catch (e) {}
+        
+        state.isDragging = false;
+        state.isResizing = false;
+        state.isRotating = false;
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+      }
+    };
 
-      window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('mouseup', handleMouseUp);
-      return () => {
-        window.removeEventListener('mousemove', handleMouseMove);
-        window.removeEventListener('mouseup', handleMouseUp);
-      };
-    }
-  }, [isRotating, rotation, editor, element]);
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [editor, element, size, rotation, position]);
+
+  const startResize = (e: React.MouseEvent, corner: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const state = dragStateRef.current;
+    state.isResizing = true;
+    state.resizeCorner = corner;
+    state.startX = e.clientX;
+    state.startY = e.clientY;
+    state.startWidth = size.width;
+    state.startHeight = size.height;
+    state.aspectRatio = size.width / size.height;
+    document.body.style.cursor = corner === 'se' || corner === 'nw' ? 'nwse-resize' : 'nesw-resize';
+    document.body.style.userSelect = 'none';
+  };
+
+  const startRotate = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const state = dragStateRef.current;
+    state.isRotating = true;
+    state.startX = e.clientX;
+    state.startY = e.clientY;
+    state.startRotation = rotation;
+    document.body.style.cursor = 'grabbing';
+    document.body.style.userSelect = 'none';
+  };
+
+  const startDrag = (e: React.MouseEvent) => {
+    if (!isAbsolute) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const state = dragStateRef.current;
+    state.isDragging = true;
+    state.startX = e.clientX;
+    state.startY = e.clientY;
+    state.startPosX = position.x;
+    state.startPosY = position.y;
+    document.body.style.cursor = 'grabbing';
+    document.body.style.userSelect = 'none';
+  };
 
   const handleFloatChange = (newFloat: string) => {
     setFloat(newFloat);
@@ -1802,10 +2023,6 @@ const AnimationElement = forwardRef(({ attributes, children, element }: any, ref
     const path = ReactEditor.findPath(editor, element);
     
     if (newFloat === 'absolute') {
-      const editorContainer = document.querySelector('.prose');
-      if (editorContainer) {
-        setEditorBounds(editorContainer.getBoundingClientRect());
-      }
       Transforms.setNodes(editor, { float: 'none', isAbsolute: true } as any, { at: path });
     } else {
       Transforms.setNodes(editor, { float: newFloat, isAbsolute: false, position: { x: 0, y: 0 } } as any, { at: path });
@@ -1823,6 +2040,8 @@ const AnimationElement = forwardRef(({ attributes, children, element }: any, ref
     Transforms.removeNodes(editor, { at: path });
   };
 
+  const isSelected = selected && focused;
+
   return (
     <div 
       {...attributes} 
@@ -1834,106 +2053,116 @@ const AnimationElement = forwardRef(({ attributes, children, element }: any, ref
         top: isAbsolute ? `${position.y}px` : undefined,
         float: !isAbsolute && float !== 'none' ? float as any : undefined,
         margin: !isAbsolute && float !== 'none' ? '0 10px' : isAbsolute ? 0 : '0 auto',
-        zIndex: isAbsolute ? 1 : undefined,
+        zIndex: isAbsolute ? 10 : undefined,
         display: isAbsolute ? 'block' : float === 'none' ? 'block' : 'inline-block',
         textAlign: !isAbsolute && float === 'none' ? parentAlign as any : undefined,
       }}
     >
-      <div className="relative" style={{ display: 'inline-block' }} onMouseDown={(e) => e.stopPropagation()}>
+      <div 
+        ref={animRef}
+        className="relative" 
+        style={{ 
+          display: 'inline-block',
+          transform: `rotate(${rotation}deg)`,
+        }}
+      >
         <video
           src={element.url}
           autoPlay
           loop
           muted
           playsInline
+          draggable={false}
           style={{
             width: size.width,
             height: size.height,
-            transform: `rotate(${rotation}deg)`,
-            maxWidth: '100%',
+            maxWidth: 'none',
             objectFit: 'cover',
-            display: 'block',
+            cursor: isAbsolute ? 'grab' : 'default',
           }}
-          className={`transition-all ${selected && focused ? 'ring-2 ring-blue-500' : 'group-hover:ring-2 group-hover:ring-blue-300'}`}
+          className={`block transition-shadow ${isSelected ? 'ring-2 ring-purple-500 ring-offset-2' : 'group-hover:ring-2 group-hover:ring-purple-300 group-hover:ring-offset-1'}`}
+          onMouseDown={startDrag}
         />
         
-        <div
-          className="absolute inset-0"
-          style={{ cursor: isAbsolute ? 'move' : 'default', zIndex: 1 }}
-          onMouseDown={(e) => {
-            if (isAbsolute && !isResizing && !isRotating) {
-              e.preventDefault();
-              e.stopPropagation();
-              setIsDragging(true);
-              setStartPos({ x: e.clientX, y: e.clientY });
-            }
-          }}
-        />
+        {/* Resize handles */}
+        <div className={`absolute inset-0 pointer-events-none transition-opacity ${isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+          <div className="absolute -top-2 -left-2 w-4 h-4 bg-purple-500 rounded-full cursor-nw-resize pointer-events-auto shadow-md hover:bg-purple-600 hover:scale-110 transition-all" onMouseDown={(e) => startResize(e, 'nw')} />
+          <div className="absolute -top-2 -right-2 w-4 h-4 bg-purple-500 rounded-full cursor-ne-resize pointer-events-auto shadow-md hover:bg-purple-600 hover:scale-110 transition-all" onMouseDown={(e) => startResize(e, 'ne')} />
+          <div className="absolute -bottom-2 -left-2 w-4 h-4 bg-purple-500 rounded-full cursor-sw-resize pointer-events-auto shadow-md hover:bg-purple-600 hover:scale-110 transition-all" onMouseDown={(e) => startResize(e, 'sw')} />
+          <div className="absolute -bottom-2 -right-2 w-4 h-4 bg-purple-500 rounded-full cursor-se-resize pointer-events-auto shadow-md hover:bg-purple-600 hover:scale-110 transition-all" onMouseDown={(e) => startResize(e, 'se')} />
+          
+          {/* Rotation handle */}
+          <div className="absolute -top-10 left-1/2 -translate-x-1/2 flex flex-col items-center pointer-events-auto" onMouseDown={startRotate}>
+            <div className="w-6 h-6 bg-gradient-to-br from-purple-500 to-purple-700 rounded-full cursor-grab shadow-lg hover:from-purple-600 hover:to-purple-800 hover:scale-110 transition-all flex items-center justify-center">
+              <RotateCw className="h-3 w-3 text-white" />
+            </div>
+            <div className="w-0.5 h-4 bg-purple-500" />
+          </div>
+        </div>
         
-        <div
-          className="absolute bottom-0 right-0 w-4 h-4 bg-blue-500 cursor-se-resize opacity-0 group-hover:opacity-100 transition-opacity"
-          style={{ zIndex: 10 }}
-          onMouseDown={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            setIsResizing(true);
-            setStartPos({ x: e.clientX, y: e.clientY });
-            setStartSize(size);
-            setAspectRatio(size.width / size.height);
-          }}
-        />
-
-        <div
-          className="absolute top-0 right-0 w-4 h-4 bg-green-500 rounded-full cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
-          style={{ transform: 'translate(50%, -50%)', zIndex: 10 }}
-          onMouseDown={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            setIsRotating(true);
-            setStartRotation(rotation);
-          }}
-        />
-
-        {(selected && focused) && (
-          <div 
-            className="absolute -top-10 left-0 flex gap-1 bg-white border border-gray-300 rounded shadow-lg p-1"
-            style={{ zIndex: 20 }}
-            onMouseDown={(e) => e.stopPropagation()}
-          >
-            <select
-              value={isAbsolute ? 'absolute' : float}
-              onChange={(e) => handleFloatChange(e.target.value)}
-              className="text-xs px-1 py-0.5 border border-gray-300 rounded cursor-pointer"
-              onMouseDown={(e) => e.stopPropagation()}
-            >
-              <option value="none">Normál</option>
-              <option value="left">Bal</option>
-              <option value="right">Jobb</option>
-              <option value="absolute">Abszolút</option>
-            </select>
+        {/* Floating toolbar */}
+        <div className={`absolute -top-12 left-0 transition-all ${isSelected ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0'}`}>
+          <div className="flex items-center gap-1 bg-gray-900/90 backdrop-blur-sm rounded-lg p-1.5 shadow-xl border border-gray-700">
+            <Select value={isAbsolute ? 'absolute' : float} onValueChange={handleFloatChange}>
+              <SelectTrigger className="h-7 w-24 text-xs bg-transparent border-gray-600 text-gray-300 hover:text-white">
+                <span className="truncate">{isAbsolute ? 'Abszolút' : float === 'none' ? 'Normál' : float === 'left' ? 'Bal' : 'Jobb'}</span>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Normál</SelectItem>
+                <SelectItem value="left">Bal</SelectItem>
+                <SelectItem value="right">Jobb</SelectItem>
+                <SelectItem value="absolute">Abszolút</SelectItem>
+              </SelectContent>
+            </Select>
             
             {!isAbsolute && (
-              <select
-                value={align}
-                onChange={(e) => handleAlignChange(e.target.value)}
-                className="text-xs px-1 py-0.5 border border-gray-300 rounded cursor-pointer"
-                onMouseDown={(e) => e.stopPropagation()}
-              >
-                <option value="left">Balra</option>
-                <option value="center">Középre</option>
-                <option value="right">Jobbra</option>
-              </select>
+              <>
+                <div className="w-px h-5 bg-gray-600" />
+                <Button
+                  size="sm"
+                  variant={align === 'left' ? "default" : "ghost"}
+                  className={`h-7 w-7 p-0 ${align === 'left' ? 'bg-purple-600 hover:bg-purple-700' : 'text-gray-300 hover:text-white hover:bg-gray-700'}`}
+                  onClick={() => handleAlignChange('left')}
+                >
+                  <AlignLeft className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant={align === 'center' ? "default" : "ghost"}
+                  className={`h-7 w-7 p-0 ${align === 'center' ? 'bg-purple-600 hover:bg-purple-700' : 'text-gray-300 hover:text-white hover:bg-gray-700'}`}
+                  onClick={() => handleAlignChange('center')}
+                >
+                  <AlignCenter className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant={align === 'right' ? "default" : "ghost"}
+                  className={`h-7 w-7 p-0 ${align === 'right' ? 'bg-purple-600 hover:bg-purple-700' : 'text-gray-300 hover:text-white hover:bg-gray-700'}`}
+                  onClick={() => handleAlignChange('right')}
+                >
+                  <AlignRight className="h-3.5 w-3.5" />
+                </Button>
+              </>
             )}
             
-            <button
+            <div className="w-px h-5 bg-gray-600" />
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 w-7 p-0 text-red-400 hover:text-red-300 hover:bg-red-900/50"
               onClick={deleteAnimation}
-              onMouseDown={(e) => e.stopPropagation()}
-              className="text-xs px-2 py-0.5 bg-red-500 text-white rounded hover:bg-red-600 cursor-pointer"
             >
-              Törlés
-            </button>
+              <X className="h-3.5 w-3.5" />
+            </Button>
           </div>
-        )}
+        </div>
+        
+        {/* Size indicator */}
+        <div className={`absolute -bottom-8 left-1/2 -translate-x-1/2 transition-opacity ${isSelected ? 'opacity-100' : 'opacity-0'}`}>
+          <span className="text-xs bg-gray-900/80 text-white px-2 py-1 rounded">
+            {Math.round(size.width)} × {Math.round(size.height)} • {Math.round(rotation)}°
+          </span>
+        </div>
       </div>
       {children}
     </div>

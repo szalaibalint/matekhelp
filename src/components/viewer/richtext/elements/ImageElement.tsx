@@ -1,95 +1,56 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React from 'react';
 
 const ImageElement = ({ attributes, children, element }: any) => {
   const isAbsolute = element.isAbsolute || false;
   const position = element.position || { x: 0, y: 0 };
   const float = element.float || 'none';
   const align = element.align || 'left';
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [responsivePosition, setResponsivePosition] = useState({ x: 0, y: 0 });
+  const width = element.width || 400;
+  const height = element.height || 300;
+  const rotation = element.rotation || 0;
 
-  // Use the reference width stored with the element, or default to approximate editor width
-  const REFERENCE_WIDTH = element.referenceWidth || 850;
-
-  useEffect(() => {
-    if (!isAbsolute || !containerRef.current) return;
-
-    const updatePosition = () => {
-      if (!containerRef.current) return;
-      
-      // Get the parent container - try .prose first, then any parent with width
-      let parent = containerRef.current.closest('.prose');
-      if (!parent) {
-        // Fallback to direct parent or closest div with meaningful width
-        parent = containerRef.current.parentElement;
-        // Keep going up until we find a container with substantial width
-        while (parent && parent.clientWidth < 100) {
-          parent = parent.parentElement;
-        }
-      }
-      if (!parent) return;
-      
-      const parentWidth = parent.clientWidth;
-      
-      // Convert pixel position to percentage based on reference width, then to actual pixels
-      const percentageX = (position.x / REFERENCE_WIDTH) * 100;
-      const percentageY = position.y; // Y can stay in pixels
-      
-      const actualX = (percentageX / 100) * parentWidth;
-      
-      setResponsivePosition({ x: actualX, y: percentageY });
-    };
-
-    updatePosition();
-    window.addEventListener('resize', updatePosition);
-    
-    // Use ResizeObserver for more accurate tracking of parent size changes
-    const resizeObserver = new ResizeObserver(updatePosition);
-    let parent = containerRef.current.closest('.prose');
-    if (!parent) {
-      parent = containerRef.current.parentElement;
-      while (parent && parent.clientWidth < 100 && parent.parentElement) {
-        parent = parent.parentElement;
-      }
-    }
-    if (parent) {
-      resizeObserver.observe(parent);
-    }
-
-    return () => {
-      window.removeEventListener('resize', updatePosition);
-      resizeObserver.disconnect();
-    };
-  }, [isAbsolute, position.x, position.y]);
+  // For absolute positioned images, use pixel positioning (same as editor)
+  // The parent container will be scaled to match the 1600x900 canvas
+  const positionStyle = isAbsolute ? {
+    position: 'absolute' as const,
+    left: `${position.x}px`,
+    top: `${position.y}px`,
+    width: `${width}px`,
+    height: 'auto',
+    zIndex: 10,
+    margin: 0,
+  } : {
+    position: 'relative' as const,
+    float: float !== 'none' ? float as any : undefined,
+    margin: float !== 'none' ? '0 10px' : '0 auto',
+    display: float === 'none' ? 'block' : 'inline-block',
+    textAlign: float === 'none' ? align as any : undefined,
+  };
 
   return (
     <div 
-      ref={containerRef}
       {...attributes} 
       className="group my-4"
-      style={{
-        position: isAbsolute ? 'absolute' : 'relative',
-        left: isAbsolute ? `${responsivePosition.x}px` : undefined,
-        top: isAbsolute ? `${responsivePosition.y}px` : undefined,
-        float: !isAbsolute && float !== 'none' ? float as any : undefined,
-        margin: !isAbsolute && float !== 'none' ? '0 10px' : isAbsolute ? 0 : '0 auto',
-        zIndex: isAbsolute ? 1 : undefined,
-        display: isAbsolute ? 'block' : float === 'none' ? 'block' : 'inline-block',
-        textAlign: !isAbsolute && float === 'none' ? align as any : undefined,
-      }}
+      style={positionStyle}
     >
-      <div className="relative" style={{ display: 'inline-block', maxWidth: '100%' }}>
+      <div 
+        className="relative" 
+        style={{ 
+          display: 'inline-block',
+          maxWidth: isAbsolute ? 'none' : '100%',
+          transform: rotation ? `rotate(${rotation}deg)` : undefined,
+        }}
+      >
         <img
           src={element.url}
           alt=""
           loading="lazy"
           style={{
-            width: element.width ? `${element.width}px` : '100%',
-            maxWidth: '100%',
+            width: isAbsolute ? '100%' : (width ? `${width}px` : '100%'),
+            maxWidth: isAbsolute ? 'none' : '100%',
             height: 'auto',
-            transform: `rotate(${element.rotation || 0}deg)`,
           }}
-          className={`block border-2 border-transparent w-full h-auto`}
+          className="block"
         />
       </div>
       {children}

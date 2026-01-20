@@ -615,75 +615,159 @@ export function PresentationEditor({ presentationId, onBack }: PresentationEdito
           {isSidebarCollapsed ? <ChevronRight className="h-4 w-4" /> : <ArrowLeft className="h-4 w-4" />}
         </button>
 
-        {/* Center - Slide Canvas/Preview */}
-        <div className="flex-1 p-6 overflow-auto bg-gray-100 flex items-center justify-center">
+        {/* Center - Slide Canvas/Preview or Editor */}
+        <div className="flex-1 overflow-auto bg-gray-100 flex flex-col">
           {selectedSlide ? (
-            <div className="relative w-full" style={{ maxWidth: '900px' }}>
-              {/* Slide container with exact 16:9 aspect ratio using scaled iframe-like approach */}
-              <div 
-                className="relative bg-white rounded-lg shadow-lg overflow-hidden"
-                style={{ 
-                  paddingBottom: '56.25%', /* 16:9 aspect ratio */
-                }}
-              >
-                {/* This creates a properly scaled preview by rendering at a fixed size and scaling */}
-                <div className="absolute inset-0">
-                  <ScaledSlidePreview slide={selectedSlide} theme={presentation.theme} />
+            <>
+              {/* For text-based slides, show scaled inline editor with same dimensions as preview */}
+              {(selectedSlide.type === 'text' || selectedSlide.type === 'fill_in_blanks') ? (
+                <div className="flex-1 flex flex-col min-h-0 p-6">
+                  {/* Scaled editor container - same as preview */}
+                  <div className="flex-1 flex items-center justify-center">
+                    <div className="relative w-full max-w-5xl">
+                      {/* Slide container with exact 16:9 aspect ratio */}
+                      <div 
+                        className="relative bg-white rounded-lg shadow-lg overflow-hidden"
+                        style={{ paddingBottom: '56.25%' /* 16:9 aspect ratio */ }}
+                      >
+                        <div className="absolute inset-0">
+                          <ScaledSlideEditor 
+                            slide={selectedSlide} 
+                            theme={presentation.theme}
+                            onContentChange={(content) => {
+                              const inputFieldPoints = calculateInputFieldPoints(content);
+                              if (selectedSlide.type === 'text') {
+                                updateSlide(selectedSlideIndex, { 
+                                  content,
+                                  points: inputFieldPoints
+                                });
+                              } else {
+                                updateSlide(selectedSlideIndex, { 
+                                  content: { ...selectedSlide.content, content },
+                                  points: inputFieldPoints
+                                });
+                              }
+                            }}
+                            onBlanksChange={selectedSlide.type === 'fill_in_blanks' ? (blanks) => updateSlide(selectedSlideIndex, { 
+                              content: { ...selectedSlide.content, blanks } 
+                            }) : undefined}
+                          />
+                        </div>
+                      </div>
+                      
+                      {/* Slide actions overlay */}
+                      <div className="absolute bottom-4 right-4 flex items-center space-x-2 opacity-0 hover:opacity-100 transition-opacity z-10">
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              className="bg-white/90 shadow-sm"
+                            >
+                              <Palette className="h-3 w-3 mr-1" />
+                              Háttér
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="end">
+                            <SketchPicker
+                              color={selectedSlide.backgroundColor || presentation.theme?.background || '#ffffff'}
+                              onChange={(color) => updateSlide(selectedSlideIndex, { backgroundColor: color.hex })}
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          className="bg-white/90 shadow-sm"
+                          onClick={() => duplicateSlide(selectedSlideIndex)}
+                        >
+                          <Copy className="h-3 w-3 mr-1" />
+                          Másolás
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          className="bg-white/90 shadow-sm text-red-600 hover:text-red-700"
+                          onClick={() => deleteSlide(selectedSlideIndex)}
+                        >
+                          <Trash2 className="h-3 w-3 mr-1" />
+                          Törlés
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
-              
-              {/* Slide actions overlay */}
-              <div className="absolute bottom-4 right-4 flex items-center space-x-2 opacity-0 hover:opacity-100 transition-opacity">
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  className="bg-white/90 shadow-sm"
-                  onClick={() => duplicateSlide(selectedSlideIndex)}
-                >
-                  <Copy className="h-3 w-3 mr-1" />
-                  Másolás
-                </Button>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  className="bg-white/90 shadow-sm text-red-600 hover:text-red-700"
-                  onClick={() => deleteSlide(selectedSlideIndex)}
-                >
-                  <Trash2 className="h-3 w-3 mr-1" />
-                  Törlés
-                </Button>
-              </div>
-            </div>
+              ) : (
+                /* For non-text slides, show scaled preview */
+                <div className="flex-1 p-6 flex items-center justify-center">
+                  <div className="relative w-full max-w-5xl">
+                    {/* Slide container with exact 16:9 aspect ratio */}
+                    <div 
+                      className="relative bg-white rounded-lg shadow-lg overflow-hidden"
+                      style={{ paddingBottom: '56.25%' /* 16:9 aspect ratio */ }}
+                    >
+                      <div className="absolute inset-0">
+                        <ScaledSlidePreview slide={selectedSlide} theme={presentation.theme} />
+                      </div>
+                    </div>
+                    
+                    {/* Slide actions overlay */}
+                    <div className="absolute bottom-4 right-4 flex items-center space-x-2 opacity-0 hover:opacity-100 transition-opacity">
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        className="bg-white/90 shadow-sm"
+                        onClick={() => duplicateSlide(selectedSlideIndex)}
+                      >
+                        <Copy className="h-3 w-3 mr-1" />
+                        Másolás
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        className="bg-white/90 shadow-sm text-red-600 hover:text-red-700"
+                        onClick={() => deleteSlide(selectedSlideIndex)}
+                      >
+                        <Trash2 className="h-3 w-3 mr-1" />
+                        Törlés
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
           ) : (
-            <div className="w-full max-w-4xl">
-              <div 
-                className="relative bg-white rounded-lg shadow-lg overflow-hidden"
-                style={{ paddingBottom: '56.25%' }}
-              >
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="text-center">
-                    <Type className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Még nincsenek diák</h3>
-                    <p className="text-gray-500 mb-4">Hozd létre az első diádat a kezdéshez.</p>
-                    <Select value="" onValueChange={(type) => {
-                      if (type) {
-                        addSlide(type as Slide['type']);
-                      }
-                    }}>
-                      <SelectTrigger className="w-48 mx-auto">
-                        <SelectValue placeholder="Dia hozzáadása" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="heading">Címsor</SelectItem>
-                        <SelectItem value="text">Szöveg</SelectItem>
-                        <SelectItem value="image">Kép</SelectItem>
-                        <SelectItem value="multiple_choice">Feleletválasztós</SelectItem>
-                        <SelectItem value="ranking">Sorrendbe rakás</SelectItem>
-                        <SelectItem value="matching">Párosítás</SelectItem>
-                        <SelectItem value="true_false">Igaz/Hamis</SelectItem>
-                        <SelectItem value="fill_in_blanks">Szöveg kiegészítés</SelectItem>
-                      </SelectContent>
-                    </Select>
+            <div className="flex-1 p-6 flex items-center justify-center">
+              <div className="w-full max-w-4xl">
+                <div 
+                  className="relative bg-white rounded-lg shadow-lg overflow-hidden"
+                  style={{ paddingBottom: '56.25%' }}
+                >
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="text-center">
+                      <Type className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">Még nincsenek diák</h3>
+                      <p className="text-gray-500 mb-4">Hozd létre az első diádat a kezdéshez.</p>
+                      <Select value="" onValueChange={(type) => {
+                        if (type) {
+                          addSlide(type as Slide['type']);
+                        }
+                      }}>
+                        <SelectTrigger className="w-48 mx-auto">
+                          <SelectValue placeholder="Dia hozzáadása" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="heading">Címsor</SelectItem>
+                          <SelectItem value="text">Szöveg</SelectItem>
+                          <SelectItem value="image">Kép</SelectItem>
+                          <SelectItem value="multiple_choice">Feleletválasztós</SelectItem>
+                          <SelectItem value="ranking">Sorrendbe rakás</SelectItem>
+                          <SelectItem value="matching">Párosítás</SelectItem>
+                          <SelectItem value="true_false">Igaz/Hamis</SelectItem>
+                          <SelectItem value="fill_in_blanks">Szöveg kiegészítés</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1341,6 +1425,30 @@ function ScaledSlidePreview({ slide, theme }: { slide: Slide; theme: any }) {
     ? { background: backgroundColor }
     : { backgroundColor };
 
+  // For text slides, use same structure as viewer's ScaledTextSlideContent
+  if (slide.type === 'text') {
+    return (
+      <div className="w-full h-full overflow-hidden">
+        <div 
+          ref={containerRef}
+          className="origin-top-left"
+          style={{
+            width: '1600px',
+            height: '900px',
+            transform: `scale(${scale})`,
+            ...backgroundStyle,
+            color: textColor,
+          }}
+        >
+          <div className="w-full h-full p-8 overflow-visible relative min-h-[400px]">
+            <RichTextRenderer content={slide.content} />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Other slide types
   return (
     <div 
       ref={containerRef}
@@ -1358,7 +1466,6 @@ function ScaledSlidePreview({ slide, theme }: { slide: Slide; theme: any }) {
           color: textColor,
         }}
       >
-        {/* Render the same layout as the actual viewer */}
         {slide.type === 'heading' && (
           <div className="text-center px-16">
             <h1
@@ -1385,13 +1492,7 @@ function ScaledSlidePreview({ slide, theme }: { slide: Slide; theme: any }) {
           </div>
         )}
 
-        {slide.type === 'text' && (
-          <div className="w-full h-full overflow-auto p-16">
-            <RichTextRenderer content={slide.content} />
-          </div>
-        )}
-
-        {slide.type === 'image' && (
+            {slide.type === 'image' && (
           <div className="text-center px-16">
             {slide.content?.url ? (
               <>
@@ -1512,6 +1613,87 @@ function ScaledSlidePreview({ slide, theme }: { slide: Slide; theme: any }) {
   );
 }
 
+// Scaled Slide Editor Component - Renders the editor at full size (1600x900) and scales it down
+function ScaledSlideEditor({ 
+  slide, 
+  theme, 
+  onContentChange,
+  onBlanksChange 
+}: { 
+  slide: Slide; 
+  theme: any;
+  onContentChange: (content: any) => void;
+  onBlanksChange?: (blanks: any[]) => void;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+
+  useEffect(() => {
+    const updateScale = () => {
+      if (containerRef.current) {
+        const parent = containerRef.current.parentElement;
+        if (parent) {
+          const parentWidth = parent.offsetWidth;
+          const newScale = parentWidth / 1600;
+          setScale(newScale);
+        }
+      }
+    };
+
+    updateScale();
+    window.addEventListener('resize', updateScale);
+    
+    const resizeObserver = new ResizeObserver(updateScale);
+    if (containerRef.current?.parentElement) {
+      resizeObserver.observe(containerRef.current.parentElement);
+    }
+
+    return () => {
+      window.removeEventListener('resize', updateScale);
+      resizeObserver.disconnect();
+    };
+  }, []);
+
+  const backgroundColor = slide.backgroundColor || theme?.background || '#ffffff';
+  const textColor = slide.textColor || theme?.textColor || '#000000';
+  
+  const isGradient = backgroundColor.includes('gradient');
+  const backgroundStyle = isGradient 
+    ? { background: backgroundColor }
+    : { backgroundColor };
+
+  const content = slide.type === 'text' ? slide.content : (slide.content?.content || []);
+
+  return (
+    <div 
+      ref={containerRef}
+      className="origin-top-left"
+      style={{
+        width: '1600px',
+        height: '900px',
+        transform: `scale(${scale})`,
+      }}
+    >
+      <div 
+        className="w-full h-full flex flex-col"
+        style={{ 
+          ...backgroundStyle,
+          color: textColor,
+        }}
+      >
+        {/* Full-size editor that will be scaled down */}
+        <RichTextEditor
+          content={content as Descendant[]}
+          onChange={onContentChange}
+          enableDragBlanks={slide.type === 'fill_in_blanks'}
+          blanks={slide.type === 'fill_in_blanks' ? (slide.content?.blanks || []) : undefined}
+          onBlanksChange={onBlanksChange}
+        />
+      </div>
+    </div>
+  );
+}
+
 // Helper function to calculate total points from input fields in rich text content
 function calculateInputFieldPoints(content: any[]): number {
   let totalPoints = 0;
@@ -1549,24 +1731,22 @@ function SlideEditorPanel({ slide, onChange, theme }: { slide: Slide; onChange: 
         />
       </div>
 
+      {/* For text slides, show a message since the editor is in the center */}
       {slide.type === 'text' && (
-        <>
-          <div className="space-y-2">
-            <Label className="text-sm font-medium text-gray-700">Tartalom</Label>
-            <div className="border border-gray-200 rounded-lg overflow-hidden">
-              <RichTextEditor
-                content={slide.content as Descendant[]}
-                onChange={(content) => {
-                  const inputFieldPoints = calculateInputFieldPoints(content);
-                  onChange({ 
-                    content,
-                    points: inputFieldPoints
-                  });
-                }}
-              />
-            </div>
-          </div>
-        </>
+        <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+          <p className="text-sm text-blue-700">
+            <span className="font-medium">Tipp:</span> A szöveg szerkesztéséhez kattints a középső területre.
+          </p>
+        </div>
+      )}
+
+      {/* For fill_in_blanks slides, show a message since the editor is in the center */}
+      {slide.type === 'fill_in_blanks' && (
+        <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+          <p className="text-sm text-blue-700">
+            <span className="font-medium">Tipp:</span> A tartalom szerkesztéséhez kattints a középső területre.
+          </p>
+        </div>
       )}
 
       {slide.type === 'heading' && (
@@ -2454,20 +2634,6 @@ function SlideEditorPanel({ slide, onChange, theme }: { slide: Slide; onChange: 
 
       {slide.type === 'fill_in_blanks' && (
         <>
-          {/* Content Editor */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium text-gray-700">Szöveg tartalom</Label>
-            <div className="border border-gray-200 rounded-lg overflow-hidden">
-              <RichTextEditor
-                content={slide.content.content || []}
-                onChange={(content) => onChange({ content: { ...slide.content, content } })}
-                enableDragBlanks={true}
-                blanks={slide.content.blanks || []}
-                onBlanksChange={(blanks) => onChange({ content: { ...slide.content, blanks } })}
-              />
-            </div>
-          </div>
-
           {/* Blanks */}
           <div className="space-y-2">
             <Label className="text-sm font-medium text-gray-700">Kitöltendő mezők</Label>
@@ -2587,6 +2753,35 @@ function SlideEditorPanel({ slide, onChange, theme }: { slide: Slide; onChange: 
 function PreviewMode({ slides, currentIndex, onNext, onPrev, onExit, theme }: { slides: Slide[], currentIndex: number, onNext: () => void, onPrev: () => void, onExit: () => void, theme: any }) {
   const currentSlide = slides[currentIndex];
   const [renderedMath, setRenderedMath] = useState<{ [key: string]: string }>({});
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+
+  // Scale calculation matching the viewer
+  useEffect(() => {
+    const updateScale = () => {
+      if (containerRef.current) {
+        const parent = containerRef.current.parentElement;
+        if (parent) {
+          const parentWidth = parent.offsetWidth;
+          const newScale = parentWidth / 1600;
+          setScale(newScale);
+        }
+      }
+    };
+
+    updateScale();
+    window.addEventListener('resize', updateScale);
+    
+    const resizeObserver = new ResizeObserver(updateScale);
+    if (containerRef.current?.parentElement) {
+      resizeObserver.observe(containerRef.current.parentElement);
+    }
+
+    return () => {
+      window.removeEventListener('resize', updateScale);
+      resizeObserver.disconnect();
+    };
+  }, [currentSlide]);
 
   // LaTeX renderer for preview
   const renderLatex = (text: string, key: string) => {
@@ -2658,7 +2853,8 @@ function PreviewMode({ slides, currentIndex, onNext, onPrev, onExit, theme }: { 
   const renderSlideContent = () => {
     switch (currentSlide.type) {
       case 'text':
-        return <RichTextRenderer content={currentSlide.content} />;
+        // Text slides use scaled container - handled separately in render
+        return null;
       case 'heading':
         return (
           <div className="text-center">
@@ -2955,23 +3151,48 @@ function PreviewMode({ slides, currentIndex, onNext, onPrev, onExit, theme }: { 
 
   return (
     <div 
-      className="fixed inset-0 bg-gray-900 text-white flex flex-col items-start justify-start p-8"
+      className="fixed inset-0 flex flex-col"
       style={{ 
         backgroundColor: currentSlide.backgroundColor || theme?.background || '#ffffff',
         color: currentSlide.textColor || theme?.textColor || '#000000',
       }}
     >
-      <div className="absolute top-4 right-4">
+      <div className="absolute top-4 right-4 z-10">
         <Button variant="ghost" size="icon" onClick={onExit}>
           <X className="h-6 w-6" />
         </Button>
       </div>
 
-      <div className="w-full">
-        {renderSlideContent()}
+      {/* Main content area - fills available space */}
+      <div className="flex-1 overflow-hidden">
+        {currentSlide.type === 'text' ? (
+          /* Text slides use scaled 1600x900 container matching the viewer */
+          <div className="w-full h-full overflow-hidden">
+            <div 
+              ref={containerRef}
+              className="origin-top-left"
+              style={{
+                width: '1600px',
+                height: '900px',
+                transform: `scale(${scale})`,
+                backgroundColor: currentSlide.backgroundColor || theme?.background || '#ffffff',
+                color: currentSlide.textColor || theme?.textColor || '#000000',
+              }}
+            >
+              <div className="w-full h-full p-8 overflow-visible relative min-h-[400px]">
+                <RichTextRenderer content={currentSlide.content} />
+              </div>
+            </div>
+          </div>
+        ) : (
+          /* Other slide types use centered layout */
+          <div className="w-full h-full flex items-center justify-center p-8">
+            {renderSlideContent()}
+          </div>
+        )}
       </div>
 
-      <div className="absolute bottom-4 flex items-center space-x-4">
+      <div className="absolute bottom-4 left-4 flex items-center space-x-4 z-10">
         <Button variant="ghost" onClick={onPrev} disabled={currentIndex === 0}>
           <ArrowLeft className="h-6 w-6" />
         </Button>

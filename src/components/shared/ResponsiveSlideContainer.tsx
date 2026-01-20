@@ -6,8 +6,12 @@ interface ResponsiveSlideContainerProps {
   className?: string;
 }
 
+// Canvas dimensions matching the editor (16:9 aspect ratio)
+export const CANVAS_WIDTH = 1600;
+export const CANVAS_HEIGHT = 900;
+
 /**
- * ResponsiveSlideContainer - A container that maintains a 16:9 aspect ratio (1920x1080)
+ * ResponsiveSlideContainer - A container that maintains a 16:9 aspect ratio (1600x900)
  * and scales its content to fit any viewport while preserving proportions.
  * 
  * This ensures consistent rendering across editor, preview, viewer, and mobile devices.
@@ -31,13 +35,9 @@ export const ResponsiveSlideContainer: React.FC<ResponsiveSlideContainerProps> =
       const parentWidth = parent.clientWidth;
       const parentHeight = parent.clientHeight;
       
-      // Standard canvas size: 1920x1080 (16:9)
-      const canvasWidth = 1920;
-      const canvasHeight = 1080;
-      
       // Calculate scale to fit parent while maintaining 16:9 aspect ratio
-      const scaleX = parentWidth / canvasWidth;
-      const scaleY = parentHeight / canvasHeight;
+      const scaleX = parentWidth / CANVAS_WIDTH;
+      const scaleY = parentHeight / CANVAS_HEIGHT;
       const newScale = Math.min(scaleX, scaleY);
       
       // Minimum scale to prevent content becoming too small on mobile
@@ -78,8 +78,8 @@ export const ResponsiveSlideContainer: React.FC<ResponsiveSlideContainerProps> =
     >
       <div
         style={{
-          width: 1920,
-          height: 1080,
+          width: CANVAS_WIDTH,
+          height: CANVAS_HEIGHT,
           backgroundColor,
           transform: `scale(${scale})`,
           transformOrigin: 'center center',
@@ -91,7 +91,3 @@ export const ResponsiveSlideContainer: React.FC<ResponsiveSlideContainerProps> =
     </div>
   );
 };
-
-// Export constants for use in other components
-export const CANVAS_WIDTH = 1920;
-export const CANVAS_HEIGHT = 1080;

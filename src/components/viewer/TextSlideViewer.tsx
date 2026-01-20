@@ -1,10 +1,14 @@
-import React from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Text } from 'slate';
 import { Slide } from '../../services/SlideService';
 import UserInputElement from './richtext/elements/UserInputElement';
 import Element from './richtext/Element';
 import Leaf from './richtext/Leaf';
 import { ResponsiveSlideContainer, CANVAS_WIDTH, CANVAS_HEIGHT } from '../shared/ResponsiveSlideContainer';
+
+// Editor canvas dimensions
+const SLIDE_WIDTH = 1600;
+const SLIDE_HEIGHT = 900;
 
 interface TextSlideViewerProps {
   slide: Slide;
@@ -127,7 +131,7 @@ export const TextSlideViewer: React.FC<TextSlideViewerProps> = ({ slide, onAnswe
     );
   }
   
-  // Original rich text content rendering
+  // Original rich text content rendering with scaled container
   const inputCounter = { count: 0 };
 
   const renderNode = (node: any, path: number[]): JSX.Element | JSX.Element[] => {
@@ -175,10 +179,90 @@ export const TextSlideViewer: React.FC<TextSlideViewerProps> = ({ slide, onAnswe
     return <Element key={key} element={node} attributes={{}}>{children}</Element>;
   };
 
+  // Check if content has any absolute positioned images or animations
+  const hasAbsoluteElements = content.some((node: any) => {
+    if ((node.type === 'image' || node.type === 'animation') && node.isAbsolute) return true;
+    // Check nested children
+    const checkChildren = (children: any[]): boolean => {
+      if (!children) return false;
+      return children.some((child: any) => {
+        if ((child.type === 'image' || child.type === 'animation') && child.isAbsolute) return true;
+        return checkChildren(child.children);
+      });
+    };
+    return checkChildren(node.children);
+  });
+
+  // If there are absolute positioned elements, use a scaled container matching the editor's 1600x900 canvas
+  if (hasAbsoluteElements) {
+    return <ScaledTextSlideContent content={content} renderNode={renderNode} />;
+  }
+
+  // For simple text content without absolute elements, use normal rendering
   return (
-    <div className="prose prose-lg max-w-none relative min-h-[400px] pt-0 mt-0">
-      {content.map((node: any, i: number) => renderNode(node, [i]))}
+    <div className="w-full h-full flex items-start justify-center p-4 md:p-8 overflow-auto">
+      <div className="prose prose-lg max-w-4xl w-full">
+        {content.map((node: any, i: number) => renderNode(node, [i]))}
+      </div>
     </div>
   );
 };
 
+// Component that scales content to match the editor's 1600x900 canvas
+function ScaledTextSlideContent({ 
+  content, 
+  renderNode 
+}: { 
+  content: any[]; 
+  renderNode: (node: any, path: number[]) => JSX.Element | JSX.Element[];
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+
+  useEffect(() => {
+    const updateScale = () => {
+      if (containerRef.current) {
+        const parent = containerRef.current.parentElement;
+        if (parent) {
+          const parentWidth = parent.offsetWidth;
+          // Scale based on width only, like the preview does
+          const newScale = parentWidth / SLIDE_WIDTH;
+          setScale(newScale);
+        }
+      }
+    };
+
+    updateScale();
+    window.addEventListener('resize', updateScale);
+    
+    const resizeObserver = new ResizeObserver(updateScale);
+    if (containerRef.current?.parentElement) {
+      resizeObserver.observe(containerRef.current.parentElement);
+    }
+
+    return () => {
+      window.removeEventListener('resize', updateScale);
+      resizeObserver.disconnect();
+    };
+  }, []);
+
+  return (
+    <div className="w-full h-full overflow-hidden">
+      <div 
+        ref={containerRef}
+        className="origin-top-left"
+        style={{
+          width: `${SLIDE_WIDTH}px`,
+          height: `${SLIDE_HEIGHT}px`,
+          transform: `scale(${scale})`,
+        }}
+      >
+        <div className="w-full h-full p-8 overflow-visible relative min-h-[400px]">
+          <div className="prose prose-lg max-w-none relative" style={{ whiteSpace: 'pre-wrap' }}>
+            {content.map((node: any, i: number) => renderNode(node, [i]))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
