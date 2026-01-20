@@ -179,6 +179,9 @@ export const TextSlideViewer: React.FC<TextSlideViewerProps> = ({ slide, onAnswe
     return <Element key={key} element={node} attributes={{}}>{children}</Element>;
   };
 
+  // Get the stored slide height
+  const slideHeight = slide.settings?.slideHeight || SLIDE_HEIGHT;
+
   // Check if content has any absolute positioned images or animations
   const hasAbsoluteElements = content.some((node: any) => {
     if ((node.type === 'image' || node.type === 'animation') && node.isAbsolute) return true;
@@ -195,7 +198,7 @@ export const TextSlideViewer: React.FC<TextSlideViewerProps> = ({ slide, onAnswe
 
   // If there are absolute positioned elements, use a scaled container matching the editor's 1600x900 canvas
   if (hasAbsoluteElements) {
-    return <ScaledTextSlideContent content={content} renderNode={renderNode} />;
+    return <ScaledTextSlideContent content={content} renderNode={renderNode} slideHeight={slideHeight} />;
   }
 
   // For simple text content without absolute elements, use normal rendering
@@ -211,10 +214,12 @@ export const TextSlideViewer: React.FC<TextSlideViewerProps> = ({ slide, onAnswe
 // Component that scales content to match the editor's 1600x900 canvas
 function ScaledTextSlideContent({ 
   content, 
-  renderNode 
+  renderNode,
+  slideHeight = SLIDE_HEIGHT
 }: { 
   content: any[]; 
   renderNode: (node: any, path: number[]) => JSX.Element | JSX.Element[];
+  slideHeight?: number;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
@@ -246,18 +251,42 @@ function ScaledTextSlideContent({
     };
   }, []);
 
+  const needsScroll = slideHeight > SLIDE_HEIGHT;
+
   return (
-    <div className="w-full h-full overflow-hidden">
+    <div 
+      className="w-full h-full viewer-scroll-container"
+      style={{
+        overflowX: 'hidden',
+        overflowY: needsScroll ? 'auto' : 'hidden',
+        scrollbarGutter: 'stable',
+      }}
+    >
+      <style>{`
+        .viewer-scroll-container::-webkit-scrollbar {
+          width: 8px;
+        }
+        .viewer-scroll-container::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .viewer-scroll-container::-webkit-scrollbar-thumb {
+          background: rgba(0, 0, 0, 0.2);
+          border-radius: 4px;
+        }
+        .viewer-scroll-container::-webkit-scrollbar-thumb:hover {
+          background: rgba(0, 0, 0, 0.3);
+        }
+      `}</style>
       <div 
         ref={containerRef}
         className="origin-top-left"
         style={{
           width: `${SLIDE_WIDTH}px`,
-          height: `${SLIDE_HEIGHT}px`,
+          minHeight: `${slideHeight}px`,
           transform: `scale(${scale})`,
         }}
       >
-        <div className="w-full h-full p-8 overflow-visible relative min-h-[400px]">
+        <div className="w-full p-8 overflow-visible relative" style={{ paddingRight: '24px' }}>
           <div className="prose prose-lg max-w-none relative" style={{ whiteSpace: 'pre-wrap' }}>
             {content.map((node: any, i: number) => renderNode(node, [i]))}
           </div>

@@ -621,16 +621,14 @@ export function PresentationEditor({ presentationId, onBack }: PresentationEdito
             <>
               {/* For text-based slides, show scaled inline editor with same dimensions as preview */}
               {(selectedSlide.type === 'text' || selectedSlide.type === 'fill_in_blanks') ? (
-                <div className="flex-1 flex flex-col min-h-0 p-6">
-                  {/* Scaled editor container - same as preview */}
-                  <div className="flex-1 flex items-center justify-center">
+                <div className="flex-1 flex flex-col min-h-0 p-6 overflow-auto">
+                  {/* Scaled editor container */}
+                  <div className="flex items-start justify-center">
                     <div className="relative w-full max-w-5xl">
-                      {/* Slide container with exact 16:9 aspect ratio */}
+                      {/* Slide container - dynamic height for text slides */}
                       <div 
-                        className="relative bg-white rounded-lg shadow-lg overflow-hidden"
-                        style={{ paddingBottom: '56.25%' /* 16:9 aspect ratio */ }}
+                        className="relative bg-white rounded-lg shadow-lg overflow-visible"
                       >
-                        <div className="absolute inset-0">
                           <ScaledSlideEditor 
                             slide={selectedSlide} 
                             theme={presentation.theme}
@@ -651,8 +649,10 @@ export function PresentationEditor({ presentationId, onBack }: PresentationEdito
                             onBlanksChange={selectedSlide.type === 'fill_in_blanks' ? (blanks) => updateSlide(selectedSlideIndex, { 
                               content: { ...selectedSlide.content, blanks } 
                             }) : undefined}
+                            onHeightChange={selectedSlide.type === 'text' ? (height) => updateSlide(selectedSlideIndex, { 
+                              settings: { ...selectedSlide.settings, slideHeight: height } 
+                            }) : undefined}
                           />
-                        </div>
                       </div>
                       
                       {/* Slide actions overlay */}
@@ -1425,22 +1425,53 @@ function ScaledSlidePreview({ slide, theme }: { slide: Slide; theme: any }) {
     ? { background: backgroundColor }
     : { backgroundColor };
 
+  // Get stored height for text slides
+  const slideHeight = slide.settings?.slideHeight || 900;
+  const needsScroll = slide.type === 'text' && slideHeight > 900;
+
+  // Calculate the scaled height for proper container sizing
+  const scaledHeight = slideHeight * scale;
+
   // For text slides, use same structure as viewer's ScaledTextSlideContent
   if (slide.type === 'text') {
     return (
-      <div className="w-full h-full overflow-hidden">
+      <div 
+        className="w-full h-full"
+        style={{
+          // Only allow vertical scrolling, never horizontal
+          overflowX: 'hidden',
+          overflowY: needsScroll ? 'auto' : 'hidden',
+          scrollbarGutter: 'stable',
+        }}
+      >
+        <style>{`
+          .preview-scroll-container::-webkit-scrollbar {
+            width: 8px;
+          }
+          .preview-scroll-container::-webkit-scrollbar-track {
+            background: transparent;
+          }
+          .preview-scroll-container::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 4px;
+          }
+          .preview-scroll-container::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 0, 0, 0.3);
+          }
+        `}</style>
         <div 
           ref={containerRef}
-          className="origin-top-left"
+          className="origin-top-left preview-scroll-container"
           style={{
             width: '1600px',
-            height: '900px',
+            height: `${slideHeight}px`,
             transform: `scale(${scale})`,
+            transformOrigin: 'top left',
             ...backgroundStyle,
             color: textColor,
           }}
         >
-          <div className="w-full h-full p-8 overflow-visible relative min-h-[400px]">
+          <div className="w-full p-8 overflow-visible relative" style={{ paddingRight: '24px' }}>
             <RichTextRenderer content={slide.content} />
           </div>
         </div>
@@ -1618,20 +1649,27 @@ function ScaledSlideEditor({
   slide, 
   theme, 
   onContentChange,
-  onBlanksChange 
+  onBlanksChange,
+  onHeightChange
 }: { 
   slide: Slide; 
   theme: any;
   onContentChange: (content: any) => void;
   onBlanksChange?: (blanks: any[]) => void;
+  onHeightChange?: (height: number) => void;
 }) {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
+  const [isResizing, setIsResizing] = useState(false);
+  
+  // Get stored height or default to 900
+  const slideHeight = slide.settings?.slideHeight || 900;
 
   useEffect(() => {
     const updateScale = () => {
-      if (containerRef.current) {
-        const parent = containerRef.current.parentElement;
+      if (wrapperRef.current) {
+        // Get the parent of the wrapper (which is the flex container)
+        const parent = wrapperRef.current.parentElement;
         if (parent) {
           const parentWidth = parent.offsetWidth;
           const newScale = parentWidth / 1600;
@@ -1644,8 +1682,8 @@ function ScaledSlideEditor({
     window.addEventListener('resize', updateScale);
     
     const resizeObserver = new ResizeObserver(updateScale);
-    if (containerRef.current?.parentElement) {
-      resizeObserver.observe(containerRef.current.parentElement);
+    if (wrapperRef.current?.parentElement) {
+      resizeObserver.observe(wrapperRef.current.parentElement);
     }
 
     return () => {
@@ -1653,6 +1691,33 @@ function ScaledSlideEditor({
       resizeObserver.disconnect();
     };
   }, []);
+
+  // Handle resize drag for text slides
+  const handleResizeStart = (e: React.MouseEvent) => {
+    if (slide.type !== 'text') return;
+    e.preventDefault();
+    setIsResizing(true);
+    
+    const startY = e.clientY;
+    const startHeight = slideHeight;
+    
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const deltaY = (moveEvent.clientY - startY) / scale;
+      const newHeight = Math.max(400, Math.round(startHeight + deltaY));
+      if (onHeightChange) {
+        onHeightChange(newHeight);
+      }
+    };
+    
+    const handleMouseUp = () => {
+      setIsResizing(false);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+    
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
 
   const backgroundColor = slide.backgroundColor || theme?.background || '#ffffff';
   const textColor = slide.textColor || theme?.textColor || '#000000';
@@ -1664,32 +1729,66 @@ function ScaledSlideEditor({
 
   const content = slide.type === 'text' ? slide.content : (slide.content?.content || []);
 
+  // For text slides, use variable height
+  const effectiveHeight = slide.type === 'text' ? slideHeight : 900;
+
+  // Calculate the scaled dimensions for the wrapper
+  const scaledWidth = 1600 * scale;
+  const scaledHeight = effectiveHeight * scale;
+
   return (
     <div 
-      ref={containerRef}
-      className="origin-top-left"
-      style={{
-        width: '1600px',
-        height: '900px',
-        transform: `scale(${scale})`,
+      ref={wrapperRef}
+      className="relative overflow-hidden"
+      style={{ 
+        width: '100%',
+        maxWidth: `${scaledWidth}px`,
+        height: `${scaledHeight + (slide.type === 'text' ? 12 : 0)}px` // Add space for resize handle
       }}
     >
       <div 
-        className="w-full h-full flex flex-col"
-        style={{ 
-          ...backgroundStyle,
-          color: textColor,
+        className="origin-top-left"
+        style={{
+          width: '1600px',
+          height: `${effectiveHeight}px`,
+          transform: `scale(${scale})`,
         }}
       >
-        {/* Full-size editor that will be scaled down */}
-        <RichTextEditor
-          content={content as Descendant[]}
-          onChange={onContentChange}
-          enableDragBlanks={slide.type === 'fill_in_blanks'}
-          blanks={slide.type === 'fill_in_blanks' ? (slide.content?.blanks || []) : undefined}
-          onBlanksChange={onBlanksChange}
-        />
+        <div 
+          className="w-full h-full flex flex-col"
+          style={{ 
+            ...backgroundStyle,
+            color: textColor,
+          }}
+        >
+          {/* Full-size editor that will be scaled down */}
+          <RichTextEditor
+            content={content as Descendant[]}
+            onChange={onContentChange}
+            enableDragBlanks={slide.type === 'fill_in_blanks'}
+            blanks={slide.type === 'fill_in_blanks' ? (slide.content?.blanks || []) : undefined}
+            onBlanksChange={onBlanksChange}
+          />
+        </div>
       </div>
+      
+      {/* Resize handle for text slides */}
+      {slide.type === 'text' && (
+        <div
+          className={`absolute left-0 h-3 cursor-ns-resize flex items-center justify-center group transition-colors ${
+            isResizing ? 'bg-blue-200' : 'hover:bg-blue-100'
+          }`}
+          style={{ 
+            top: `${scaledHeight}px`,
+            width: `${scaledWidth}px`,
+          }}
+          onMouseDown={handleResizeStart}
+        >
+          <div className={`w-16 h-1 rounded-full transition-colors ${
+            isResizing ? 'bg-blue-500' : 'bg-gray-300 group-hover:bg-blue-400'
+          }`} />
+        </div>
+      )}
     </div>
   );
 }
@@ -3167,23 +3266,51 @@ function PreviewMode({ slides, currentIndex, onNext, onPrev, onExit, theme }: { 
       <div className="flex-1 overflow-hidden">
         {currentSlide.type === 'text' ? (
           /* Text slides use scaled 1600x900 container matching the viewer */
-          <div className="w-full h-full overflow-hidden">
-            <div 
-              ref={containerRef}
-              className="origin-top-left"
-              style={{
-                width: '1600px',
-                height: '900px',
-                transform: `scale(${scale})`,
-                backgroundColor: currentSlide.backgroundColor || theme?.background || '#ffffff',
-                color: currentSlide.textColor || theme?.textColor || '#000000',
-              }}
-            >
-              <div className="w-full h-full p-8 overflow-visible relative min-h-[400px]">
-                <RichTextRenderer content={currentSlide.content} />
+          (() => {
+            const slideHeight = currentSlide.settings?.slideHeight || 900;
+            const needsScroll = slideHeight > 900;
+            return (
+              <div 
+                className="w-full h-full preview-mode-scroll"
+                style={{
+                  overflowX: 'hidden',
+                  overflowY: needsScroll ? 'auto' : 'hidden',
+                  scrollbarGutter: 'stable',
+                }}
+              >
+                <style>{`
+                  .preview-mode-scroll::-webkit-scrollbar {
+                    width: 8px;
+                  }
+                  .preview-mode-scroll::-webkit-scrollbar-track {
+                    background: transparent;
+                  }
+                  .preview-mode-scroll::-webkit-scrollbar-thumb {
+                    background: rgba(0, 0, 0, 0.2);
+                    border-radius: 4px;
+                  }
+                  .preview-mode-scroll::-webkit-scrollbar-thumb:hover {
+                    background: rgba(0, 0, 0, 0.3);
+                  }
+                `}</style>
+                <div 
+                  ref={containerRef}
+                  className="origin-top-left"
+                  style={{
+                    width: '1600px',
+                    minHeight: `${slideHeight}px`,
+                    transform: `scale(${scale})`,
+                    backgroundColor: currentSlide.backgroundColor || theme?.background || '#ffffff',
+                    color: currentSlide.textColor || theme?.textColor || '#000000',
+                  }}
+                >
+                  <div className="w-full p-8 overflow-visible relative" style={{ paddingRight: '24px' }}>
+                    <RichTextRenderer content={currentSlide.content} />
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
+            );
+          })()
         ) : (
           /* Other slide types use centered layout */
           <div className="w-full h-full flex items-center justify-center p-8">
