@@ -53,7 +53,7 @@ import { Label } from '../ui/label';
 import { Checkbox } from '../ui/checkbox';
 import { RichTextEditor } from './RichTextEditor';
 import { Descendant } from 'slate';
-import { SketchPicker } from 'react-color';
+import { SketchPicker } from '../ui/color-picker';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 import mammoth from 'mammoth';
@@ -634,7 +634,7 @@ export function PresentationEditor({ presentationId, onBack }: PresentationEdito
                     <div className="relative w-full max-w-5xl">
                       {/* Slide container - dynamic height for text slides */}
                       <div 
-                        className="relative bg-white rounded-lg shadow-lg overflow-visible"
+                        className="relative rounded-lg shadow-lg overflow-visible"
                       >
                           <ScaledSlideEditor 
                             slide={selectedSlide} 
@@ -710,7 +710,7 @@ export function PresentationEditor({ presentationId, onBack }: PresentationEdito
                   <div className="relative w-full max-w-5xl">
                     {/* Slide container with exact 16:9 aspect ratio */}
                     <div 
-                      className="relative bg-white rounded-lg shadow-lg overflow-hidden"
+                      className="relative rounded-lg shadow-lg overflow-hidden"
                       style={{ paddingBottom: '56.25%' /* 16:9 aspect ratio */ }}
                     >
                       <div className="absolute inset-0">

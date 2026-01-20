@@ -37,7 +37,7 @@ import {
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
-import { SketchPicker } from 'react-color';
+import { SketchPicker } from '../ui/color-picker';
 import { toast } from '../ui/use-toast';
 import { supabase } from '../../../supabase/supabase';
 import { Progress } from '../ui/progress';
@@ -766,13 +766,13 @@ export function RichTextEditor({ content, onChange, enableDragBlanks = false, bl
   };
 
   return (
-    <div className="flex flex-col min-h-full bg-white border border-gray-200 rounded-lg">
+    <div className="flex flex-col min-h-full">
       <Slate
         editor={editor}
         initialValue={initialValue}
         onChange={(value) => onChange(value)}
       >
-        <div className="border-b border-gray-200 p-4 flex flex-wrap items-center gap-2">
+        <div className="border-b border-gray-200 p-4 flex flex-wrap items-center gap-2 bg-white/95 backdrop-blur-sm rounded-t-lg">
           <MarkButton format="bold" icon={<Bold className="h-5 w-5" />} />
           <MarkButton format="italic" icon={<Italic className="h-5 w-5" />} />
           <MarkButton format="underline" icon={<Underline className="h-5 w-5" />} />

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../ui/button';
 import { supabase } from '../../../supabase/supabase';
-import { ArrowLeft, Maximize, Minimize, Grid, X, BookOpen } from 'lucide-react';
+import { ArrowLeft, Maximize, Minimize, Grid, X, BookOpen, RotateCw } from 'lucide-react';
 import { Slide, loadSlides } from '../../services/SlideService';
 import { SlideViewer } from './SlideViewer';
 import { ResultsPage } from './ResultsPage';
@@ -32,7 +32,26 @@ export default function ViewerPresentation() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showThumbnails, setShowThumbnails] = useState(false);
   const [furthestSlideReached, setFurthestSlideReached] = useState(0);
+  const [isMobilePortrait, setIsMobilePortrait] = useState(false);
   const { toast } = useToast();
+
+  // Detect mobile portrait orientation
+  useEffect(() => {
+    const checkOrientation = () => {
+      const isMobile = window.innerWidth <= 768 || window.innerHeight <= 500;
+      const isPortrait = window.innerHeight > window.innerWidth;
+      setIsMobilePortrait(isMobile && isPortrait);
+    };
+
+    checkOrientation();
+    window.addEventListener('resize', checkOrientation);
+    window.addEventListener('orientationchange', checkOrientation);
+
+    return () => {
+      window.removeEventListener('resize', checkOrientation);
+      window.removeEventListener('orientationchange', checkOrientation);
+    };
+  }, []);
 
   const minSwipeDistance = 50;
 
@@ -462,6 +481,25 @@ export default function ViewerPresentation() {
 
   return (
     <div className="h-screen flex flex-col relative bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+      {/* Mobile Portrait Overlay - Ask user to rotate device */}
+      {isMobilePortrait && (
+        <div className="fixed inset-0 z-[100] bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 flex flex-col items-center justify-center p-8 text-white">
+          <div className="animate-bounce mb-8">
+            <RotateCw className="h-20 w-20 text-white/90" />
+          </div>
+          <h2 className="text-2xl font-bold text-center mb-4">
+            Fordítsd el a készüléked!
+          </h2>
+          <p className="text-center text-white/80 text-lg max-w-xs">
+            A tananyag megtekintéséhez kérlek forgasd fekvő helyzetbe a telefonodat.
+          </p>
+          <div className="mt-8 flex items-center gap-2 text-white/60">
+            <BookOpen className="h-5 w-5" />
+            <span className="font-semibold">MatekHelp</span>
+          </div>
+        </div>
+      )}
+
       {/* Progress bar */}
       <div className="h-1 bg-gray-200/50 backdrop-blur-sm">
         <div
