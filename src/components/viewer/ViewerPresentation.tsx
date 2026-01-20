@@ -664,9 +664,6 @@ export default function ViewerPresentation() {
           showThumbnails && !isFullscreen ? 'md:mr-48 lg:mr-64' : ''
         }`}
         style={{ backgroundColor: slideBackgroundColor, color: slideTextColor }}
-        onTouchStart={onTouchStart}
-        onTouchMove={onTouchMove}
-        onTouchEnd={onTouchEnd}
       >
         <SlideViewer
           slide={currentSlide}
