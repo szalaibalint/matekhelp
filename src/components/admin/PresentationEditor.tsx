@@ -143,6 +143,8 @@ export function PresentationEditor({ presentationId, onBack }: PresentationEdito
   const [isSaving, setIsSaving] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isRightPanelCollapsed, setIsRightPanelCollapsed] = useState(false);
+  const [rightPanelWidth, setRightPanelWidth] = useState(320); // Default w-80 = 320px
+  const [isResizingRightPanel, setIsResizingRightPanel] = useState(false);
   const [activeRightTab, setActiveRightTab] = useState<'edit' | 'settings' | 'themes'>('edit');
 
   useEffect(() => {
@@ -776,7 +778,37 @@ export function PresentationEditor({ presentationId, onBack }: PresentationEdito
         </div>
 
         {/* Right Sidebar - Settings Panel */}
-        <div className={`bg-white border-l border-gray-200 flex transition-all duration-300 ${isRightPanelCollapsed ? 'w-14' : 'w-80'}`}>
+        <div 
+          className={`bg-white border-l border-gray-200 flex relative ${isResizingRightPanel ? '' : 'transition-all duration-300'}`}
+          style={{ width: isRightPanelCollapsed ? '56px' : `${rightPanelWidth}px` }}
+        >
+          {/* Resize handle */}
+          {!isRightPanelCollapsed && (
+            <div
+              className={`absolute left-0 top-0 bottom-0 w-1 cursor-ew-resize hover:bg-blue-400 transition-colors z-10 ${isResizingRightPanel ? 'bg-blue-500' : 'bg-transparent hover:bg-blue-300'}`}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                setIsResizingRightPanel(true);
+                const startX = e.clientX;
+                const startWidth = rightPanelWidth;
+                
+                const handleMouseMove = (moveEvent: MouseEvent) => {
+                  const deltaX = startX - moveEvent.clientX;
+                  const newWidth = Math.min(800, Math.max(280, startWidth + deltaX));
+                  setRightPanelWidth(newWidth);
+                };
+                
+                const handleMouseUp = () => {
+                  setIsResizingRightPanel(false);
+                  document.removeEventListener('mousemove', handleMouseMove);
+                  document.removeEventListener('mouseup', handleMouseUp);
+                };
+                
+                document.addEventListener('mousemove', handleMouseMove);
+                document.addEventListener('mouseup', handleMouseUp);
+              }}
+            />
+          )}
           {/* Settings Content */}
           {!isRightPanelCollapsed && (
             <div className="flex-1 overflow-y-auto">
