@@ -201,10 +201,10 @@ export const TextSlideViewer: React.FC<TextSlideViewerProps> = ({ slide, onAnswe
     return <ScaledTextSlideContent content={content} renderNode={renderNode} slideHeight={slideHeight} />;
   }
 
-  // For simple text content without absolute elements, use normal rendering
+  // For simple text content without absolute elements, use full-width layout
   return (
-    <div className="w-full h-full flex items-start justify-center p-4 md:p-8 overflow-auto">
-      <div className="prose prose-lg max-w-4xl w-full">
+    <div className="w-full h-full p-4 md:p-8 overflow-auto">
+      <div className="prose prose-lg max-w-none">
         {content.map((node: any, i: number) => renderNode(node, [i]))}
       </div>
     </div>
