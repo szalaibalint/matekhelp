@@ -68,39 +68,54 @@ const loadKatex = async () => {
 
 const renderMathText = async (text: string): Promise<string> => {
   if (!text) {
-    return text;
+    return text || '';
   }
   
-  // Strip delimiters if present: $$...$$ or $...$ or \[...\] or \(...\)
-  let formula = text;
-  let displayMode = false;
-  
-  // Check for display math: $$formula$$ or \[formula\]
-  if (formula.startsWith('$$') && formula.endsWith('$$')) {
-    formula = formula.slice(2, -2);
-    displayMode = true;
-  } else if (formula.startsWith('\\[') && formula.endsWith('\\]')) {
-    formula = formula.slice(2, -2);
-    displayMode = true;
-  }
-  // Check for inline math: $formula$ or \(formula\)
-  else if (formula.startsWith('$') && formula.endsWith('$')) {
-    formula = formula.slice(1, -1);
-  } else if (formula.startsWith('\\(') && formula.endsWith('\\)')) {
-    formula = formula.slice(2, -2);
-  }
-  
-  // Check if formula contains LaTeX (contains backslash)
-  if (!formula.includes('\\')) {
+  // Check if text contains any LaTeX
+  const hasLatex = text.includes('\\') || text.includes('$');
+  if (!hasLatex) {
     return text;
   }
   
   try {
     const katex = await loadKatex();
-    return katex.renderToString(formula, {
-      throwOnError: false,
-      displayMode,
+    let html = text;
+    
+    // Handle display math first ($$...$$ and \[...\])
+    html = html.replace(/\$\$([^$]+)\$\$/g, (match, formula) => {
+      try {
+        return katex.renderToString(formula, { throwOnError: false, displayMode: true });
+      } catch {
+        return match;
+      }
     });
+    
+    html = html.replace(/\\\[([^]*?)\\\]/g, (match, formula) => {
+      try {
+        return katex.renderToString(formula, { throwOnError: false, displayMode: true });
+      } catch {
+        return match;
+      }
+    });
+    
+    // Handle inline math (\(...\) and $...$)
+    html = html.replace(/\\\(([^]*?)\\\)/g, (match, formula) => {
+      try {
+        return katex.renderToString(formula, { throwOnError: false, displayMode: false });
+      } catch {
+        return match;
+      }
+    });
+    
+    html = html.replace(/\$([^$]+)\$/g, (match, formula) => {
+      try {
+        return katex.renderToString(formula, { throwOnError: false, displayMode: false });
+      } catch {
+        return match;
+      }
+    });
+    
+    return html;
   } catch (e) {
     return text;
   }
@@ -425,29 +440,19 @@ export function PresentationEditor({ presentationId, onBack }: PresentationEdito
           </div>
         </div>
 
-        {/* Center navigation tabs */}
-        <div className="flex items-center space-x-1 bg-gray-100 rounded-lg p-1">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="rounded-md px-4 bg-white shadow-sm text-sm font-medium"
-          >
-            Szerkesztés
-          </Button>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="rounded-md px-4 text-gray-500 hover:text-gray-700 text-sm font-medium"
-            onClick={() => setIsPreviewMode(true)}
-            disabled={slides.length === 0}
-          >
-            Előnézet
-          </Button>
-        </div>
+        {/* Spacer to center the title */}
+        <div />
 
         {/* Right side actions */}
         <div className="flex items-center space-x-2">
-          <Button variant="ghost" size="icon" className="text-gray-600">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="text-gray-600"
+            onClick={() => setIsPreviewMode(true)}
+            disabled={slides.length === 0}
+            title="Előnézet"
+          >
             <Eye className="h-5 w-5" />
           </Button>
           <Button 
@@ -971,25 +976,28 @@ export function PresentationEditor({ presentationId, onBack }: PresentationEdito
                       />
                     </div>
 
-                    {/* Visibility Setting */}
+                    {/* Status Setting */}
                     <div>
-                      <Label className="text-sm font-medium text-gray-700">Láthatóság</Label>
+                      <Label className="text-sm font-medium text-gray-700">Státusz</Label>
                       <Select
-                        value={presentation.is_public ? 'public' : 'private'}
-                        onValueChange={(value) => setPresentation(prev => ({ ...prev, is_public: value === 'public' }))}
+                        value={presentation.status || 'draft'}
+                        onValueChange={(value) => setPresentation(prev => ({ ...prev, status: value }))}
                       >
                         <SelectTrigger className="mt-1">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="public">Nyilvános</SelectItem>
-                          <SelectItem value="private">Privát</SelectItem>
+                          <SelectItem value="draft">Piszkozat</SelectItem>
+                          <SelectItem value="published">Nyilvános</SelectItem>
+                          <SelectItem value="archived">Archiválva</SelectItem>
                         </SelectContent>
                       </Select>
                       <p className="text-xs text-gray-500 mt-1">
-                        {presentation.is_public 
+                        {presentation.status === 'published' 
                           ? 'Mindenki láthatja a prezentációt' 
-                          : 'Csak te láthatod a prezentációt'}
+                          : presentation.status === 'archived'
+                            ? 'A prezentáció archiválva van'
+                            : 'A prezentáció még piszkozat'}
                       </p>
                     </div>
 
@@ -1048,138 +1056,6 @@ export function PresentationEditor({ presentationId, onBack }: PresentationEdito
                 </>
               )}
 
-              {/* Themes Tab Content */}
-              {activeRightTab === 'themes' && (
-                <>
-                  <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between">
-                    <h3 className="font-semibold text-gray-900">Témák</h3>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-6 w-6"
-                      onClick={() => setIsRightPanelCollapsed(true)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <div className="p-4">
-                    <p className="text-sm text-gray-500 mb-4">Válassz egy témát a prezentációhoz</p>
-                    <div className="grid grid-cols-2 gap-3">
-                      {/* Light Theme */}
-                      <button
-                        onClick={() => setPresentation(prev => ({
-                          ...prev,
-                          theme: { background: '#ffffff', textColor: '#000000' }
-                        }))}
-                        className={`p-3 rounded-xl border-2 transition-all hover:shadow-md ${
-                          presentation.theme?.background === '#ffffff' && presentation.theme?.textColor === '#000000'
-                            ? 'border-purple-500 ring-2 ring-purple-200'
-                            : 'border-gray-200 hover:border-gray-300'
-                        }`}
-                      >
-                        <div className="w-full aspect-video bg-white rounded-lg border border-gray-200 mb-2 flex items-center justify-center">
-                          <span className="text-xs font-medium text-black">Aa</span>
-                        </div>
-                        <span className="text-xs font-medium text-gray-700">Világos</span>
-                      </button>
-
-                      {/* Dark Theme */}
-                      <button
-                        onClick={() => setPresentation(prev => ({
-                          ...prev,
-                          theme: { background: '#1a1a2e', textColor: '#ffffff' }
-                        }))}
-                        className={`p-3 rounded-xl border-2 transition-all hover:shadow-md ${
-                          presentation.theme?.background === '#1a1a2e'
-                            ? 'border-purple-500 ring-2 ring-purple-200'
-                            : 'border-gray-200 hover:border-gray-300'
-                        }`}
-                      >
-                        <div className="w-full aspect-video bg-[#1a1a2e] rounded-lg border border-gray-700 mb-2 flex items-center justify-center">
-                          <span className="text-xs font-medium text-white">Aa</span>
-                        </div>
-                        <span className="text-xs font-medium text-gray-700">Sötét</span>
-                      </button>
-
-                      {/* Blue Theme */}
-                      <button
-                        onClick={() => setPresentation(prev => ({
-                          ...prev,
-                          theme: { background: '#1e40af', textColor: '#ffffff' }
-                        }))}
-                        className={`p-3 rounded-xl border-2 transition-all hover:shadow-md ${
-                          presentation.theme?.background === '#1e40af'
-                            ? 'border-purple-500 ring-2 ring-purple-200'
-                            : 'border-gray-200 hover:border-gray-300'
-                        }`}
-                      >
-                        <div className="w-full aspect-video bg-[#1e40af] rounded-lg mb-2 flex items-center justify-center">
-                          <span className="text-xs font-medium text-white">Aa</span>
-                        </div>
-                        <span className="text-xs font-medium text-gray-700">Kék</span>
-                      </button>
-
-                      {/* Green Theme */}
-                      <button
-                        onClick={() => setPresentation(prev => ({
-                          ...prev,
-                          theme: { background: '#166534', textColor: '#ffffff' }
-                        }))}
-                        className={`p-3 rounded-xl border-2 transition-all hover:shadow-md ${
-                          presentation.theme?.background === '#166534'
-                            ? 'border-purple-500 ring-2 ring-purple-200'
-                            : 'border-gray-200 hover:border-gray-300'
-                        }`}
-                      >
-                        <div className="w-full aspect-video bg-[#166534] rounded-lg mb-2 flex items-center justify-center">
-                          <span className="text-xs font-medium text-white">Aa</span>
-                        </div>
-                        <span className="text-xs font-medium text-gray-700">Zöld</span>
-                      </button>
-
-                      {/* Purple Theme */}
-                      <button
-                        onClick={() => setPresentation(prev => ({
-                          ...prev,
-                          theme: { background: '#7c3aed', textColor: '#ffffff' }
-                        }))}
-                        className={`p-3 rounded-xl border-2 transition-all hover:shadow-md ${
-                          presentation.theme?.background === '#7c3aed'
-                            ? 'border-purple-500 ring-2 ring-purple-200'
-                            : 'border-gray-200 hover:border-gray-300'
-                        }`}
-                      >
-                        <div className="w-full aspect-video bg-[#7c3aed] rounded-lg mb-2 flex items-center justify-center">
-                          <span className="text-xs font-medium text-white">Aa</span>
-                        </div>
-                        <span className="text-xs font-medium text-gray-700">Lila</span>
-                      </button>
-
-                      {/* Gradient Theme */}
-                      <button
-                        onClick={() => setPresentation(prev => ({
-                          ...prev,
-                          theme: { background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', textColor: '#ffffff' }
-                        }))}
-                        className={`p-3 rounded-xl border-2 transition-all hover:shadow-md ${
-                          presentation.theme?.background?.includes('gradient')
-                            ? 'border-purple-500 ring-2 ring-purple-200'
-                            : 'border-gray-200 hover:border-gray-300'
-                        }`}
-                      >
-                        <div 
-                          className="w-full aspect-video rounded-lg mb-2 flex items-center justify-center"
-                          style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}
-                        >
-                          <span className="text-xs font-medium text-white">Aa</span>
-                        </div>
-                        <span className="text-xs font-medium text-gray-700">Gradiens</span>
-                      </button>
-                    </div>
-                  </div>
-                </>
-              )}
-
               {/* Show prompt when no slide selected on edit tab */}
               {activeRightTab === 'edit' && !selectedSlide && (
                 <div className="p-4">
@@ -1221,31 +1097,6 @@ export function PresentationEditor({ presentationId, onBack }: PresentationEdito
             >
               <SlidersHorizontal className="h-5 w-5 mb-1" />
               <span className="text-[10px]">Beáll.</span>
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className={`w-12 h-12 flex flex-col items-center justify-center rounded-lg ${
-                activeRightTab === 'themes' && !isRightPanelCollapsed ? 'bg-white shadow-sm' : ''
-              }`}
-              onClick={() => {
-                setActiveRightTab('themes');
-                setIsRightPanelCollapsed(false);
-              }}
-            >
-              <Palette className="h-5 w-5 mb-1" />
-              <span className="text-[10px]">Témák</span>
-            </Button>
-            <div className="flex-1" />
-            <Button
-              variant="ghost"
-              size="sm"
-              className="w-12 h-12 flex flex-col items-center justify-center rounded-lg"
-              onClick={() => setIsPreviewMode(true)}
-              disabled={slides.length === 0}
-            >
-              <Play className="h-5 w-5 mb-1" />
-              <span className="text-[10px]">Indítás</span>
             </Button>
           </div>
         </div>
@@ -1627,20 +1478,20 @@ function ScaledSlidePreview({ slide, theme }: { slide: Slide; theme: any }) {
         {slide.type === 'matching' && (
           <div className="w-full px-16">
             <h2 className="text-4xl font-bold mb-12 text-center" style={{ color: slide.content?.questionColor || textColor }}>
-              {slide.content?.question || 'Párosítsd össze'}
+              <MathText text={slide.content?.question || 'Párosítsd össze'} />
             </h2>
             <div className="grid grid-cols-2 gap-12 max-w-4xl mx-auto">
               <div className="space-y-4">
                 {(slide.content?.pairs || []).map((pair: any, index: number) => (
                   <div key={index} className="p-4 rounded-xl text-xl font-medium border-2 text-center" style={{ backgroundColor: pair.leftColor || '#ffffff' }}>
-                    {pair.left}
+                    <MathText text={pair.left} />
                   </div>
                 ))}
               </div>
               <div className="space-y-4">
                 {(slide.content?.pairs || []).map((pair: any, index: number) => (
                   <div key={index} className="p-4 rounded-xl text-xl font-medium border-2 border-dashed text-center" style={{ backgroundColor: pair.rightColor || '#ffffff' }}>
-                    {pair.right}
+                    <MathText text={pair.right} />
                   </div>
                 ))}
               </div>
