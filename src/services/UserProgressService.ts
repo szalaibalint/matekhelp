@@ -53,32 +53,16 @@ export const UserProgressService = {
       if (viewerUserId) {
         progressData.viewer_user_id = viewerUserId;
         
-        // Check if progress exists
-        const { data: existing, error: fetchError } = await supabase
+        // Use upsert to handle both insert and update in one operation
+        // This avoids race conditions and duplicate key errors
+        const { error: upsertError } = await supabase
           .from('user_progress')
-          .select('id')
-          .eq('presentation_id', presentationId)
-          .eq('viewer_user_id', viewerUserId)
-          .maybeSingle();
-
-        if (fetchError) throw fetchError;
-
-        if (existing) {
-          // Update existing progress
-          const { error: updateError } = await supabase
-            .from('user_progress')
-            .update(progressData)
-            .eq('id', existing.id);
-          
-          if (updateError) throw updateError;
-        } else {
-          // Insert new progress
-          const { error: insertError } = await supabase
-            .from('user_progress')
-            .insert(progressData);
-          
-          if (insertError) throw insertError;
-        }
+          .upsert(progressData, {
+            onConflict: 'viewer_user_id,presentation_id',
+            ignoreDuplicates: false
+          });
+        
+        if (upsertError) throw upsertError;
       }
       
       return { success: true };
