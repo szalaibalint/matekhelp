@@ -215,7 +215,8 @@ export default function ViewerPage() {
 
   // Continue Learning Card
   const ContinueLearningCard = ({ progress }: { progress: UserProgress }) => {
-    const color = categoryColorMap.get(progress.presentations?.category_id || '') || CATEGORY_COLORS[0];
+    // Use a consistent color for continue learning cards
+    const color = CATEGORY_COLORS[2]; // Teal color for continue learning
     
     return (
       <div 
@@ -231,7 +232,7 @@ export default function ViewerPage() {
           </div>
           
           <h3 className="text-white font-bold text-lg mb-2 line-clamp-2">
-            {progress.presentations?.title || 'Tananyag'}
+            {progress.presentation?.title || 'Tananyag'}
           </h3>
           
           <div className="mt-4">
@@ -289,7 +290,7 @@ export default function ViewerPage() {
           <div className="absolute bottom-0 left-0 right-0 bg-black/20 backdrop-blur-sm px-5 py-3 flex items-center justify-between">
             <div className="flex items-center gap-2 text-white/80 text-sm">
               <Eye className="h-4 w-4" />
-              <span>{presentation.view_count || 0} megtekintés</span>
+              <span>Tananyag</span>
             </div>
             <ArrowRight className="h-5 w-5 text-white group-hover:translate-x-1 transition-transform" />
           </div>
@@ -350,11 +351,6 @@ export default function ViewerPage() {
             <Badge className={`${color.light} ${color.text} border-0`}>
               {categoryMap.get(presentation.category_id || '') || 'Tananyag'}
             </Badge>
-            {presentation.view_count && presentation.view_count > 50 && (
-              <div className="flex items-center gap-1 text-amber-500">
-                <Star className="h-4 w-4 fill-current" />
-              </div>
-            )}
           </div>
           
           <h3 className="font-bold text-gray-900 mb-2 line-clamp-2 group-hover:text-gray-700 transition-colors">
@@ -365,12 +361,7 @@ export default function ViewerPage() {
             {presentation.description || 'Interaktív tananyag'}
           </p>
           
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-gray-400 text-sm">
-              <Eye className="h-4 w-4" />
-              <span>{presentation.view_count || 0}</span>
-            </div>
-            
+          <div className="flex items-center justify-end">
             <Button size="sm" className={`${color.bg} ${color.hover} text-white border-0`}>
               <Play className="h-4 w-4 mr-1" />
               Indítás
