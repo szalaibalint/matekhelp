@@ -369,7 +369,7 @@ export function RichTextEditor({ content, onChange, enableDragBlanks = false, bl
   const [correctAnswers, setCorrectAnswers] = useState<string[]>([]);
   
   const insertMathInline = (formula: string) => {
-    const math = { type: 'math-inline', formula, children: [{ text: '' }] };
+    const math = { type: 'math-inline', formula, fontSize, children: [{ text: '' }] };
     Transforms.insertNodes(editor, math);
   };
 
@@ -1373,6 +1373,10 @@ const Element = ({ attributes, children, element }: any) => {
             const path = ReactEditor.findPath(editor, element);
             // Bypass TS strict typing for custom field
             Transforms.setNodes(editor, { formula } as any, { at: path });
+          }}
+          onFontSizeChange={(fontSize) => {
+            const path = ReactEditor.findPath(editor, element);
+            Transforms.setNodes(editor, { fontSize } as any, { at: path });
           }}
         />
       );
