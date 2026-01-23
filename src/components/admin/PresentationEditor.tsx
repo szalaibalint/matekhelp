@@ -43,7 +43,12 @@ import {
   SlidersHorizontal,
   PanelRightClose,
   PanelRightOpen,
-  ImagePlus
+  ImagePlus,
+  Clipboard,
+  ClipboardPaste,
+  MoreHorizontal,
+  CheckSquare,
+  Square
 } from 'lucide-react';
 import { supabase } from '../../../supabase/supabase';
 import { toast } from '../ui/use-toast';
@@ -149,15 +154,21 @@ interface PresentationEditorProps {
   onBack: () => void;
 }
 
+// Global clipboard for slides (persists across presentations)
+const slideClipboard: { slides: Slide[], sourcePresentationId?: string } = { slides: [] };
+
 export function PresentationEditor({ presentationId, onBack }: PresentationEditorProps) {
   const [presentation, setPresentation] = useState<any>(null);
   const [slides, setSlides] = useState<Slide[]>([]);
   const [selectedSlideIndex, setSelectedSlideIndex] = useState(0);
+  const [selectedSlideIndices, setSelectedSlideIndices] = useState<Set<number>>(new Set());
+  const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [previewIndex, setPreviewIndex] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isRightPanelCollapsed, setIsRightPanelCollapsed] = useState(false);
+  const [clipboardCount, setClipboardCount] = useState(slideClipboard.slides.length);
   const [rightPanelWidth, setRightPanelWidth] = useState(320); // Default w-80 = 320px
   const [isResizingRightPanel, setIsResizingRightPanel] = useState(false);
   const [activeRightTab, setActiveRightTab] = useState<'edit' | 'settings' | 'themes'>('edit');
@@ -166,6 +177,64 @@ export function PresentationEditor({ presentationId, onBack }: PresentationEdito
     loadPresentation();
     loadSlides();
   }, [presentationId]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger if user is typing in an input/textarea
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      // Delete key - delete selected slides or current slide
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (selectedSlideIndices.size > 0) {
+          e.preventDefault();
+          deleteSelectedSlides();
+        } else if (slides.length > 1) {
+          e.preventDefault();
+          deleteSlide(selectedSlideIndex);
+        }
+      }
+
+      // Ctrl+C / Cmd+C - copy
+      if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
+        e.preventDefault();
+        copySelectedSlides();
+      }
+
+      // Ctrl+V / Cmd+V - paste
+      if ((e.ctrlKey || e.metaKey) && e.key === 'v' && slideClipboard.slides.length > 0) {
+        e.preventDefault();
+        pasteSlides();
+      }
+
+      // Ctrl+D / Cmd+D - duplicate
+      if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
+        e.preventDefault();
+        if (selectedSlideIndices.size > 0) {
+          duplicateSelectedSlides();
+        } else {
+          duplicateSlide(selectedSlideIndex);
+        }
+      }
+
+      // Ctrl+A / Cmd+A - select all (when in multi-select mode)
+      if ((e.ctrlKey || e.metaKey) && e.key === 'a' && isMultiSelectMode) {
+        e.preventDefault();
+        selectAllSlides();
+      }
+
+      // Escape - cancel multi-select
+      if (e.key === 'Escape' && (isMultiSelectMode || selectedSlideIndices.size > 0)) {
+        e.preventDefault();
+        clearSelection();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedSlideIndex, selectedSlideIndices, isMultiSelectMode, slides.length]);
 
   const loadPresentation = async () => {
     const { data } = await supabase
@@ -288,6 +357,29 @@ export function PresentationEditor({ presentationId, onBack }: PresentationEdito
     }
   };
 
+  // Delete multiple slides at once
+  const deleteSelectedSlides = () => {
+    if (selectedSlideIndices.size === 0) return;
+    
+    const indicesToDelete = Array.from(selectedSlideIndices).sort((a, b) => b - a);
+    const newSlides = slides.filter((_, i) => !selectedSlideIndices.has(i));
+    
+    setSlides(newSlides);
+    setSelectedSlideIndices(new Set());
+    setIsMultiSelectMode(false);
+    
+    if (newSlides.length === 0) {
+      setSelectedSlideIndex(0);
+    } else {
+      setSelectedSlideIndex(Math.min(selectedSlideIndex, newSlides.length - 1));
+    }
+    
+    toast({
+      title: `${indicesToDelete.length} dia törölve`,
+      description: 'A kiválasztott diák sikeresen törölve lettek.',
+    });
+  };
+
   const moveSlide = (fromIndex: number, toIndex: number) => {
     const newSlides = [...slides];
     const [movedSlide] = newSlides.splice(fromIndex, 1);
@@ -304,6 +396,130 @@ export function PresentationEditor({ presentationId, onBack }: PresentationEdito
       sort_order: slides.length
     };
     setSlides([...slides, newSlide]);
+  };
+
+  // Duplicate multiple slides at once
+  const duplicateSelectedSlides = () => {
+    if (selectedSlideIndices.size === 0) return;
+    
+    const indicesToDuplicate = Array.from(selectedSlideIndices).sort((a, b) => a - b);
+    const newSlides = [...slides];
+    
+    indicesToDuplicate.forEach((index, i) => {
+      const slide = slides[index];
+      const newSlide = {
+        ...JSON.parse(JSON.stringify(slide)), // Deep copy
+        id: `slide-${Date.now()}-${i}`,
+        sort_order: newSlides.length
+      };
+      newSlides.push(newSlide);
+    });
+    
+    setSlides(newSlides);
+    setSelectedSlideIndices(new Set());
+    setIsMultiSelectMode(false);
+    
+    toast({
+      title: `${indicesToDuplicate.length} dia duplikálva`,
+      description: 'A kiválasztott diák sikeresen duplikálva lettek.',
+    });
+  };
+
+  // Copy slides to clipboard
+  const copySelectedSlides = () => {
+    const indicesToCopy = selectedSlideIndices.size > 0 
+      ? Array.from(selectedSlideIndices).sort((a, b) => a - b)
+      : [selectedSlideIndex];
+    
+    const slidesToCopy = indicesToCopy.map(index => JSON.parse(JSON.stringify(slides[index])));
+    slideClipboard.slides = slidesToCopy;
+    slideClipboard.sourcePresentationId = presentationId;
+    setClipboardCount(slidesToCopy.length);
+    
+    setSelectedSlideIndices(new Set());
+    setIsMultiSelectMode(false);
+    
+    toast({
+      title: `${slidesToCopy.length} dia másolva`,
+      description: 'A diák a vágólapra kerültek. Beillesztheted ide vagy másik prezentációba.',
+    });
+  };
+
+  // Paste slides from clipboard
+  const pasteSlides = () => {
+    if (slideClipboard.slides.length === 0) return;
+    
+    const newSlides = [...slides];
+    const insertIndex = selectedSlideIndex + 1;
+    
+    slideClipboard.slides.forEach((slide, i) => {
+      const newSlide = {
+        ...JSON.parse(JSON.stringify(slide)),
+        id: `slide-${Date.now()}-${i}`,
+        sort_order: insertIndex + i
+      };
+      newSlides.splice(insertIndex + i, 0, newSlide);
+    });
+    
+    // Update sort_order for all slides
+    newSlides.forEach((slide, index) => {
+      slide.sort_order = index;
+    });
+    
+    setSlides(newSlides);
+    setSelectedSlideIndex(insertIndex);
+    
+    toast({
+      title: `${slideClipboard.slides.length} dia beillesztve`,
+      description: slideClipboard.sourcePresentationId !== presentationId 
+        ? 'Diák másik prezentációból beillesztve.' 
+        : 'Diák sikeresen beillesztve.',
+    });
+  };
+
+  // Toggle slide selection for multi-select
+  const toggleSlideSelection = (index: number, event?: React.MouseEvent) => {
+    if (event?.shiftKey && selectedSlideIndices.size > 0) {
+      // Shift+click: select range
+      const lastSelected = Math.max(...Array.from(selectedSlideIndices));
+      const start = Math.min(lastSelected, index);
+      const end = Math.max(lastSelected, index);
+      const newSelection = new Set(selectedSlideIndices);
+      for (let i = start; i <= end; i++) {
+        newSelection.add(i);
+      }
+      setSelectedSlideIndices(newSelection);
+    } else if (event?.ctrlKey || event?.metaKey) {
+      // Ctrl/Cmd+click: toggle single
+      const newSelection = new Set(selectedSlideIndices);
+      if (newSelection.has(index)) {
+        newSelection.delete(index);
+      } else {
+        newSelection.add(index);
+      }
+      setSelectedSlideIndices(newSelection);
+    } else if (isMultiSelectMode) {
+      // In multi-select mode, toggle single
+      const newSelection = new Set(selectedSlideIndices);
+      if (newSelection.has(index)) {
+        newSelection.delete(index);
+      } else {
+        newSelection.add(index);
+      }
+      setSelectedSlideIndices(newSelection);
+    }
+  };
+
+  // Select all slides
+  const selectAllSlides = () => {
+    const allIndices = new Set(slides.map((_, i) => i));
+    setSelectedSlideIndices(allIndices);
+  };
+
+  // Clear selection
+  const clearSelection = () => {
+    setSelectedSlideIndices(new Set());
+    setIsMultiSelectMode(false);
   };
 
   const getDefaultTitle = (type: Slide['type']) => {
@@ -545,29 +761,144 @@ export function PresentationEditor({ presentationId, onBack }: PresentationEdito
             </Select>
           </div>
 
+          {/* Multi-select Actions Bar */}
+          {(isMultiSelectMode || selectedSlideIndices.size > 0) && (
+            <div className="p-2 border-b border-gray-200 bg-purple-50">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-medium text-purple-700">
+                  {selectedSlideIndices.size} kiválasztva
+                </span>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 px-2 text-xs text-gray-500"
+                  onClick={clearSelection}
+                >
+                  <X className="h-3 w-3 mr-1" />
+                  Mégse
+                </Button>
+              </div>
+              <div className="flex flex-wrap gap-1">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 px-2 text-xs"
+                  onClick={selectAllSlides}
+                >
+                  Összes
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 px-2 text-xs"
+                  onClick={copySelectedSlides}
+                  disabled={selectedSlideIndices.size === 0}
+                >
+                  <Copy className="h-3 w-3 mr-1" />
+                  Másolás
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 px-2 text-xs"
+                  onClick={duplicateSelectedSlides}
+                  disabled={selectedSlideIndices.size === 0}
+                >
+                  <Plus className="h-3 w-3 mr-1" />
+                  Duplikálás
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 px-2 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
+                  onClick={deleteSelectedSlides}
+                  disabled={selectedSlideIndices.size === 0}
+                >
+                  <Trash2 className="h-3 w-3 mr-1" />
+                  Törlés
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Slide Actions Row (when not in multi-select) */}
+          {!isMultiSelectMode && selectedSlideIndices.size === 0 && (
+            <div className="p-2 border-b border-gray-200 flex items-center justify-between">
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 px-2 text-xs text-gray-600"
+                onClick={() => setIsMultiSelectMode(true)}
+              >
+                <CheckSquare className="h-3 w-3 mr-1" />
+                Kijelölés
+              </Button>
+              <div className="flex gap-1">
+                {clipboardCount > 0 && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 px-2 text-xs"
+                    onClick={pasteSlides}
+                    title={`${clipboardCount} dia beillesztése`}
+                  >
+                    <ClipboardPaste className="h-3 w-3 mr-1" />
+                    Beillesztés ({clipboardCount})
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Slide Thumbnails */}
           <div className="flex-1 overflow-y-auto p-2 space-y-2">
             {slides.map((slide, index) => {
               const typeInfo = getSlideTypeInfo(slide.type);
               const TypeIcon = typeInfo.icon;
+              const isSelected = selectedSlideIndices.has(index);
               return (
                 <div
                   key={slide.id}
                   className={`relative group cursor-pointer rounded-lg transition-all ${
-                    selectedSlideIndex === index 
-                      ? 'ring-2 ring-purple-500' 
-                      : 'hover:ring-2 hover:ring-gray-300'
+                    isSelected 
+                      ? 'ring-2 ring-purple-500 bg-purple-50' 
+                      : selectedSlideIndex === index 
+                        ? 'ring-2 ring-purple-500' 
+                        : 'hover:ring-2 hover:ring-gray-300'
                   }`}
-                  onClick={() => setSelectedSlideIndex(index)}
+                  onClick={(e) => {
+                    if (isMultiSelectMode || e.ctrlKey || e.metaKey || e.shiftKey) {
+                      toggleSlideSelection(index, e);
+                    } else {
+                      setSelectedSlideIndex(index);
+                    }
+                  }}
                 >
+                  {/* Multi-select checkbox */}
+                  {(isMultiSelectMode || selectedSlideIndices.size > 0) && (
+                    <div 
+                      className="absolute -left-1 top-1 z-10"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleSlideSelection(index);
+                      }}
+                    >
+                      {isSelected ? (
+                        <CheckSquare className="h-4 w-4 text-purple-600" />
+                      ) : (
+                        <Square className="h-4 w-4 text-gray-400" />
+                      )}
+                    </div>
+                  )}
+
                   {/* Slide number */}
-                  <div className="absolute -left-1 top-2 text-xs text-gray-400 font-medium">
+                  <div className={`absolute top-2 text-xs text-gray-400 font-medium ${(isMultiSelectMode || selectedSlideIndices.size > 0) ? 'left-4' : '-left-1'}`}>
                     {index + 1}
                   </div>
                   
                   {/* Thumbnail */}
                   <div 
-                    className="ml-4 aspect-[16/9] bg-white rounded-lg border border-gray-200 overflow-hidden flex items-center justify-center relative"
+                    className={`aspect-[16/9] bg-white rounded-lg border border-gray-200 overflow-hidden flex items-center justify-center relative ${(isMultiSelectMode || selectedSlideIndices.size > 0) ? 'ml-8' : 'ml-4'}`}
                     style={{ backgroundColor: slide.backgroundColor || '#ffffff' }}
                   >
                     <TypeIcon className="h-6 w-6 text-gray-400" />
@@ -581,32 +912,101 @@ export function PresentationEditor({ presentationId, onBack }: PresentationEdito
                   </div>
                   
                   {/* Hover actions */}
-                  <div className="absolute -right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col space-y-1">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-6 w-6 p-0 bg-white shadow-sm rounded-full"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        moveSlide(index, Math.max(0, index - 1));
-                      }}
-                      disabled={index === 0}
-                    >
-                      <ChevronUp className="h-3 w-3" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-6 w-6 p-0 bg-white shadow-sm rounded-full"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        moveSlide(index, Math.min(slides.length - 1, index + 1));
-                      }}
-                      disabled={index === slides.length - 1}
-                    >
-                      <ChevronDown className="h-3 w-3" />
-                    </Button>
-                  </div>
+                  {!isMultiSelectMode && selectedSlideIndices.size === 0 && (
+                    <div className="absolute -right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col space-y-1">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 w-6 p-0 bg-white shadow-sm rounded-full"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          moveSlide(index, Math.max(0, index - 1));
+                        }}
+                        disabled={index === 0}
+                        title="Fel"
+                      >
+                        <ChevronUp className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 w-6 p-0 bg-white shadow-sm rounded-full"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          moveSlide(index, Math.min(slides.length - 1, index + 1));
+                        }}
+                        disabled={index === slides.length - 1}
+                        title="Le"
+                      >
+                        <ChevronDown className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  )}
+
+                  {/* Context menu actions on right side */}
+                  {!isMultiSelectMode && selectedSlideIndices.size === 0 && (
+                    <div className="absolute right-0 bottom-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-5 w-5 p-0 bg-white/80 shadow-sm rounded"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <MoreHorizontal className="h-3 w-3" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-40 p-1" align="end">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="w-full justify-start h-8 px-2 text-xs"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              duplicateSlide(index);
+                            }}
+                          >
+                            <Copy className="h-3 w-3 mr-2" />
+                            Duplikálás
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="w-full justify-start h-8 px-2 text-xs"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedSlideIndex(index);
+                              const singleSlide = [JSON.parse(JSON.stringify(slides[index]))];
+                              slideClipboard.slides = singleSlide;
+                              slideClipboard.sourcePresentationId = presentationId;
+                              setClipboardCount(1);
+                              toast({
+                                title: 'Dia másolva',
+                                description: 'A dia a vágólapra került.',
+                              });
+                            }}
+                          >
+                            <Clipboard className="h-3 w-3 mr-2" />
+                            Másolás
+                          </Button>
+                          <div className="h-px bg-gray-200 my-1" />
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="w-full justify-start h-8 px-2 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteSlide(index);
+                            }}
+                          >
+                            <Trash2 className="h-3 w-3 mr-2" />
+                            Törlés
+                          </Button>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  )}
                 </div>
               );
             })}
