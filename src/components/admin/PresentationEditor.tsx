@@ -181,35 +181,30 @@ export function PresentationEditor({ presentationId, onBack }: PresentationEdito
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't trigger if user is typing in an input/textarea
+      // Don't trigger if user is typing in an input/textarea or contenteditable (Slate editor)
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
         return;
       }
-
-      // Delete key - delete selected slides or current slide
-      if (e.key === 'Delete' || e.key === 'Backspace') {
-        if (selectedSlideIndices.size > 0) {
-          e.preventDefault();
-          deleteSelectedSlides();
-        } else if (slides.length > 1) {
-          e.preventDefault();
-          deleteSlide(selectedSlideIndex);
-        }
+      
+      // Check if user is inside a contenteditable element (Slate rich text editor)
+      const target = e.target as HTMLElement;
+      if (target.isContentEditable || target.closest('[contenteditable="true"]')) {
+        return;
       }
 
-      // Ctrl+C / Cmd+C - copy
+      // Ctrl+C / Cmd+C - copy slides (only when not editing text)
       if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
         e.preventDefault();
         copySelectedSlides();
       }
 
-      // Ctrl+V / Cmd+V - paste
+      // Ctrl+V / Cmd+V - paste slides (only when not editing text)
       if ((e.ctrlKey || e.metaKey) && e.key === 'v' && slideClipboard.slides.length > 0) {
         e.preventDefault();
         pasteSlides();
       }
 
-      // Ctrl+D / Cmd+D - duplicate
+      // Ctrl+D / Cmd+D - duplicate slides (only when not editing text)
       if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
         e.preventDefault();
         if (selectedSlideIndices.size > 0) {
@@ -219,7 +214,7 @@ export function PresentationEditor({ presentationId, onBack }: PresentationEdito
         }
       }
 
-      // Ctrl+A / Cmd+A - select all (when in multi-select mode)
+      // Ctrl+A / Cmd+A - select all slides (only in multi-select mode)
       if ((e.ctrlKey || e.metaKey) && e.key === 'a' && isMultiSelectMode) {
         e.preventDefault();
         selectAllSlides();
