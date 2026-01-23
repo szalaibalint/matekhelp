@@ -1353,13 +1353,12 @@ const Element = ({ attributes, children, element }: any) => {
       );
     case 'input-field': {
       const editor = useSlate();
-      const openDialog = (editor as any).openInputFieldDialog;
       return (
         <UserInputElement
           {...{ attributes, children, element, isEditor: true }}
-          onEditClick={() => {
+          onFieldChange={(updates: { placeholder?: string; correctAnswer?: string; points?: number }) => {
             const path = ReactEditor.findPath(editor, element);
-            openDialog(element, path);
+            Transforms.setNodes(editor, updates as any, { at: path });
           }}
         />
       );
@@ -1384,13 +1383,18 @@ const Element = ({ attributes, children, element }: any) => {
     case 'drag-blank':
       return <DragBlankElement {...{ attributes, children, element, isEditor: true }} />;
     case undefined:
-    case 'paragraph':
+    case 'paragraph': {
       const hasBlockChild = element.children?.some(isBlock);
+      // Check if the paragraph is empty (only contains empty text nodes)
+      const isEmpty = element.children?.every((child: any) => 
+        child.text === '' || (typeof child.text === 'string' && child.text.trim() === '')
+      );
       return (
-        <p style={style} {...attributes} className={`my-2 ${hasBlockChild ? 'leading-relaxed' : ''}`}>
+        <p style={style} {...attributes} className={`my-2 ${hasBlockChild ? 'leading-relaxed' : ''} ${isEmpty ? 'min-h-[1.5em]' : ''}`}>
           {children}
         </p>
       );
+    }
   }
 };
 

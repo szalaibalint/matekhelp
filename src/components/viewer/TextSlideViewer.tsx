@@ -222,6 +222,7 @@ function ScaledTextSlideContent({
   slideHeight?: number;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
+  // Dynamic scale based on parent width - matches preview behavior
   const [scale, setScale] = useState(1);
 
   useEffect(() => {
@@ -230,7 +231,7 @@ function ScaledTextSlideContent({
         const parent = containerRef.current.parentElement;
         if (parent) {
           const parentWidth = parent.offsetWidth;
-          // Scale based on width only, like the preview does
+          // Scale to fit parent width, matching preview behavior
           const newScale = parentWidth / SLIDE_WIDTH;
           setScale(newScale);
         }

@@ -24,6 +24,7 @@ interface SlideViewerProps {
 // Wrapper component that scales content to match the 1600x900 canvas
 function ScaledSlideWrapper({ children, slide }: { children: React.ReactNode; slide: Slide }) {
   const containerRef = useRef<HTMLDivElement>(null);
+  // Dynamic scale based on parent width - matches preview behavior
   const [scale, setScale] = useState(1);
 
   useEffect(() => {
@@ -32,6 +33,7 @@ function ScaledSlideWrapper({ children, slide }: { children: React.ReactNode; sl
         const parent = containerRef.current.parentElement;
         if (parent) {
           const parentWidth = parent.offsetWidth;
+          // Scale to fit parent width, matching preview behavior
           const newScale = parentWidth / SLIDE_WIDTH;
           setScale(newScale);
         }

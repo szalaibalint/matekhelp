@@ -665,13 +665,16 @@ export default function ViewerPresentation() {
         }`}
         style={{ backgroundColor: slideBackgroundColor, color: slideTextColor }}
       >
-        <SlideViewer
-          slide={currentSlide}
-          userAnswer={userAnswers[currentIndex]}
-          onAnswer={(answer, slideIndex, elementIndex) => handleAnswer(answer, slideIndex, elementIndex)}
-          textColor={slideTextColor}
-          slideIndex={currentIndex}
-        />
+        {/* Full width container matching preview - no padding, slides scale to fill width */}
+        <div className="w-full h-full overflow-hidden">
+          <SlideViewer
+            slide={currentSlide}
+            userAnswer={userAnswers[currentIndex]}
+            onAnswer={(answer, slideIndex, elementIndex) => handleAnswer(answer, slideIndex, elementIndex)}
+            textColor={slideTextColor}
+            slideIndex={currentIndex}
+          />
+        </div>
       </div>
 
       {/* Navigation Toolbar - Hidden in fullscreen */}
