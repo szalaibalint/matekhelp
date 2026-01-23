@@ -192,7 +192,7 @@ const UserInputElement = ({ attributes, element, children, isEditor = false, onA
             <input
               type="text"
               placeholder={element.placeholder || ''}
-              className="inline-block w-6 border-b-2 border-gray-400 focus:border-blue-500 outline-none text-center bg-transparent"
+              className="inline-block min-w-[80px] border-b-2 border-gray-400 focus:border-blue-500 outline-none text-center bg-transparent px-3 py-0.5 mx-0.5"
               value={userAnswers[index] || ''}
               onChange={(e) => handleMultiAnswerChange(e, index)}
             />
@@ -209,7 +209,7 @@ const UserInputElement = ({ attributes, element, children, isEditor = false, onA
       <input
         type="text"
         placeholder={element.placeholder || '___'}
-        className="inline-block w-32 border-b-2 border-gray-400 focus:border-blue-500 outline-none text-center bg-transparent"
+        className="inline-block min-w-[80px] border-b-2 border-gray-400 focus:border-blue-500 outline-none text-center bg-transparent px-3 py-0.5 mx-0.5"
         value={userAnswer || ''}
         onChange={(e) => onAnswer(e.target.value, slideIndex, elementIndex)}
       />
