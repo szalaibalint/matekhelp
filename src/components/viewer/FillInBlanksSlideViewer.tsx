@@ -390,12 +390,13 @@ export const FillInBlanksSlideViewer: React.FC<FillInBlanksSlideViewerProps> = (
   return (
     <DndProvider backend={MultiBackend} options={backendOptions}>
       <CustomDragLayer blanks={slide.content.blanks || []} />
-      <div className="w-full max-w-4xl space-y-8">
-        <div className="text-xl" style={{ color: textColor }}>
+      {/* Match editor's ScaledSlidePreview layout: w-full px-16 */}
+      <div className="w-full px-16 space-y-8">
+        <div className="text-xl max-w-4xl mx-auto" style={{ color: textColor }}>
           {renderContent(slide.content.content || [])}
         </div>
         
-        <div className="mt-8 pt-6 border-t-2 border-gray-300">
+        <div className="mt-8 pt-6 border-t-2 border-gray-300 max-w-4xl mx-auto">
           <h3 className="text-lg font-semibold mb-4" style={{ color: textColor }}>
             Húzd a megfelelő választ az üres mezőbe:
           </h3>

@@ -311,19 +311,20 @@ export const MatchingSlideViewer: React.FC<MatchingSlideViewerProps> = ({ slide,
   return (
     <DndProvider backend={MultiBackend} options={backendOptions}>
       <CustomDragLayer leftItems={leftItems} />
-      <div className="w-full max-w-6xl">
+      {/* Match editor's ScaledSlidePreview layout: w-full px-16 */}
+      <div className="w-full px-16">
         <h2
-          className="text-4xl font-bold mb-8 text-center"
+          className="text-4xl font-bold mb-12 text-center"
           style={{ color: slide.content.questionColor || textColor }}
         >
           {slide.content.question}
         </h2>
         
-        <div className="grid grid-cols-2 gap-8">
+        <div className="grid grid-cols-2 gap-12 max-w-4xl mx-auto">
           {/* Left Column - Draggable Items */}
           <div>
             <h3 className="text-xl font-semibold mb-4 text-gray-700">Elemek</h3>
-            <div className="space-y-3">
+            <div className="space-y-4">
               {leftItems.map((item, displayIndex) => {
                 const isMatched = Object.values(matches).includes(item.originalIndex);
                 return (
@@ -342,7 +343,7 @@ export const MatchingSlideViewer: React.FC<MatchingSlideViewerProps> = ({ slide,
           {/* Right Column - Drop Zones */}
           <div>
             <h3 className="text-xl font-semibold mb-4 text-gray-700">Párosítások</h3>
-            <div className="space-y-3">
+            <div className="space-y-4">
               {pairs.map((pair: any, index: number) => (
                 <DropZone
                   key={index}
@@ -359,7 +360,7 @@ export const MatchingSlideViewer: React.FC<MatchingSlideViewerProps> = ({ slide,
         </div>
 
         {Object.keys(matches).length > 0 && (
-          <div className="mt-6 text-center">
+          <div className="mt-8 text-center">
             <button
               onClick={handleReset}
               className="px-6 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg text-gray-700 font-medium transition-colors"

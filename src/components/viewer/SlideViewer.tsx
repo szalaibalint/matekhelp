@@ -55,17 +55,19 @@ function ScaledSlideWrapper({ children, slide }: { children: React.ReactNode; sl
   }, []);
 
   return (
-    <div className="w-full h-full overflow-hidden">
+    // Use aspect ratio container like editor's preview to prevent extra vertical space
+    <div className="w-full" style={{ aspectRatio: '16/9' }}>
       <div 
         ref={containerRef}
-        className="origin-top-left"
+        className="origin-top-left w-full h-full"
         style={{
           width: `${SLIDE_WIDTH}px`,
           height: `${SLIDE_HEIGHT}px`,
           transform: `scale(${scale})`,
         }}
       >
-        <div className="w-full h-full flex flex-col items-center pt-8 px-8">
+        {/* Match editor's ScaledSlidePreview layout exactly: flex flex-col items-center justify-center */}
+        <div className="w-full h-full flex flex-col items-center justify-center">
           {children}
         </div>
       </div>

@@ -3138,16 +3138,13 @@ function PreviewMode({ slides, currentIndex, onNext, onPrev, onExit, theme }: { 
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
 
-  // Scale calculation matching the viewer
+  // Scale calculation matching the viewer - use containerRef directly
   useEffect(() => {
     const updateScale = () => {
       if (containerRef.current) {
-        const parent = containerRef.current.parentElement;
-        if (parent) {
-          const parentWidth = parent.offsetWidth;
-          const newScale = parentWidth / 1600;
-          setScale(newScale);
-        }
+        const parentWidth = containerRef.current.offsetWidth;
+        const newScale = parentWidth / 1600;
+        setScale(newScale);
       }
     };
 
@@ -3155,8 +3152,8 @@ function PreviewMode({ slides, currentIndex, onNext, onPrev, onExit, theme }: { 
     window.addEventListener('resize', updateScale);
     
     const resizeObserver = new ResizeObserver(updateScale);
-    if (containerRef.current?.parentElement) {
-      resizeObserver.observe(containerRef.current.parentElement);
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current);
     }
 
     return () => {
@@ -3552,43 +3549,37 @@ function PreviewMode({ slides, currentIndex, onNext, onPrev, onExit, theme }: { 
           (() => {
             const slideHeight = currentSlide.settings?.slideHeight || 900;
             const needsScroll = slideHeight > 900;
+            const scaledHeight = slideHeight * scale;
             return (
               <div 
-                className="w-full h-full preview-mode-scroll"
+                ref={containerRef}
+                className="w-full h-full"
                 style={{
                   overflowX: 'hidden',
                   overflowY: needsScroll ? 'auto' : 'hidden',
-                  scrollbarGutter: 'stable',
                 }}
               >
-                <style>{`
-                  .preview-mode-scroll::-webkit-scrollbar {
-                    width: 8px;
-                  }
-                  .preview-mode-scroll::-webkit-scrollbar-track {
-                    background: transparent;
-                  }
-                  .preview-mode-scroll::-webkit-scrollbar-thumb {
-                    background: rgba(0, 0, 0, 0.2);
-                    border-radius: 4px;
-                  }
-                  .preview-mode-scroll::-webkit-scrollbar-thumb:hover {
-                    background: rgba(0, 0, 0, 0.3);
-                  }
-                `}</style>
-                <div 
-                  ref={containerRef}
-                  className="origin-top-left"
+                {/* Wrapper that constrains the layout to the scaled visual size */}
+                <div
                   style={{
-                    width: '1600px',
-                    minHeight: `${slideHeight}px`,
-                    transform: `scale(${scale})`,
-                    backgroundColor: currentSlide.backgroundColor || theme?.background || '#ffffff',
-                    color: currentSlide.textColor || theme?.textColor || '#000000',
+                    width: '100%',
+                    height: needsScroll ? 'auto' : `${scaledHeight}px`,
+                    overflow: 'hidden',
                   }}
                 >
-                  <div className="w-full p-8 overflow-visible relative" style={{ paddingRight: '24px' }}>
-                    <RichTextRenderer content={currentSlide.content} />
+                  <div 
+                    className="origin-top-left"
+                    style={{
+                      width: '1600px',
+                      minHeight: `${slideHeight}px`,
+                      transform: `scale(${scale})`,
+                      backgroundColor: currentSlide.backgroundColor || theme?.background || '#ffffff',
+                      color: currentSlide.textColor || theme?.textColor || '#000000',
+                    }}
+                  >
+                    <div className="w-full p-8 overflow-visible relative" style={{ paddingRight: '24px' }}>
+                      <RichTextRenderer content={currentSlide.content} />
+                    </div>
                   </div>
                 </div>
               </div>

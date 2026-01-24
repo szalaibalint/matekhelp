@@ -62,14 +62,15 @@ interface MultipleChoiceSlideViewerProps {
 
 export const MultipleChoiceSlideViewer: React.FC<MultipleChoiceSlideViewerProps> = ({ slide, userAnswer, onAnswer, textColor }) => {
   return (
-    <div className="w-full max-w-4xl">
+    // Match editor's ScaledSlidePreview layout: w-full px-16
+    <div className="w-full px-16">
       <h2
-        className="text-4xl font-bold mb-8 text-center"
+        className="text-4xl font-bold mb-12 text-center"
         style={{ color: slide.content.questionColor || textColor }}
       >
         <MathText text={slide.content.question} />
       </h2>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-6 max-w-4xl mx-auto">
         {(slide.content.options || []).map((option: any, index: number) => {
           const optionData = typeof option === 'string' ? { text: option, textColor: '#000000', bgColor: '#ffffff', borderColor: '#d1d5db' } : option;
           const isSelected = slide.content.multipleCorrect
@@ -90,7 +91,7 @@ export const MultipleChoiceSlideViewer: React.FC<MultipleChoiceSlideViewerProps>
                   onAnswer(index);
                 }
               }}
-              className="p-8 rounded-lg border-4 transition-all text-xl font-medium"
+              className="p-6 rounded-xl text-center text-xl font-medium border-2 transition-all"
               style={{
                 color: optionData.textColor,
                 backgroundColor: isSelected ? '#dbeafe' : optionData.bgColor,

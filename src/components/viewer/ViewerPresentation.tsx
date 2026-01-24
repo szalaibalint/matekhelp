@@ -660,21 +660,18 @@ export default function ViewerPresentation() {
 
       {/* Slide container */}
       <div
-        className={`flex-1 overflow-auto transition-all ${
+        className={`flex-1 transition-all ${
           showThumbnails && !isFullscreen ? 'md:mr-48 lg:mr-64' : ''
-        }`}
+        } ${currentSlide.type === 'text' ? 'overflow-hidden' : 'overflow-auto flex items-center justify-center'}`}
         style={{ backgroundColor: slideBackgroundColor, color: slideTextColor }}
       >
-        {/* Full width container matching preview - no padding, slides scale to fill width */}
-        <div className="w-full h-full overflow-hidden">
-          <SlideViewer
-            slide={currentSlide}
-            userAnswer={userAnswers[currentIndex]}
-            onAnswer={(answer, slideIndex, elementIndex) => handleAnswer(answer, slideIndex, elementIndex)}
-            textColor={slideTextColor}
-            slideIndex={currentIndex}
-          />
-        </div>
+        <SlideViewer
+          slide={currentSlide}
+          userAnswer={userAnswers[currentIndex]}
+          onAnswer={(answer, slideIndex, elementIndex) => handleAnswer(answer, slideIndex, elementIndex)}
+          textColor={slideTextColor}
+          slideIndex={currentIndex}
+        />
       </div>
 
       {/* Navigation Toolbar - Hidden in fullscreen */}

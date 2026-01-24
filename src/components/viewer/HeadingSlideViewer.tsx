@@ -8,9 +8,10 @@ interface HeadingSlideViewerProps {
 
 export const HeadingSlideViewer: React.FC<HeadingSlideViewerProps> = ({ slide, textColor }) => {
   return (
-    <div className="text-center">
+    // Match editor's ScaledSlidePreview layout: text-center px-16
+    <div className="text-center px-16">
       <h1
-        className="text-5xl font-bold mb-4"
+        className="font-bold mb-4"
         style={{ 
           color: slide.content.textColor || textColor,
           fontSize: slide.content.fontSize || '48px',
@@ -21,9 +22,8 @@ export const HeadingSlideViewer: React.FC<HeadingSlideViewerProps> = ({ slide, t
       </h1>
       {slide.content.subtitle && (
         <p
-          className="text-2xl"
           style={{ 
-            color: slide.content.subtitleColor || textColor,
+            color: slide.content.subtitleColor || '#666666',
             fontSize: slide.content.subtitleFontSize || '24px',
             fontFamily: slide.content.subtitleFontFamily || 'Inter'
           }}

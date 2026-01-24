@@ -197,20 +197,17 @@ function ScaledTextSlideContent({
   renderNode: (node: any, path: number[]) => JSX.Element | JSX.Element[];
   slideHeight?: number;
 }) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  // Dynamic scale based on parent width - matches preview behavior
+  const outerRef = useRef<HTMLDivElement>(null);
+  // Dynamic scale based on container width - matches preview behavior
   const [scale, setScale] = useState(1);
 
   useEffect(() => {
     const updateScale = () => {
-      if (containerRef.current) {
-        const parent = containerRef.current.parentElement;
-        if (parent) {
-          const parentWidth = parent.offsetWidth;
-          // Scale to fit parent width, matching preview behavior
-          const newScale = parentWidth / SLIDE_WIDTH;
-          setScale(newScale);
-        }
+      if (outerRef.current) {
+        const parentWidth = outerRef.current.offsetWidth;
+        // Scale to fit parent width, matching preview behavior
+        const newScale = parentWidth / SLIDE_WIDTH;
+        setScale(newScale);
       }
     };
 
@@ -218,8 +215,8 @@ function ScaledTextSlideContent({
     window.addEventListener('resize', updateScale);
     
     const resizeObserver = new ResizeObserver(updateScale);
-    if (containerRef.current?.parentElement) {
-      resizeObserver.observe(containerRef.current.parentElement);
+    if (outerRef.current) {
+      resizeObserver.observe(outerRef.current);
     }
 
     return () => {
@@ -229,43 +226,38 @@ function ScaledTextSlideContent({
   }, []);
 
   const needsScroll = slideHeight > SLIDE_HEIGHT;
+  // Calculate the visual dimensions after scaling
+  const scaledHeight = slideHeight * scale;
 
   return (
     <div 
-      className="w-full h-full viewer-scroll-container"
+      ref={outerRef}
+      className="w-full h-full"
       style={{
         overflowX: 'hidden',
         overflowY: needsScroll ? 'auto' : 'hidden',
-        scrollbarGutter: 'stable',
       }}
     >
-      <style>{`
-        .viewer-scroll-container::-webkit-scrollbar {
-          width: 8px;
-        }
-        .viewer-scroll-container::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        .viewer-scroll-container::-webkit-scrollbar-thumb {
-          background: rgba(0, 0, 0, 0.2);
-          border-radius: 4px;
-        }
-        .viewer-scroll-container::-webkit-scrollbar-thumb:hover {
-          background: rgba(0, 0, 0, 0.3);
-        }
-      `}</style>
-      <div 
-        ref={containerRef}
-        className="origin-top-left"
+      {/* Wrapper that constrains the layout to the scaled visual size */}
+      <div
         style={{
-          width: `${SLIDE_WIDTH}px`,
-          minHeight: `${slideHeight}px`,
-          transform: `scale(${scale})`,
+          width: '100%',
+          height: needsScroll ? 'auto' : `${scaledHeight}px`,
+          overflow: 'hidden',
         }}
       >
-        <div className="w-full p-8 overflow-visible relative" style={{ paddingRight: '24px' }}>
-          <div className="prose prose-lg max-w-none relative" style={{ whiteSpace: 'pre-wrap' }}>
-            {content.map((node: any, i: number) => renderNode(node, [i]))}
+        <div 
+          className="origin-top-left"
+          style={{
+            width: `${SLIDE_WIDTH}px`,
+            minHeight: `${slideHeight}px`,
+            transform: `scale(${scale})`,
+          }}
+        >
+          <div className="w-full p-8 overflow-visible relative" style={{ paddingRight: '24px' }}>
+            <div className="prose prose-lg max-w-none relative" style={{ whiteSpace: 'pre-wrap' }}>
+              {content.map((node: any, i: number) => renderNode(node, [i]))}
+            </div>
           </div>
         </div>
       </div>

@@ -213,14 +213,15 @@ export const RankingSlideViewer: React.FC<RankingSlideViewerProps> = ({ slide, u
   return (
     <DndProvider backend={MultiBackend} options={backendOptions}>
       <CustomDragLayer />
-      <div className="w-full max-w-2xl mx-auto">
+      {/* Match editor's ScaledSlidePreview layout: w-full px-16 */}
+      <div className="w-full px-16">
         <h2
-          className="text-4xl font-bold mb-8 text-center"
+          className="text-4xl font-bold mb-12 text-center"
           style={{ color: slide.content.questionColor || textColor }}
         >
           {slide.content.question}
         </h2>
-        <div className="space-y-3">
+        <div className="space-y-4 max-w-2xl mx-auto">
           {rankingOrder.map((itemIndex: number, displayIndex: number) => {
             const item = slide.content.items[itemIndex];
             const itemData = typeof item === 'string' 

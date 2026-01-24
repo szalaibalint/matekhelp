@@ -77,28 +77,26 @@ export const TrueFalseSlideViewer: React.FC<TrueFalseSlideViewerProps> = ({
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto">
+    // Match editor's ScaledSlidePreview layout: w-full text-center px-16
+    <div className="w-full text-center px-16">
       <h2
-        className="text-4xl font-bold mb-12 text-center leading-relaxed"
+        className="text-4xl font-bold mb-16"
         style={{ color: slide.content.statementColor || textColor }}
       >
         <MathText text={slide.content.statement} />
       </h2>
       
-      <div className="grid grid-cols-2 gap-8">
+      <div className="grid grid-cols-2 gap-8 max-w-2xl mx-auto">
         {/* True Button */}
         <button
           onClick={() => handleSelect(true)}
           className={`p-8 rounded-xl border-4 transition-all transform hover:scale-105 ${
             selectedAnswer === true
               ? 'border-green-500 bg-green-50 shadow-xl'
-              : 'border-gray-300 bg-white hover:border-green-300 hover:bg-green-50'
+              : 'border-green-500 bg-green-50 hover:shadow-lg'
           }`}
         >
-          <div className="flex flex-col items-center space-y-4">
-            <Check className="h-16 w-16 text-green-600" />
-            <span className="text-3xl font-bold text-green-600">IGAZ</span>
-          </div>
+          <span className="text-3xl font-bold text-green-600">IGAZ</span>
         </button>
 
         {/* False Button */}
@@ -107,13 +105,10 @@ export const TrueFalseSlideViewer: React.FC<TrueFalseSlideViewerProps> = ({
           className={`p-8 rounded-xl border-4 transition-all transform hover:scale-105 ${
             selectedAnswer === false
               ? 'border-red-500 bg-red-50 shadow-xl'
-              : 'border-gray-300 bg-white hover:border-red-300 hover:bg-red-50'
+              : 'border-red-500 bg-red-50 hover:shadow-lg'
           }`}
         >
-          <div className="flex flex-col items-center space-y-4">
-            <X className="h-16 w-16 text-red-600" />
-            <span className="text-3xl font-bold text-red-600">HAMIS</span>
-          </div>
+          <span className="text-3xl font-bold text-red-600">HAMIS</span>
         </button>
       </div>
 
