@@ -35,7 +35,8 @@ export const MathElement: React.FC<MathElementProps> = ({ attributes, element, c
   const [editFontSize, setEditFontSize] = useState('');
   const formula: string = element.formula || '';
   const displayMode = !!element.displayMode;
-  const fontSize: string = element.fontSize || '16px';
+  // Only use explicit fontSize if set on the element, otherwise inherit from parent
+  const fontSize: string | undefined = element.fontSize;
 
   useEffect(() => {
     let cancelled = false;
@@ -91,7 +92,7 @@ export const MathElement: React.FC<MathElementProps> = ({ attributes, element, c
 
   const handleStartEdit = () => {
     setEditValue(formula);
-    setEditFontSize(fontSize);
+    setEditFontSize(fontSize || '16px');
     setIsEditing(true);
   };
 
@@ -130,12 +131,25 @@ export const MathElement: React.FC<MathElementProps> = ({ attributes, element, c
             {...attributes}
             contentEditable={false}
             onClick={handleStartEdit}
-            className="inline bg-yellow-100 hover:bg-yellow-200 rounded px-0.5 cursor-pointer transition-colors"
-            style={{ border: '1px solid #fbbf24', fontSize }}
+            className="bg-yellow-100 hover:bg-yellow-200 rounded px-0.5 cursor-pointer transition-colors"
+            style={{ 
+              border: '1px solid #fbbf24',
+              fontSize: fontSize || 'inherit',
+              display: 'inline',
+              verticalAlign: 'baseline'
+            }}
             title="Kattints a szerkesztéshez"
           >
             <span dangerouslySetInnerHTML={{ __html: html }} />
-            <span style={{ display: 'none' }}>{children}</span>
+            {/* Children must be rendered for Slate selection, but completely isolated */}
+            <span contentEditable={false} style={{ 
+              position: 'absolute', 
+              width: 0, 
+              height: 0, 
+              overflow: 'hidden',
+              opacity: 0,
+              pointerEvents: 'none'
+            }}>{children}</span>
           </span>
         </PopoverTrigger>
         <PopoverContent className="w-80 p-3" align="start">
@@ -188,12 +202,24 @@ export const MathElement: React.FC<MathElementProps> = ({ attributes, element, c
   }
 
   return (
-    <span {...attributes} contentEditable={false} className="inline" style={{ fontSize }}>
-      <span
-        className="inline"
-        dangerouslySetInnerHTML={{ __html: html }}
-      />
-      <span style={{ display: 'none' }}>{children}</span>
+    <span 
+      {...attributes} 
+      contentEditable={false} 
+      style={{ 
+        fontSize: fontSize || 'inherit',
+        display: 'inline',
+        verticalAlign: 'baseline'
+      }}
+    >
+      <span dangerouslySetInnerHTML={{ __html: html }} />
+      <span style={{ 
+        position: 'absolute', 
+        width: 0, 
+        height: 0, 
+        overflow: 'hidden',
+        opacity: 0,
+        pointerEvents: 'none'
+      }}>{children}</span>
     </span>
   );
 };

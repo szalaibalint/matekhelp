@@ -5,6 +5,16 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Override KaTeX font-size inheritance issues */
+.katex {
+  font-size: inherit !important;
+}
+
+/* Ensure text adjacent to math elements maintains proper size */
+.prose span[data-slate-node="text"] {
+  font-size: inherit;
+}
+
 /* Mobile-friendly global styles */
 @layer base {
   html {

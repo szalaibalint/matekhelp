@@ -129,6 +129,12 @@ const withAutoMath = (editor: Editor) => {
               },
             });
             
+            // Preserve current marks to apply to text after math element
+            const originalMarks = Editor.marks(editor);
+            
+            // Clear marks before inserting void element
+            (editor as any).marks = null;
+            
             // Insert math element with displayMode flag if needed
             const math = { 
               type: 'math-inline', 
@@ -140,6 +146,11 @@ const withAutoMath = (editor: Editor) => {
             
             // Move cursor after the math element
             Transforms.move(editor);
+            
+            // Restore original marks for subsequent text (space/newline)
+            if (originalMarks) {
+              (editor as any).marks = { ...originalMarks };
+            }
             
             // Insert the space/newline that triggered the conversion
             insertText(text);
@@ -156,38 +167,98 @@ const withAutoMath = (editor: Editor) => {
     const text = data.getData('text/plain');
 
     if (text) {
-      // Process pasted text for LaTeX patterns (only with $ delimiters)
+      // Process pasted text for LaTeX patterns
+      // Use a unified approach to find all math patterns and process them in order
       const lines = text.split('\n');
       let hasInsertedContent = false;
 
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
-        let lastIndex = 0;
         
-        // Match all LaTeX patterns in the line
-        // Patterns: $$...$$ or \[...\] for display math, $...$ or \(...\) for inline math
-        const displayMathRegex = /(\$\$([^\$]+)\$\$|\\\[([^]*?)\\\])/g;
-        const inlineMathRegex = /(\$([^\$]+)\$|\\\(([^]*?)\\\))/g;
+        // Combined regex that matches both display and inline math
+        // Display: $$...$$ or \[...\]
+        // Inline: $...$ (single $ with non-greedy content) or \(...\)
+        // Using non-greedy matching (.+?) to correctly handle multiple math expressions
+        const mathRegex = /(\$\$(.+?)\$\$|\\\[(.+?)\\\]|\$([^$\n]+?)\$|\\\((.+?)\\\))/g;
         
-        // First process display math (higher priority)
-        const displayMatches = [...line.matchAll(displayMathRegex)];
+        const allMatches: Array<{
+          index: number;
+          length: number;
+          formula: string;
+          isDisplay: boolean;
+        }> = [];
         
-        if (displayMatches.length > 0) {
-          for (const match of displayMatches) {
-            const beforeText = line.slice(lastIndex, match.index);
+        let match;
+        while ((match = mathRegex.exec(line)) !== null) {
+          const fullMatch = match[0];
+          let formula: string;
+          let isDisplay = false;
+          
+          if (match[2]) {
+            // $$...$$ display math
+            formula = match[2].trim();
+            isDisplay = true;
+          } else if (match[3]) {
+            // \[...\] display math
+            formula = match[3].trim();
+            isDisplay = true;
+          } else if (match[4]) {
+            // $...$ inline math
+            formula = match[4].trim();
+          } else if (match[5]) {
+            // \(...\) inline math
+            formula = match[5].trim();
+          } else {
+            continue;
+          }
+          
+          if (formula) {
+            allMatches.push({
+              index: match.index,
+              length: fullMatch.length,
+              formula,
+              isDisplay,
+            });
+          }
+        }
+        
+        if (allMatches.length > 0) {
+          let lastIndex = 0;
+          
+          // Preserve current marks to apply to text after math elements
+          const originalMarks = Editor.marks(editor);
+          
+          for (const m of allMatches) {
+            // Insert text before this match (with original marks)
+            const beforeText = line.slice(lastIndex, m.index);
             if (beforeText) {
               editor.insertText(beforeText);
             }
             
-            // Extract formula from either $$...$$ (group 2) or \[...\] (group 3)
-            const formula = (match[2] || match[3]).trim();
-            const math = { type: 'math-inline', formula, displayMode: true, children: [{ text: '' }] };
+            // Clear marks before inserting void element
+            (editor as any).marks = null;
+            
+            // Insert math element
+            const math = { 
+              type: 'math-inline', 
+              formula: m.formula, 
+              displayMode: m.isDisplay,
+              children: [{ text: '' }] 
+            };
             Transforms.insertNodes(editor, math);
+            
+            // Move cursor to position after the void element
             Transforms.move(editor);
             
-            lastIndex = (match.index || 0) + match[0].length;
+            // Restore original marks for subsequent text
+            if (originalMarks) {
+              (editor as any).marks = { ...originalMarks };
+            }
+            
+            lastIndex = m.index + m.length;
           }
           
+          // Insert remaining text after last match (with original marks)
           const remainingText = line.slice(lastIndex);
           if (remainingText) {
             editor.insertText(remainingText);
@@ -195,37 +266,9 @@ const withAutoMath = (editor: Editor) => {
           
           hasInsertedContent = true;
         } else {
-          // Process inline math
-          const inlineMatches = [...line.matchAll(inlineMathRegex)];
-          
-          if (inlineMatches.length > 0) {
-            lastIndex = 0;
-            for (const match of inlineMatches) {
-              const beforeText = line.slice(lastIndex, match.index);
-              if (beforeText) {
-                editor.insertText(beforeText);
-              }
-              
-              // Extract formula from either $...$ (group 2) or \(...\) (group 3)
-              const formula = (match[2] || match[3]).trim();
-              const math = { type: 'math-inline', formula, children: [{ text: '' }] };
-              Transforms.insertNodes(editor, math);
-              Transforms.move(editor);
-              
-              lastIndex = (match.index || 0) + match[0].length;
-            }
-            
-            const remainingText = line.slice(lastIndex);
-            if (remainingText) {
-              editor.insertText(remainingText);
-            }
-            
-            hasInsertedContent = true;
-          } else {
-            // No LaTeX found, insert as normal text
-            editor.insertText(line);
-            hasInsertedContent = true;
-          }
+          // No LaTeX found, insert as normal text
+          editor.insertText(line);
+          hasInsertedContent = true;
         }
         
         // Add newline between lines (except for the last one)
