@@ -2014,29 +2014,34 @@ function ScaledSlideEditor({
   const scaledWidth = 1600 * scale;
   const scaledHeight = effectiveHeight * scale;
 
+  // Toolbar height (approximate) - needed for positioning above the slide
+  const toolbarHeight = 72; // Approximate height of the editor toolbar
+
   return (
     <div 
       ref={wrapperRef}
-      className="relative overflow-hidden"
+      className="relative"
       style={{ 
         width: '100%',
         maxWidth: `${scaledWidth}px`,
-        height: `${scaledHeight + (slide.type === 'text' ? 12 : 0)}px` // Add space for resize handle
+        marginTop: `${toolbarHeight}px`, // Space for toolbar above
+        paddingBottom: slide.type === 'text' ? '12px' : undefined, // Space for resize handle
       }}
     >
       <div 
-        className="origin-top-left"
+        className="origin-top-left overflow-visible"
         style={{
           width: '1600px',
-          height: `${effectiveHeight}px`,
+          minHeight: `${effectiveHeight}px`,
           transform: `scale(${scale})`,
         }}
       >
         <div 
-          className="w-full h-full flex flex-col"
+          className="w-full h-full"
           style={{ 
             ...backgroundStyle,
             color: textColor,
+            minHeight: `${effectiveHeight}px`,
           }}
         >
           {/* Full-size editor that will be scaled down */}

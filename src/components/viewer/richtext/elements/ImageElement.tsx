@@ -15,8 +15,6 @@ const ImageElement = ({ attributes, children, element }: any) => {
     position: 'absolute' as const,
     left: `${position.x}px`,
     top: `${position.y}px`,
-    width: `${width}px`,
-    height: 'auto',
     zIndex: 10,
     margin: 0,
   } : {
@@ -37,7 +35,6 @@ const ImageElement = ({ attributes, children, element }: any) => {
         className="relative" 
         style={{ 
           display: 'inline-block',
-          maxWidth: isAbsolute ? 'none' : '100%',
           transform: rotation ? `rotate(${rotation}deg)` : undefined,
         }}
       >
@@ -46,9 +43,10 @@ const ImageElement = ({ attributes, children, element }: any) => {
           alt=""
           loading="lazy"
           style={{
-            width: isAbsolute ? '100%' : (width ? `${width}px` : '100%'),
+            // Use exact width/height like the editor does
+            width: `${width}px`,
+            height: `${height}px`,
             maxWidth: isAbsolute ? 'none' : '100%',
-            height: 'auto',
           }}
           className="block"
         />

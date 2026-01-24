@@ -766,13 +766,14 @@ export function RichTextEditor({ content, onChange, enableDragBlanks = false, bl
   };
 
   return (
-    <div className="flex flex-col min-h-full">
+    <div className="relative min-h-full">
       <Slate
         editor={editor}
         initialValue={initialValue}
         onChange={(value) => onChange(value)}
       >
-        <div className="border-b border-gray-200 p-4 flex flex-wrap items-center gap-2 bg-white/95 backdrop-blur-sm rounded-t-lg">
+        {/* Toolbar positioned absolutely above the content, doesn't affect content flow */}
+        <div className="absolute top-0 left-0 right-0 z-20 border-b border-gray-200 p-4 flex flex-wrap items-center gap-2 bg-white/95 backdrop-blur-sm rounded-t-lg" style={{ transform: 'translateY(-100%)' }}>
           <MarkButton format="bold" icon={<Bold className="h-5 w-5" />} />
           <MarkButton format="italic" icon={<Italic className="h-5 w-5" />} />
           <MarkButton format="underline" icon={<Underline className="h-5 w-5" />} />
@@ -1211,8 +1212,9 @@ export function RichTextEditor({ content, onChange, enableDragBlanks = false, bl
           </Dialog>
         </div>
 
-        <div className="flex-1 p-8 overflow-visible relative min-h-[400px]">
-          <div className="prose prose-lg max-w-none relative">
+        {/* Content area - matches Preview and Viewer structure exactly */}
+        <div className="w-full p-8 overflow-visible relative" style={{ paddingRight: '24px' }}>
+          <div className="prose prose-lg max-w-none relative" style={{ whiteSpace: 'pre-wrap' }}>
             <Editable
               renderElement={renderElement}
               renderLeaf={renderLeaf}
@@ -1236,7 +1238,6 @@ export function RichTextEditor({ content, onChange, enableDragBlanks = false, bl
                 }
               }}
               className="min-h-full focus:outline-none"
-              style={{ whiteSpace: 'pre-wrap' }}
             />
           </div>
         </div>

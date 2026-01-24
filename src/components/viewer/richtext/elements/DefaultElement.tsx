@@ -2,7 +2,7 @@ import React from 'react';
 import isBlock from '../isBlock';
 
 const DefaultElement = ({ attributes, children, element }: any) => {
-  const style = { textAlign: element.align, whiteSpace: 'pre-line' as const };
+  const style = { textAlign: element.align };
   
   // Check if the paragraph is empty (only contains empty text nodes or whitespace)
   const isEmpty = element.children?.every((child: any) => 
@@ -16,7 +16,7 @@ const DefaultElement = ({ attributes, children, element }: any) => {
       <Tag 
         style={style} 
         {...attributes} 
-        className={`my-2 ${isEmpty ? 'min-h-[1.5em]' : ''}`}
+        className={`my-2 ${hasBlockChild ? 'leading-relaxed' : ''} ${isEmpty ? 'min-h-[1.5em]' : ''}`}
       >
         {/* Add a zero-width space for empty lines to maintain height */}
         {isEmpty ? <span className="invisible">&#8203;</span> : null}

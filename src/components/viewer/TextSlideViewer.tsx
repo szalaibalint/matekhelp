@@ -182,33 +182,9 @@ export const TextSlideViewer: React.FC<TextSlideViewerProps> = ({ slide, onAnswe
   // Get the stored slide height
   const slideHeight = slide.settings?.slideHeight || SLIDE_HEIGHT;
 
-  // Check if content has any absolute positioned images or animations
-  const hasAbsoluteElements = content.some((node: any) => {
-    if ((node.type === 'image' || node.type === 'animation') && node.isAbsolute) return true;
-    // Check nested children
-    const checkChildren = (children: any[]): boolean => {
-      if (!children) return false;
-      return children.some((child: any) => {
-        if ((child.type === 'image' || child.type === 'animation') && child.isAbsolute) return true;
-        return checkChildren(child.children);
-      });
-    };
-    return checkChildren(node.children);
-  });
-
-  // If there are absolute positioned elements, use a scaled container matching the editor's 1600x900 canvas
-  if (hasAbsoluteElements) {
-    return <ScaledTextSlideContent content={content} renderNode={renderNode} slideHeight={slideHeight} />;
-  }
-
-  // For simple text content without absolute elements, use full-width layout
-  return (
-    <div className="w-full h-full p-4 md:p-8 overflow-auto">
-      <div className="prose prose-lg max-w-none">
-        {content.map((node: any, i: number) => renderNode(node, [i]))}
-      </div>
-    </div>
-  );
+  // Always use scaled container to match editor exactly
+  // This ensures consistent rendering between editor, preview, and viewer
+  return <ScaledTextSlideContent content={content} renderNode={renderNode} slideHeight={slideHeight} />;
 };
 
 // Component that scales content to match the editor's 1600x900 canvas
