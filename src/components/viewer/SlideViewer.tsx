@@ -24,19 +24,22 @@ interface SlideViewerProps {
 // Wrapper component that scales content to match the 1600x900 canvas
 function ScaledSlideWrapper({ children, slide }: { children: React.ReactNode; slide: Slide }) {
   const containerRef = useRef<HTMLDivElement>(null);
-  // Dynamic scale based on parent width - matches preview behavior
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  // Dynamic scale based on available space - matches preview behavior
   const [scale, setScale] = useState(1);
 
   useEffect(() => {
     const updateScale = () => {
-      if (containerRef.current) {
-        const parent = containerRef.current.parentElement;
-        if (parent) {
-          const parentWidth = parent.offsetWidth;
-          // Scale to fit parent width, matching preview behavior
-          const newScale = parentWidth / SLIDE_WIDTH;
-          setScale(newScale);
-        }
+      if (wrapperRef.current) {
+        const wrapper = wrapperRef.current;
+        const availableWidth = wrapper.offsetWidth;
+        const availableHeight = wrapper.offsetHeight;
+        
+        // Calculate scale to fit within available space while maintaining aspect ratio
+        const scaleX = availableWidth / SLIDE_WIDTH;
+        const scaleY = availableHeight / SLIDE_HEIGHT;
+        const newScale = Math.min(scaleX, scaleY);
+        setScale(newScale);
       }
     };
 
@@ -44,8 +47,8 @@ function ScaledSlideWrapper({ children, slide }: { children: React.ReactNode; sl
     window.addEventListener('resize', updateScale);
     
     const resizeObserver = new ResizeObserver(updateScale);
-    if (containerRef.current?.parentElement) {
-      resizeObserver.observe(containerRef.current.parentElement);
+    if (wrapperRef.current) {
+      resizeObserver.observe(wrapperRef.current);
     }
 
     return () => {
@@ -54,21 +57,33 @@ function ScaledSlideWrapper({ children, slide }: { children: React.ReactNode; sl
     };
   }, []);
 
+  // Calculate the actual scaled dimensions
+  const scaledWidth = SLIDE_WIDTH * scale;
+  const scaledHeight = SLIDE_HEIGHT * scale;
+
   return (
-    // Use aspect ratio container like editor's preview to prevent extra vertical space
-    <div className="w-full" style={{ aspectRatio: '16/9' }}>
+    // Wrapper fills available space and centers the scaled content
+    <div ref={wrapperRef} className="w-full h-full flex items-center justify-center">
       <div 
-        ref={containerRef}
-        className="origin-top-left w-full h-full"
         style={{
-          width: `${SLIDE_WIDTH}px`,
-          height: `${SLIDE_HEIGHT}px`,
-          transform: `scale(${scale})`,
+          width: `${scaledWidth}px`,
+          height: `${scaledHeight}px`,
+          overflow: 'hidden',
         }}
       >
-        {/* Match editor's ScaledSlidePreview layout exactly: flex flex-col items-center justify-center */}
-        <div className="w-full h-full flex flex-col items-center justify-center">
-          {children}
+        <div 
+          ref={containerRef}
+          className="origin-top-left"
+          style={{
+            width: `${SLIDE_WIDTH}px`,
+            height: `${SLIDE_HEIGHT}px`,
+            transform: `scale(${scale})`,
+          }}
+        >
+          {/* Match editor's ScaledSlidePreview layout exactly: flex flex-col items-center justify-center */}
+          <div className="w-full h-full flex flex-col items-center justify-center">
+            {children}
+          </div>
         </div>
       </div>
     </div>

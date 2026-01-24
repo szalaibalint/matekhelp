@@ -662,7 +662,7 @@ export default function ViewerPresentation() {
       <div
         className={`flex-1 transition-all ${
           showThumbnails && !isFullscreen ? 'md:mr-48 lg:mr-64' : ''
-        } ${currentSlide.type === 'text' ? 'overflow-hidden' : 'overflow-auto flex items-center justify-center'}`}
+        } ${currentSlide.type === 'text' ? 'overflow-hidden' : 'overflow-hidden flex items-center justify-center'}`}
         style={{ backgroundColor: slideBackgroundColor, color: slideTextColor }}
       >
         <SlideViewer
