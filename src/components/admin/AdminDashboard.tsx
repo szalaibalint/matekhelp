@@ -137,6 +137,7 @@ export default function AdminDashboard() {
             onDeleteCategory={setDeletingCategory}
             onEditCategory={setEditingCategory}
             onMoveCategory={handleMoveCategory}
+            onCategoryMoved={fetchCategories}
           />
         </div>
 

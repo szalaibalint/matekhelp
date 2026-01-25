@@ -178,6 +178,62 @@ export const reorderCategories = async (categoryId: string, newParentId: string 
   }
 };
 
+export const moveCategoryUpDown = async (categoryId: string, parentId: string | null, direction: 'up' | 'down') => {
+  try {
+    // Get all categories at the same level (same parent)
+    let query = supabase
+      .from('categories')
+      .select('*');
+    
+    if (parentId === null) {
+      query = query.is('parent_id', null);
+    } else {
+      query = query.eq('parent_id', parentId);
+    }
+    
+    const { data: siblingCategories } = await query.order('sort_order');
+
+    if (!siblingCategories || siblingCategories.length < 2) return false;
+
+    // Find current position
+    const currentIndex = siblingCategories.findIndex(c => c.id === categoryId);
+    if (currentIndex === -1) return false;
+
+    // Calculate new position
+    const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    
+    // Check bounds
+    if (newIndex < 0 || newIndex >= siblingCategories.length) return false;
+
+    // Swap the categories
+    const temp = siblingCategories[currentIndex];
+    siblingCategories[currentIndex] = siblingCategories[newIndex];
+    siblingCategories[newIndex] = temp;
+
+    // Update sort_order for all categories at this level
+    for (let i = 0; i < siblingCategories.length; i++) {
+      await supabase
+        .from('categories')
+        .update({ sort_order: i })
+        .eq('id', siblingCategories[i].id);
+    }
+
+    toast({
+      title: 'Siker',
+      description: direction === 'up' ? 'A témakör feljebb került' : 'A témakör lejjebb került',
+    });
+    
+    return true;
+  } catch (error: any) {
+    toast({
+      title: 'Hiba',
+      description: error.message,
+      variant: 'destructive',
+    });
+    return false;
+  }
+};
+
 export const deleteCategory = async (deletingCategory: Category) => {
   try {
     // Reassign presentations to the parent category or null

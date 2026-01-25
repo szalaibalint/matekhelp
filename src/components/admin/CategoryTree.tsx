@@ -1,7 +1,14 @@
 import React, { useState } from 'react';
-import { Category } from '../../services/CategoryService';
+import { Category, moveCategoryUpDown } from '../../services/CategoryService';
 import { Button } from '../ui/button';
-import { Folder, ChevronRight, ChevronDown, Trash2, Pencil, GripVertical } from 'lucide-react';
+import { Folder, ChevronRight, ChevronDown, Trash2, Pencil, GripVertical, MoreVertical, ArrowUp, ArrowDown } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '../ui/dropdown-menu';
 
 interface CategoryTreeProps {
   categories: Category[];
@@ -10,6 +17,7 @@ interface CategoryTreeProps {
   onDeleteCategory: (category: Category) => void;
   onEditCategory: (category: Category) => void;
   onMoveCategory?: (categoryId: string, newParentId: string | null, insertBeforeId: string | null) => void;
+  onCategoryMoved?: () => void;
 }
 
 export const CategoryTree: React.FC<CategoryTreeProps> = ({
@@ -19,6 +27,7 @@ export const CategoryTree: React.FC<CategoryTreeProps> = ({
   onDeleteCategory,
   onEditCategory,
   onMoveCategory,
+  onCategoryMoved,
 }) => {
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [draggedCategory, setDraggedCategory] = useState<Category | null>(null);
@@ -162,6 +171,44 @@ export const CategoryTree: React.FC<CategoryTreeProps> = ({
     setDropPosition(null);
   };
 
+  // Helper function to get siblings and check if a category can be moved
+  const getSiblings = (category: Category): Category[] => {
+    if (category.parent_id === null) {
+      return categories;
+    }
+    const findParent = (cats: Category[]): Category | null => {
+      for (const cat of cats) {
+        if (cat.id === category.parent_id) return cat;
+        if (cat.children) {
+          const found = findParent(cat.children);
+          if (found) return found;
+        }
+      }
+      return null;
+    };
+    const parent = findParent(categories);
+    return parent?.children || [];
+  };
+
+  const canMoveUp = (category: Category): boolean => {
+    const siblings = getSiblings(category);
+    const index = siblings.findIndex(c => c.id === category.id);
+    return index > 0;
+  };
+
+  const canMoveDown = (category: Category): boolean => {
+    const siblings = getSiblings(category);
+    const index = siblings.findIndex(c => c.id === category.id);
+    return index < siblings.length - 1 && index !== -1;
+  };
+
+  const handleMoveUpDown = async (category: Category, direction: 'up' | 'down') => {
+    const success = await moveCategoryUpDown(category.id, category.parent_id, direction);
+    if (success && onCategoryMoved) {
+      onCategoryMoved();
+    }
+  };
+
   const renderCategory = (category: Category, level: number = 0) => {
     const isExpanded = expandedCategories.has(category.id);
     const isSelected = selectedCategoryId === category.id;
@@ -217,30 +264,62 @@ export const CategoryTree: React.FC<CategoryTreeProps> = ({
             <span className={`text-sm truncate ${isSelected ? 'font-semibold text-blue-900' : 'text-gray-700'}`}>{category.name}</span>
           </div>
           <div className="flex items-center gap-1 pointer-events-auto">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 hover:bg-blue-50"
-              onClick={(e) => {
-                e.stopPropagation();
-                onEditCategory(category);
-              }}
-              onDragStart={(e) => e.stopPropagation()}
-            >
-              <Pencil className="h-3 w-3 text-blue-500" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 hover:bg-red-50"
-              onClick={(e) => {
-                e.stopPropagation();
-                onDeleteCategory(category);
-              }}
-              onDragStart={(e) => e.stopPropagation()}
-            >
-              <Trash2 className="h-3 w-3 text-red-500" />
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 hover:bg-blue-50"
+                  onClick={(e) => e.stopPropagation()}
+                  onDragStart={(e) => e.stopPropagation()}
+                >
+                  <MoreVertical className="h-4 w-4 text-gray-500" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-40">
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEditCategory(category);
+                  }}
+                >
+                  <Pencil className="h-4 w-4 mr-2" />
+                  Szerkesztés
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleMoveUpDown(category, 'up');
+                  }}
+                  disabled={!canMoveUp(category)}
+                >
+                  <ArrowUp className="h-4 w-4 mr-2" />
+                  Mozgatás fel
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleMoveUpDown(category, 'down');
+                  }}
+                  disabled={!canMoveDown(category)}
+                >
+                  <ArrowDown className="h-4 w-4 mr-2" />
+                  Mozgatás le
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDeleteCategory(category);
+                  }}
+                  className="text-red-600 focus:text-red-600"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Törlés
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
         
