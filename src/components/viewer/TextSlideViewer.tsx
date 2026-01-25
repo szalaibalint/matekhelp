@@ -232,17 +232,17 @@ function ScaledTextSlideContent({
   return (
     <div 
       ref={outerRef}
-      className="w-full h-full"
+      className="w-full"
       style={{
-        overflowX: 'hidden',
-        overflowY: needsScroll ? 'auto' : 'hidden',
+        overflow: 'scroll',
+        height: `${scaledHeight}px`,
       }}
     >
       {/* Wrapper that constrains the layout to the scaled visual size */}
       <div
         style={{
           width: '100%',
-          height: needsScroll ? 'auto' : `${scaledHeight}px`,
+          height: `${scaledHeight}px`,
           overflow: 'hidden',
         }}
       >
