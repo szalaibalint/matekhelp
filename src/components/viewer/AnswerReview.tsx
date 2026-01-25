@@ -237,6 +237,19 @@ const SlideAnswerReview: React.FC<{
         {slide.type === 'text' && (
           <TextSlideReview slide={slide} userAnswer={userAnswer} />
         )}
+
+        {/* Explanation section */}
+        {slide.content.answerExplanation && (
+          <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-yellow-500 text-lg">💡</span>
+              <h4 className="font-medium text-gray-700">Magyarázat:</h4>
+            </div>
+            <p className="text-gray-600 whitespace-pre-wrap">
+              <MathText text={slide.content.answerExplanation} />
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

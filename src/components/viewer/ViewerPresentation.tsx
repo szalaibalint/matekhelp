@@ -6,6 +6,7 @@ import { ArrowLeft, Maximize, Minimize, Grid, X, BookOpen, RotateCw } from 'luci
 import { Slide, loadSlides } from '../../services/SlideService';
 import { SlideViewer } from './SlideViewer';
 import { ResultsPage } from './ResultsPage';
+import { AnswerFeedback } from './AnswerFeedback';
 import { incrementViewCount } from '../../services/PresentationTrackingService';
 import { UserProgressService } from '../../services/UserProgressService';
 import { useViewerAuth } from '../../contexts/ViewerAuthContext';
@@ -33,6 +34,8 @@ export default function ViewerPresentation() {
   const [showThumbnails, setShowThumbnails] = useState(false);
   const [furthestSlideReached, setFurthestSlideReached] = useState(0);
   const [isMobilePortrait, setIsMobilePortrait] = useState(false);
+  const [showAnswerFeedback, setShowAnswerFeedback] = useState(false);
+  const [feedbackSlideIndex, setFeedbackSlideIndex] = useState<number | null>(null);
   const { toast } = useToast();
 
   // Detect mobile portrait orientation
@@ -54,6 +57,53 @@ export default function ViewerPresentation() {
   }, []);
 
   const minSwipeDistance = 50;
+
+  // Check if current slide should show answer feedback
+  const shouldShowFeedback = (slideIndex: number): boolean => {
+    const slide = slides[slideIndex];
+    if (!slide) return false;
+    
+    // Only show feedback if the slide has the toggle enabled and has an answer
+    const hasShowFeedback = slide.content?.showAnswerAfterSlide === true;
+    const hasUserAnswer = userAnswers[slideIndex] !== undefined;
+    
+    // Check if it's an answerable slide type
+    const answerableTypes = ['multiple_choice', 'true_false', 'ranking', 'matching', 'fill_in_blanks'];
+    const isAnswerableType = answerableTypes.includes(slide.type);
+    
+    return hasShowFeedback && hasUserAnswer && isAnswerableType;
+  };
+
+  // Handle navigation to next slide with possible feedback
+  const goToNextSlide = () => {
+    if (showResults) return;
+    
+    // Check if we should show feedback for current slide
+    if (shouldShowFeedback(currentIndex) && feedbackSlideIndex !== currentIndex) {
+      setFeedbackSlideIndex(currentIndex);
+      setShowAnswerFeedback(true);
+      return;
+    }
+    
+    // Navigate to next slide or show results
+    if (currentIndex < slides.length - 1) {
+      setCurrentIndex(currentIndex + 1);
+    } else {
+      setShowResults(true);
+    }
+  };
+
+  // Handle continuing after feedback
+  const handleFeedbackContinue = () => {
+    setShowAnswerFeedback(false);
+    
+    // Navigate to next slide or show results
+    if (currentIndex < slides.length - 1) {
+      setCurrentIndex(currentIndex + 1);
+    } else {
+      setShowResults(true);
+    }
+  };
 
   // Fullscreen functions
   const toggleFullscreen = () => {
@@ -113,27 +163,25 @@ export default function ViewerPresentation() {
         case 'ArrowRight':
         case ' ': // Space bar
           e.preventDefault();
-          if (!showResults && currentIndex < slides.length - 1) {
-            setCurrentIndex(currentIndex + 1);
-          } else if (!showResults && currentIndex === slides.length - 1) {
-            setShowResults(true);
+          if (!showResults && !showAnswerFeedback) {
+            goToNextSlide();
           }
           break;
         case 'ArrowLeft':
           e.preventDefault();
-          if (!showResults && currentIndex > 0) {
+          if (!showResults && !showAnswerFeedback && currentIndex > 0) {
             setCurrentIndex(currentIndex - 1);
           }
           break;
         case 'ArrowDown':
           e.preventDefault();
-          if (!showResults && currentIndex < slides.length - 1) {
-            setCurrentIndex(currentIndex + 1);
+          if (!showResults && !showAnswerFeedback) {
+            goToNextSlide();
           }
           break;
         case 'ArrowUp':
           e.preventDefault();
-          if (!showResults && currentIndex > 0) {
+          if (!showResults && !showAnswerFeedback && currentIndex > 0) {
             setCurrentIndex(currentIndex - 1);
           }
           break;
@@ -161,7 +209,7 @@ export default function ViewerPresentation() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentIndex, slides.length, showResults, navigate]);
+  }, [currentIndex, slides.length, showResults, showAnswerFeedback, navigate, userAnswers, feedbackSlideIndex]);
 
   // Track progress when slide changes
   useEffect(() => {
@@ -222,13 +270,14 @@ export default function ViewerPresentation() {
 
   const onTouchEnd = () => {
     if (!touchStart || !touchEnd) return;
+    if (showAnswerFeedback) return; // Don't swipe during feedback
     
     const distance = touchStart - touchEnd;
     const isLeftSwipe = distance > minSwipeDistance;
     const isRightSwipe = distance < -minSwipeDistance;
     
-    if (isLeftSwipe && currentIndex < slides.length - 1) {
-      setCurrentIndex(Math.min(slides.length - 1, currentIndex + 1));
+    if (isLeftSwipe) {
+      goToNextSlide();
     }
     if (isRightSwipe && currentIndex > 0) {
       setCurrentIndex(Math.max(0, currentIndex - 1));
@@ -725,14 +774,14 @@ export default function ViewerPresentation() {
             </Button>
             {isLastSlide ? (
               <Button 
-                onClick={() => setShowResults(true)} 
+                onClick={goToNextSlide} 
                 className="flex-1 h-12 touch-manipulation bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 shadow-md"
               >
                 Eredmények
               </Button>
             ) : (
               <Button 
-                onClick={() => setCurrentIndex(Math.min(slides.length - 1, currentIndex + 1))} 
+                onClick={goToNextSlide} 
                 className="flex-1 h-12 touch-manipulation bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 shadow-md"
               >
                 Következő
@@ -780,14 +829,14 @@ export default function ViewerPresentation() {
             </Button>
             {isLastSlide ? (
               <Button 
-                onClick={() => setShowResults(true)}
+                onClick={goToNextSlide}
                 className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 shadow-md"
               >
                 Eredmények megjelenítése
               </Button>
             ) : (
               <Button 
-                onClick={() => setCurrentIndex(Math.min(slides.length - 1, currentIndex + 1))}
+                onClick={goToNextSlide}
                 className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 shadow-md"
               >
                 Következő
@@ -796,6 +845,15 @@ export default function ViewerPresentation() {
           </div>
         </div>
         </div>
+      )}
+
+      {/* Answer Feedback Modal */}
+      {showAnswerFeedback && feedbackSlideIndex !== null && (
+        <AnswerFeedback
+          slide={slides[feedbackSlideIndex]}
+          userAnswer={userAnswers[feedbackSlideIndex]}
+          onContinue={handleFeedbackContinue}
+        />
       )}
 
       {/* Resume Dialog */}

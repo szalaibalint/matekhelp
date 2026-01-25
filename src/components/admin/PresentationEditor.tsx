@@ -2599,6 +2599,30 @@ function SlideEditorPanel({ slide, onChange, theme }: { slide: Slide; onChange: 
               className="w-full"
             />
           </div>
+
+          {/* Answer Feedback Options */}
+          <div className="space-y-3 pt-3 border-t border-gray-200">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="showAnswerAfterSlide"
+                checked={slide.content.showAnswerAfterSlide || false}
+                onCheckedChange={(checked) => onChange({ 
+                  content: { ...slide.content, showAnswerAfterSlide: checked }
+                })}
+              />
+              <Label htmlFor="showAnswerAfterSlide" className="text-sm text-gray-600">Helyes válasz mutatása a dia után</Label>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-gray-700">Magyarázat (opcionális)</Label>
+              <Textarea
+                value={slide.content.answerExplanation || ''}
+                onChange={(e) => onChange({ content: { ...slide.content, answerExplanation: e.target.value } })}
+                rows={3}
+                placeholder="Miért ez a helyes válasz? Írj egy tippet vagy magyarázatot..."
+                className="resize-none text-sm"
+              />
+            </div>
+          </div>
         </>
       )}
 
@@ -2748,6 +2772,30 @@ function SlideEditorPanel({ slide, onChange, theme }: { slide: Slide; onChange: 
               onChange={(e) => onChange({ points: e.target.value })}
               onBlur={(e) => onChange({ points: parseInt(e.target.value) || 0 })}
             />
+          </div>
+
+          {/* Answer Feedback Options */}
+          <div className="space-y-3 pt-3 border-t border-gray-200">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="showAnswerAfterSlide-ranking"
+                checked={slide.content.showAnswerAfterSlide || false}
+                onCheckedChange={(checked) => onChange({ 
+                  content: { ...slide.content, showAnswerAfterSlide: checked }
+                })}
+              />
+              <Label htmlFor="showAnswerAfterSlide-ranking" className="text-sm text-gray-600">Helyes válasz mutatása a dia után</Label>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-gray-700">Magyarázat (opcionális)</Label>
+              <Textarea
+                value={slide.content.answerExplanation || ''}
+                onChange={(e) => onChange({ content: { ...slide.content, answerExplanation: e.target.value } })}
+                rows={3}
+                placeholder="Miért ez a helyes sorrend? Írj egy tippet vagy magyarázatot..."
+                className="resize-none text-sm"
+              />
+            </div>
           </div>
         </>
       )}
@@ -2969,6 +3017,30 @@ function SlideEditorPanel({ slide, onChange, theme }: { slide: Slide; onChange: 
           <p className="text-xs text-gray-500">
             {slide.content.pairs?.length || 0} pár × {slide.content.pointsPerPair ?? 1} pont
           </p>
+
+          {/* Answer Feedback Options */}
+          <div className="space-y-3 pt-3 border-t border-gray-200">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="showAnswerAfterSlide-matching"
+                checked={slide.content.showAnswerAfterSlide || false}
+                onCheckedChange={(checked) => onChange({ 
+                  content: { ...slide.content, showAnswerAfterSlide: checked }
+                })}
+              />
+              <Label htmlFor="showAnswerAfterSlide-matching" className="text-sm text-gray-600">Helyes válasz mutatása a dia után</Label>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-gray-700">Magyarázat (opcionális)</Label>
+              <Textarea
+                value={slide.content.answerExplanation || ''}
+                onChange={(e) => onChange({ content: { ...slide.content, answerExplanation: e.target.value } })}
+                rows={3}
+                placeholder="Miért ezek a helyes párosítások? Írj egy tippet vagy magyarázatot..."
+                className="resize-none text-sm"
+              />
+            </div>
+          </div>
         </>
       )}
 
@@ -3055,6 +3127,30 @@ function SlideEditorPanel({ slide, onChange, theme }: { slide: Slide; onChange: 
               onChange={(e) => onChange({ points: e.target.value })}
               onBlur={(e) => onChange({ points: parseInt(e.target.value) || 0 })}
             />
+          </div>
+
+          {/* Answer Feedback Options */}
+          <div className="space-y-3 pt-3 border-t border-gray-200">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="showAnswerAfterSlide-truefalse"
+                checked={slide.content.showAnswerAfterSlide || false}
+                onCheckedChange={(checked) => onChange({ 
+                  content: { ...slide.content, showAnswerAfterSlide: checked }
+                })}
+              />
+              <Label htmlFor="showAnswerAfterSlide-truefalse" className="text-sm text-gray-600">Helyes válasz mutatása a dia után</Label>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-gray-700">Magyarázat (opcionális)</Label>
+              <Textarea
+                value={slide.content.answerExplanation || ''}
+                onChange={(e) => onChange({ content: { ...slide.content, answerExplanation: e.target.value } })}
+                rows={3}
+                placeholder="Miért ez a helyes válasz? Írj egy tippet vagy magyarázatot..."
+                className="resize-none text-sm"
+              />
+            </div>
           </div>
         </>
       )}
@@ -3169,6 +3265,30 @@ function SlideEditorPanel({ slide, onChange, theme }: { slide: Slide; onChange: 
                 {Math.floor((typeof slide.points === 'string' ? parseInt(slide.points) || 0 : slide.points || 0) / (slide.content.blanks || []).length)} pont / mező
               </p>
             )}
+          </div>
+
+          {/* Answer Feedback Options */}
+          <div className="space-y-3 pt-3 border-t border-gray-200">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="showAnswerAfterSlide-blanks"
+                checked={slide.content.showAnswerAfterSlide || false}
+                onCheckedChange={(checked) => onChange({ 
+                  content: { ...slide.content, showAnswerAfterSlide: checked }
+                })}
+              />
+              <Label htmlFor="showAnswerAfterSlide-blanks" className="text-sm text-gray-600">Helyes válasz mutatása a dia után</Label>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-gray-700">Magyarázat (opcionális)</Label>
+              <Textarea
+                value={slide.content.answerExplanation || ''}
+                onChange={(e) => onChange({ content: { ...slide.content, answerExplanation: e.target.value } })}
+                rows={3}
+                placeholder="Miért ezek a helyes válaszok? Írj egy tippet vagy magyarázatot..."
+                className="resize-none text-sm"
+              />
+            </div>
           </div>
         </>
       )}
