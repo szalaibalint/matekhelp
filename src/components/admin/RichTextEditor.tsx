@@ -138,10 +138,12 @@ const withAutoMath = (editor: Editor) => {
             (editor as any).marks = null;
             
             // Insert math element with displayMode flag if needed
+            // Default to 28px to match text slide default font size
             const math = { 
               type: 'math-inline', 
               formula, 
               displayMode: isDisplayMode,
+              fontSize: '28px',
               children: [{ text: '' }] 
             };
             Transforms.insertNodes(editor, math);
@@ -241,10 +243,12 @@ const withAutoMath = (editor: Editor) => {
             (editor as any).marks = null;
             
             // Insert math element
+            // Default to 28px to match text slide default font size
             const math = { 
               type: 'math-inline', 
               formula: m.formula, 
               displayMode: m.isDisplay,
+              fontSize: '28px',
               children: [{ text: '' }] 
             };
             Transforms.insertNodes(editor, math);
@@ -414,8 +418,23 @@ export function RichTextEditor({ content, onChange, enableDragBlanks = false, bl
   const [correctAnswers, setCorrectAnswers] = useState<string[]>([]);
   
   const insertMathInline = (formula: string) => {
-    const math = { type: 'math-inline', formula, fontSize, children: [{ text: '' }] };
+    // Preserve current marks to apply to text after math element
+    const originalMarks = Editor.marks(editor);
+    
+    // Clear marks before inserting void element
+    (editor as any).marks = null;
+    
+    // Default to 28px to match text slide default font size
+    const math = { type: 'math-inline', formula, fontSize: '28px', children: [{ text: '' }] };
     Transforms.insertNodes(editor, math);
+    
+    // Move cursor after the math element
+    Transforms.move(editor);
+    
+    // Restore original marks for subsequent text
+    if (originalMarks) {
+      (editor as any).marks = { ...originalMarks };
+    }
   };
 
   const handleImageUpload = async (file: File) => {

@@ -92,7 +92,7 @@ export const MathElement: React.FC<MathElementProps> = ({ attributes, element, c
 
   const handleStartEdit = () => {
     setEditValue(formula);
-    setEditFontSize(fontSize || '16px');
+    setEditFontSize(fontSize || '28px');
     setIsEditing(true);
   };
 
