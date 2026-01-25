@@ -1606,7 +1606,7 @@ function SlidePreviewContent({ slide, theme }: { slide: Slide; theme: any }) {
       return (
         <div className="w-full">
           <h2 className="text-2xl font-bold mb-6 text-center" style={{ color: slide.content?.questionColor || '#000000' }}>
-            {slide.content?.question || 'Kérdés'}
+            <MathText text={slide.content?.question || 'Kérdés'} />
           </h2>
           <div className="grid grid-cols-2 gap-3 max-w-2xl mx-auto">
             {(slide.content?.options || []).slice(0, 4).map((option: any, index: number) => (
@@ -1619,7 +1619,7 @@ function SlidePreviewContent({ slide, theme }: { slide: Slide; theme: any }) {
                   borderColor: option.borderColor || '#d1d5db',
                 }}
               >
-                {option.text || option}
+                <MathText text={option.text || option} />
               </div>
             ))}
           </div>
@@ -1629,7 +1629,7 @@ function SlidePreviewContent({ slide, theme }: { slide: Slide; theme: any }) {
       return (
         <div className="w-full">
           <h2 className="text-2xl font-bold mb-6 text-center" style={{ color: slide.content?.questionColor || '#000000' }}>
-            {slide.content?.question || 'Rakd sorrendbe'}
+            <MathText text={slide.content?.question || 'Rakd sorrendbe'} />
           </h2>
           <div className="space-y-2 max-w-md mx-auto">
             {(slide.content?.items || []).slice(0, 4).map((item: any, index: number) => (
@@ -1643,7 +1643,7 @@ function SlidePreviewContent({ slide, theme }: { slide: Slide; theme: any }) {
                 }}
               >
                 <span className="font-bold mr-3">{index + 1}.</span>
-                {item.text || item}
+                <MathText text={item.text || item} />
               </div>
             ))}
           </div>
@@ -1653,20 +1653,20 @@ function SlidePreviewContent({ slide, theme }: { slide: Slide; theme: any }) {
       return (
         <div className="w-full">
           <h2 className="text-2xl font-bold mb-6 text-center" style={{ color: slide.content?.questionColor || '#000000' }}>
-            {slide.content?.question || 'Párosítsd össze'}
+            <MathText text={slide.content?.question || 'Párosítsd össze'} />
           </h2>
           <div className="grid grid-cols-2 gap-6 max-w-2xl mx-auto">
             <div className="space-y-2">
               {(slide.content?.pairs || []).slice(0, 3).map((pair: any, index: number) => (
                 <div key={index} className="p-2 rounded-lg text-sm border-2 text-center" style={{ backgroundColor: pair.leftColor || '#ffffff' }}>
-                  {pair.left}
+                  <MathText text={pair.left} />
                 </div>
               ))}
             </div>
             <div className="space-y-2">
               {(slide.content?.pairs || []).slice(0, 3).map((pair: any, index: number) => (
                 <div key={index} className="p-2 rounded-lg text-sm border-2 border-dashed text-center" style={{ backgroundColor: pair.rightColor || '#ffffff' }}>
-                  {pair.right}
+                  <MathText text={pair.right} />
                 </div>
               ))}
             </div>
@@ -1677,7 +1677,7 @@ function SlidePreviewContent({ slide, theme }: { slide: Slide; theme: any }) {
       return (
         <div className="w-full text-center">
           <h2 className="text-2xl font-bold mb-8" style={{ color: slide.content?.statementColor || '#000000' }}>
-            {slide.content?.statement || 'Állítás'}
+            <MathText text={slide.content?.statement || 'Állítás'} />
           </h2>
           <div className="grid grid-cols-2 gap-4 max-w-md mx-auto">
             <div className="p-4 rounded-lg border-2 border-green-500 bg-green-50">
@@ -1871,7 +1871,7 @@ function ScaledSlidePreview({ slide, theme }: { slide: Slide; theme: any }) {
         {slide.type === 'multiple_choice' && (
           <div className="w-full px-16">
             <h2 className="text-4xl font-bold mb-12 text-center" style={{ color: slide.content?.questionColor || textColor }}>
-              {slide.content?.question || 'Kérdés'}
+              <MathText text={slide.content?.question || 'Kérdés'} />
             </h2>
             <div className="grid grid-cols-2 gap-6 max-w-4xl mx-auto">
               {(slide.content?.options || []).map((option: any, index: number) => (
@@ -1884,7 +1884,7 @@ function ScaledSlidePreview({ slide, theme }: { slide: Slide; theme: any }) {
                     borderColor: option.borderColor || '#d1d5db',
                   }}
                 >
-                  {option.text || option}
+                  <MathText text={option.text || option} />
                 </div>
               ))}
             </div>
@@ -1894,7 +1894,7 @@ function ScaledSlidePreview({ slide, theme }: { slide: Slide; theme: any }) {
         {slide.type === 'ranking' && (
           <div className="w-full px-16">
             <h2 className="text-4xl font-bold mb-12 text-center" style={{ color: slide.content?.questionColor || textColor }}>
-              {slide.content?.question || 'Rakd sorrendbe'}
+              <MathText text={slide.content?.question || 'Rakd sorrendbe'} />
             </h2>
             <div className="space-y-4 max-w-2xl mx-auto">
               {(slide.content?.items || []).map((item: any, index: number) => (
@@ -1908,7 +1908,7 @@ function ScaledSlidePreview({ slide, theme }: { slide: Slide; theme: any }) {
                   }}
                 >
                   <span className="font-bold mr-4 text-2xl">{index + 1}.</span>
-                  {item.text || item}
+                  <MathText text={item.text || item} />
                 </div>
               ))}
             </div>
@@ -1942,7 +1942,7 @@ function ScaledSlidePreview({ slide, theme }: { slide: Slide; theme: any }) {
         {slide.type === 'true_false' && (
           <div className="w-full text-center px-16">
             <h2 className="text-4xl font-bold mb-16" style={{ color: slide.content?.statementColor || textColor }}>
-              {slide.content?.statement || 'Állítás'}
+              <MathText text={slide.content?.statement || 'Állítás'} />
             </h2>
             <div className="grid grid-cols-2 gap-8 max-w-2xl mx-auto">
               <div className="p-8 rounded-xl border-4 border-green-500 bg-green-50">
