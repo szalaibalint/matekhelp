@@ -17,6 +17,14 @@ const Leaf = ({ attributes, children, leaf }: any) => {
     children = <u>{children}</u>;
   }
 
+  if (leaf.superscript) {
+    children = <sup>{children}</sup>;
+  }
+
+  if (leaf.subscript) {
+    children = <sub>{children}</sub>;
+  }
+
   const style: any = {};
   
   if (leaf.color) {

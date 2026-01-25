@@ -33,7 +33,9 @@ import {
   Minus,
   Sigma,
   X,
-  Trash2
+  Trash2,
+  Superscript,
+  Subscript
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
@@ -49,7 +51,7 @@ import isBlock from '../viewer/richtext/isBlock';
 import { Slide } from '../../services/SlideService';
 
 type CustomElement = { type: string; align?: string; children: CustomText[] | CustomElement[]; url?: string; width?: number; height?: number; rotation?: number; float?: string; correctAnswer?: string; }
-type CustomText = { text: string; bold?: boolean; italic?: boolean; underline?: boolean; code?: boolean; color?: string; fontSize?: string; fontFamily?: string }
+type CustomText = { text: string; bold?: boolean; italic?: boolean; underline?: boolean; code?: boolean; superscript?: boolean; subscript?: boolean; color?: string; fontSize?: string; fontFamily?: string }
 
 declare module 'slate' {
   interface CustomTypes {
@@ -821,6 +823,8 @@ export function RichTextEditor({ content, onChange, enableDragBlanks = false, bl
           <MarkButton format="italic" icon={<Italic className="h-5 w-5" />} />
           <MarkButton format="underline" icon={<Underline className="h-5 w-5" />} />
           <MarkButton format="code" icon={<Code className="h-5 w-5" />} />
+          <MarkButton format="superscript" icon={<Superscript className="h-5 w-5" />} />
+          <MarkButton format="subscript" icon={<Subscript className="h-5 w-5" />} />
           
           <Separator orientation="vertical" className="h-8" />
           
@@ -2339,6 +2343,14 @@ const Leaf = ({ attributes, children, leaf }: any) => {
 
   if (leaf.underline) {
     children = <u>{children}</u>;
+  }
+
+  if (leaf.superscript) {
+    children = <sup>{children}</sup>;
+  }
+
+  if (leaf.subscript) {
+    children = <sub>{children}</sub>;
   }
 
   const style: any = {};
