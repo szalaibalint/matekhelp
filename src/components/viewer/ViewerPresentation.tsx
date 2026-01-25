@@ -467,11 +467,21 @@ export default function ViewerPresentation() {
           }
         });
     }
-    return <ResultsPage correct={correct} total={total} onRetry={() => {
-      setShowResults(false);
-      setCurrentIndex(0);
-      setUserAnswers({});
-    }} />;
+    return (
+      <ResultsPage 
+        correct={correct} 
+        total={total} 
+        onRetry={() => {
+          setShowResults(false);
+          setCurrentIndex(0);
+          setUserAnswers({});
+        }}
+        showAnswersAfterCompletion={presentation?.settings?.showAnswersAfterCompletion ?? false}
+        showPoints={presentation?.settings?.showPoints ?? true}
+        slides={slides}
+        userAnswers={userAnswers}
+      />
+    );
   }
 
   const currentSlide = slides[currentIndex];

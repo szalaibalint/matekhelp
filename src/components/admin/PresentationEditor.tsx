@@ -1447,6 +1447,51 @@ export function PresentationEditor({ presentationId, onBack }: PresentationEdito
                         <span className="text-sm text-gray-600">{presentation.theme?.background || '#ffffff'}</span>
                       </div>
                     </div>
+
+                    {/* Show Answers After Completion */}
+                    <div className="pt-4 border-t border-gray-200">
+                      <Label className="text-sm font-medium text-gray-700">Eredmények beállításai</Label>
+                      
+                      {/* Show Points Toggle */}
+                      <div className="flex items-center gap-3 mt-3">
+                        <Checkbox
+                          id="showPoints"
+                          checked={presentation.settings?.showPoints ?? true}
+                          onCheckedChange={(checked) => setPresentation(prev => ({
+                            ...prev,
+                            settings: { ...prev.settings, showPoints: checked }
+                          }))}
+                        />
+                        <div>
+                          <Label htmlFor="showPoints" className="text-sm text-gray-600">
+                            Pontszám megjelenítése
+                          </Label>
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            Ha kikapcsolod, motivációs üzenet jelenik meg helyette
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Show Answers Toggle */}
+                      <div className="flex items-center gap-3 mt-3">
+                        <Checkbox
+                          id="showAnswersAfterCompletion"
+                          checked={presentation.settings?.showAnswersAfterCompletion ?? false}
+                          onCheckedChange={(checked) => setPresentation(prev => ({
+                            ...prev,
+                            settings: { ...prev.settings, showAnswersAfterCompletion: checked }
+                          }))}
+                        />
+                        <div>
+                          <Label htmlFor="showAnswersAfterCompletion" className="text-sm text-gray-600">
+                            Helyes válaszok mutatása befejezés után
+                          </Label>
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            A tananyag végén a diákok megnézhetik a helyes válaszokat
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </>
               )}
