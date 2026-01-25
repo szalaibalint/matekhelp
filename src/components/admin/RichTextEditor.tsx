@@ -40,6 +40,7 @@ import {
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { SketchPicker } from '../ui/color-picker';
 import { toast } from '../ui/use-toast';
 import { supabase } from '../../../supabase/supabase';
@@ -839,21 +840,28 @@ export function RichTextEditor({ content, onChange, enableDragBlanks = false, bl
       >
         {/* Toolbar positioned absolutely above the content, doesn't affect content flow */}
         <div className="absolute top-0 left-0 right-0 z-20 border-b border-gray-200 p-4 flex flex-wrap items-center gap-2 bg-white/95 backdrop-blur-sm rounded-t-lg" style={{ transform: 'translateY(-100%)' }}>
-          <MarkButton format="bold" icon={<Bold className="h-5 w-5" />} />
-          <MarkButton format="italic" icon={<Italic className="h-5 w-5" />} />
-          <MarkButton format="underline" icon={<Underline className="h-5 w-5" />} />
-          <MarkButton format="code" icon={<Code className="h-5 w-5" />} />
-          <MarkButton format="superscript" icon={<Superscript className="h-5 w-5" />} />
-          <MarkButton format="subscript" icon={<Subscript className="h-5 w-5" />} />
+          <MarkButton format="bold" icon={<Bold className="h-5 w-5" />} tooltip="Félkövér" />
+          <MarkButton format="italic" icon={<Italic className="h-5 w-5" />} tooltip="Dőlt" />
+          <MarkButton format="underline" icon={<Underline className="h-5 w-5" />} tooltip="Aláhúzott" />
+          <MarkButton format="code" icon={<Code className="h-5 w-5" />} tooltip="Kód" />
+          <MarkButton format="superscript" icon={<Superscript className="h-5 w-5" />} tooltip="Felső index" />
+          <MarkButton format="subscript" icon={<Subscript className="h-5 w-5" />} tooltip="Alsó index" />
           
           <Separator orientation="vertical" className="h-8" />
           
           <Popover open={showColorPicker} onOpenChange={setShowColorPicker}>
-            <PopoverTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-9 w-9 p-0" title="Szöveg szín">
-                <Palette className="h-5 w-5" style={{ color: textColor }} />
-              </Button>
-            </PopoverTrigger>
+            <TooltipProvider delayDuration={300}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <PopoverTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-9 w-9 p-0">
+                      <Palette className="h-5 w-5" style={{ color: textColor }} />
+                    </Button>
+                  </PopoverTrigger>
+                </TooltipTrigger>
+                <TooltipContent>Szöveg szín</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
             <PopoverContent className="w-auto p-0">
               <SketchPicker
                 color={textColor}
@@ -863,11 +871,18 @@ export function RichTextEditor({ content, onChange, enableDragBlanks = false, bl
           </Popover>
 
           <Popover open={showBgColorPicker} onOpenChange={setShowBgColorPicker}>
-            <PopoverTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-9 w-9 p-0" title="Háttér szín">
-                <div className="h-5 w-5 rounded border border-gray-400" style={{ backgroundColor: bgColor }}></div>
-              </Button>
-            </PopoverTrigger>
+            <TooltipProvider delayDuration={300}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <PopoverTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-9 w-9 p-0">
+                      <div className="h-5 w-5 rounded border border-gray-400" style={{ backgroundColor: bgColor }}></div>
+                    </Button>
+                  </PopoverTrigger>
+                </TooltipTrigger>
+                <TooltipContent>Háttér szín</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
             <PopoverContent className="w-auto p-0">
               <SketchPicker
                 color={bgColor}
@@ -917,32 +932,39 @@ export function RichTextEditor({ content, onChange, enableDragBlanks = false, bl
           
           <Separator orientation="vertical" className="h-8" />
           
-          <BlockButton format="heading-one" icon={<Heading1 className="h-5 w-5" />} />
-          <BlockButton format="heading-two" icon={<Heading2 className="h-5 w-5" />} />
-          <BlockButton format="heading-three" icon={<Heading3 className="h-5 w-5" />} />
-          <BlockButton format="paragraph" icon={<Type className="h-5 w-5" />} />
+          <BlockButton format="heading-one" icon={<Heading1 className="h-5 w-5" />} tooltip="Címsor 1" />
+          <BlockButton format="heading-two" icon={<Heading2 className="h-5 w-5" />} tooltip="Címsor 2" />
+          <BlockButton format="heading-three" icon={<Heading3 className="h-5 w-5" />} tooltip="Címsor 3" />
+          <BlockButton format="paragraph" icon={<Type className="h-5 w-5" />} tooltip="Bekezdés" />
           
           <Separator orientation="vertical" className="h-8" />
           
-          <BlockButton format="left" icon={<AlignLeft className="h-5 w-5" />} />
-          <BlockButton format="center" icon={<AlignCenter className="h-5 w-5" />} />
-          <BlockButton format="right" icon={<AlignRight className="h-5 w-5" />} />
-          <BlockButton format="justify" icon={<AlignJustify className="h-5 w-5" />} />
+          <BlockButton format="left" icon={<AlignLeft className="h-5 w-5" />} tooltip="Balra igazítás" />
+          <BlockButton format="center" icon={<AlignCenter className="h-5 w-5" />} tooltip="Középre igazítás" />
+          <BlockButton format="right" icon={<AlignRight className="h-5 w-5" />} tooltip="Jobbra igazítás" />
+          <BlockButton format="justify" icon={<AlignJustify className="h-5 w-5" />} tooltip="Sorkizárt" />
           
           <Separator orientation="vertical" className="h-8" />
           
-          <BlockButton format="bulleted-list" icon={<List className="h-5 w-5" />} />
-          <BlockButton format="numbered-list" icon={<ListOrdered className="h-5 w-5" />} />
-          <BlockButton format="block-quote" icon={<Quote className="h-5 w-5" />} />
+          <BlockButton format="bulleted-list" icon={<List className="h-5 w-5" />} tooltip="Felsorolás" />
+          <BlockButton format="numbered-list" icon={<ListOrdered className="h-5 w-5" />} tooltip="Számozott lista" />
+          <BlockButton format="block-quote" icon={<Quote className="h-5 w-5" />} tooltip="Idézet" />
           
           <Separator orientation="vertical" className="h-8" />
           
           <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-9 w-9 p-0">
-                <Image className="h-5 w-5" />
-              </Button>
-            </DialogTrigger>
+            <TooltipProvider delayDuration={300}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <DialogTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-9 w-9 p-0">
+                      <Image className="h-5 w-5" />
+                    </Button>
+                  </DialogTrigger>
+                </TooltipTrigger>
+                <TooltipContent>Kép</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Kép beillesztése</DialogTitle>
@@ -998,11 +1020,18 @@ export function RichTextEditor({ content, onChange, enableDragBlanks = false, bl
           </Dialog>
           
           <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="ghost" size="sm">
-                <Film className="h-4 w-4" />
-              </Button>
-            </DialogTrigger>
+            <TooltipProvider delayDuration={300}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <DialogTrigger asChild>
+                    <Button variant="ghost" size="sm">
+                      <Film className="h-4 w-4" />
+                    </Button>
+                  </DialogTrigger>
+                </TooltipTrigger>
+                <TooltipContent>Animáció</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Animáció beillesztése</DialogTitle>
@@ -1039,11 +1068,18 @@ export function RichTextEditor({ content, onChange, enableDragBlanks = false, bl
           </Dialog>
           
           <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-9 w-9 p-0">
-                <Video className="h-5 w-5" />
-              </Button>
-            </DialogTrigger>
+            <TooltipProvider delayDuration={300}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <DialogTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-9 w-9 p-0">
+                      <Video className="h-5 w-5" />
+                    </Button>
+                  </DialogTrigger>
+                </TooltipTrigger>
+                <TooltipContent>Videó</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Videó beillesztése</DialogTitle>
@@ -1102,11 +1138,18 @@ export function RichTextEditor({ content, onChange, enableDragBlanks = false, bl
           </Dialog>
           
           <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-9 w-9 p-0">
-                <Link className="h-5 w-5" />
-              </Button>
-            </DialogTrigger>
+            <TooltipProvider delayDuration={300}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <DialogTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-9 w-9 p-0">
+                      <Link className="h-5 w-5" />
+                    </Button>
+                  </DialogTrigger>
+                </TooltipTrigger>
+                <TooltipContent>Link</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Link beillesztése</DialogTitle>
@@ -1129,21 +1172,34 @@ export function RichTextEditor({ content, onChange, enableDragBlanks = false, bl
             </DialogContent>
           </Dialog>
           
-          <Button variant="ghost" size="sm" className="h-9 w-9 p-0" onClick={insertTable}>
-            <Table className="h-5 w-5" />
-          </Button>
+          <TooltipProvider delayDuration={300}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-9 w-9 p-0" onClick={insertTable}>
+                  <Table className="h-5 w-5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Táblázat</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
           <Dialog open={showInputDialog} onOpenChange={setShowInputDialog}>
-            <DialogTrigger asChild>
-              <Button 
-                variant="ghost" 
-                size="sm"
-                className="h-9 w-9 p-0"
-                title="Kitöltendő mező"
-                onClick={() => openInputFieldDialog()}
-              >
-                <Minus className="h-5 w-5" />
-              </Button>
-            </DialogTrigger>
+            <TooltipProvider delayDuration={300}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <DialogTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      className="h-9 w-9 p-0"
+                      onClick={() => openInputFieldDialog()}
+                    >
+                      <Minus className="h-5 w-5" />
+                    </Button>
+                  </DialogTrigger>
+                </TooltipTrigger>
+                <TooltipContent>Kitöltendő mező</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>{editingInputFieldPath ? 'Kitöltendő mező szerkesztése' : 'Kitöltendő mező beillesztése'}</DialogTitle>
@@ -1266,11 +1322,18 @@ export function RichTextEditor({ content, onChange, enableDragBlanks = false, bl
           )}
           
           <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-9 w-9 p-0" title="Matematikai kifejezés">
-                <Sigma className="h-5 w-5" />
-              </Button>
-            </DialogTrigger>
+            <TooltipProvider delayDuration={300}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <DialogTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-9 w-9 p-0">
+                      <Sigma className="h-5 w-5" />
+                    </Button>
+                  </DialogTrigger>
+                </TooltipTrigger>
+                <TooltipContent>Matematikai kifejezés</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Matematikai kifejezés beillesztése</DialogTitle>
@@ -1314,9 +1377,9 @@ export function RichTextEditor({ content, onChange, enableDragBlanks = false, bl
   );
 }
 
-const MarkButton = ({ format, icon }: { format: string; icon: React.ReactNode }) => {
+const MarkButton = ({ format, icon, tooltip }: { format: string; icon: React.ReactNode; tooltip?: string }) => {
   const editor = useSlate();
-  return (
+  const button = (
     <Button
       variant={isMarkActive(editor, format) ? "default" : "ghost"}
       size="sm"
@@ -1329,11 +1392,22 @@ const MarkButton = ({ format, icon }: { format: string; icon: React.ReactNode })
       {icon}
     </Button>
   );
+  
+  if (!tooltip) return button;
+  
+  return (
+    <TooltipProvider delayDuration={300}>
+      <Tooltip>
+        <TooltipTrigger asChild>{button}</TooltipTrigger>
+        <TooltipContent>{tooltip}</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
 };
 
-const BlockButton = ({ format, icon }: { format: string; icon: React.ReactNode }) => {
+const BlockButton = ({ format, icon, tooltip }: { format: string; icon: React.ReactNode; tooltip?: string }) => {
   const editor = useSlate();
-  return (
+  const button = (
     <Button
       variant={isBlockActive(editor, format, TEXT_ALIGN_TYPES.includes(format) ? 'align' : 'type') ? "default" : "ghost"}
       size="sm"
@@ -1345,6 +1419,17 @@ const BlockButton = ({ format, icon }: { format: string; icon: React.ReactNode }
     >
       {icon}
     </Button>
+  );
+  
+  if (!tooltip) return button;
+  
+  return (
+    <TooltipProvider delayDuration={300}>
+      <Tooltip>
+        <TooltipTrigger asChild>{button}</TooltipTrigger>
+        <TooltipContent>{tooltip}</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 };
 
