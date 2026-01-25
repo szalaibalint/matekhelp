@@ -13,6 +13,7 @@ import {
   AlignLeft, 
   AlignCenter, 
   AlignRight, 
+  AlignJustify,
   List, 
   ListOrdered,
   Quote,
@@ -926,6 +927,7 @@ export function RichTextEditor({ content, onChange, enableDragBlanks = false, bl
           <BlockButton format="left" icon={<AlignLeft className="h-5 w-5" />} />
           <BlockButton format="center" icon={<AlignCenter className="h-5 w-5" />} />
           <BlockButton format="right" icon={<AlignRight className="h-5 w-5" />} />
+          <BlockButton format="justify" icon={<AlignJustify className="h-5 w-5" />} />
           
           <Separator orientation="vertical" className="h-8" />
           
