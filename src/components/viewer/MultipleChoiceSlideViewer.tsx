@@ -8,36 +8,54 @@ const loadKatex = async () => {
 };
 
 const renderMathText = async (text: string): Promise<string> => {
-  // Strip delimiters if present: $$...$$ or $...$ or \[...\] or \(...\)
-  let formula = text;
-  let displayMode = false;
+  if (!text) return text;
   
-  // Check for display math: $$formula$$ or \[formula\]
-  if (formula.startsWith('$$') && formula.endsWith('$$')) {
-    formula = formula.slice(2, -2);
-    displayMode = true;
-  } else if (formula.startsWith('\\[') && formula.endsWith('\\]')) {
-    formula = formula.slice(2, -2);
-    displayMode = true;
-  }
-  // Check for inline math: $formula$ or \(formula\)
-  else if (formula.startsWith('$') && formula.endsWith('$')) {
-    formula = formula.slice(1, -1);
-  } else if (formula.startsWith('\\(') && formula.endsWith('\\)')) {
-    formula = formula.slice(2, -2);
-  }
-  
-  // Check if formula contains LaTeX (contains backslash)
-  if (!formula.includes('\\')) {
+  // Check if text contains any LaTeX markers
+  if (!text.includes('$') && !text.includes('\\[') && !text.includes('\\(')) {
     return text;
   }
   
   try {
     const katex = await loadKatex();
-    return katex.renderToString(formula, {
-      throwOnError: false,
-      displayMode,
+    let result = text;
+    
+    // Replace display math $$...$$ 
+    result = result.replace(/\$\$([^\$]+)\$\$/g, (match, formula) => {
+      try {
+        return katex.renderToString(formula, { throwOnError: false, displayMode: true });
+      } catch (e) {
+        return match;
+      }
     });
+    
+    // Replace inline math $...$
+    result = result.replace(/\$([^\$]+)\$/g, (match, formula) => {
+      try {
+        return katex.renderToString(formula, { throwOnError: false, displayMode: false });
+      } catch (e) {
+        return match;
+      }
+    });
+    
+    // Replace display math \[...\]
+    result = result.replace(/\\\[([^\]]+)\\\]/g, (match, formula) => {
+      try {
+        return katex.renderToString(formula, { throwOnError: false, displayMode: true });
+      } catch (e) {
+        return match;
+      }
+    });
+    
+    // Replace inline math \(...\)
+    result = result.replace(/\\\(([^\)]+)\\\)/g, (match, formula) => {
+      try {
+        return katex.renderToString(formula, { throwOnError: false, displayMode: false });
+      } catch (e) {
+        return match;
+      }
+    });
+    
+    return result;
   } catch (e) {
     return text;
   }

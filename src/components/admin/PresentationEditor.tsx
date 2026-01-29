@@ -61,6 +61,7 @@ import { Descendant } from 'slate';
 import { SketchPicker } from '../ui/color-picker';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../ui/alert-dialog';
 import mammoth from 'mammoth';
 import RichTextRenderer from '../viewer/RichTextRenderer';
 import { MathFormulaInsert } from './MathFormulaInsert';
@@ -177,6 +178,17 @@ export function PresentationEditor({ presentationId, onBack }: PresentationEdito
     loadPresentation();
     loadSlides();
   }, [presentationId]);
+
+  // Debug: Log text slide height when slide changes
+  useEffect(() => {
+    if (slides.length > 0 && selectedSlideIndex < slides.length) {
+      const currentSlide = slides[selectedSlideIndex];
+      if (currentSlide.type === 'text') {
+        const height = currentSlide.settings?.slideHeight || 760;
+        console.log(`[TEXT SLIDE DEBUG] Slide ${selectedSlideIndex + 1} - Height: ${height}px`);
+      }
+    }
+  }, [selectedSlideIndex, slides]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -328,7 +340,7 @@ export function PresentationEditor({ presentationId, onBack }: PresentationEdito
       type,
       title: getDefaultTitle(type),
       content: defaultContent,
-      settings: {},
+      settings: type === 'text' ? { slideHeight: 760 } : {},
       sort_order: slides.length,
       points: defaultPoints,
       correct_answer: defaultCorrectAnswer
@@ -1749,8 +1761,8 @@ function ScaledSlidePreview({ slide, theme }: { slide: Slide; theme: any }) {
     : { backgroundColor };
 
   // Get stored height for text slides
-  const slideHeight = slide.settings?.slideHeight || 900;
-  const needsScroll = slide.type === 'text' && slideHeight > 900;
+  const slideHeight = slide.settings?.slideHeight || 760;
+  const needsScroll = slide.type === 'text' && slideHeight > 760;
 
   // Calculate the scaled height for proper container sizing
   const scaledHeight = slideHeight * scale;
@@ -1985,8 +1997,8 @@ function ScaledSlideEditor({
   const [scale, setScale] = useState(1);
   const [isResizing, setIsResizing] = useState(false);
   
-  // Get stored height or default to 900
-  const slideHeight = slide.settings?.slideHeight || 900;
+  // Get stored height or default to 760
+  const slideHeight = slide.settings?.slideHeight || 760;
 
   useEffect(() => {
     const updateScale = () => {
@@ -2160,11 +2172,42 @@ function SlideEditorPanel({ slide, onChange, theme }: { slide: Slide; onChange: 
 
       {/* For text slides, show a message since the editor is in the center */}
       {slide.type === 'text' && (
-        <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-          <p className="text-sm text-blue-700">
-            <span className="font-medium">Tipp:</span> A szöveg szerkesztéséhez kattints a középső területre.
-          </p>
-        </div>
+        <>
+          <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <p className="text-sm text-blue-700">
+              <span className="font-medium">Tipp:</span> A szöveg szerkesztéséhez kattints a középső területre.
+            </p>
+          </div>
+          
+          {/* Reset slide height button */}
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button 
+                variant="outline" 
+                className="w-full mt-3 border-red-300 text-red-600 hover:bg-red-50"
+              >
+                Magasság visszaállítása
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Dia magasság alaphelyzetbe állítása?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Ez visszaállítja a dia magasságát az alapértelmezett 760 pixelre. Ez a művelet visszavonhatatlan.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <div className="flex gap-2 justify-end mt-4">
+                <AlertDialogCancel>Mégse</AlertDialogCancel>
+                <AlertDialogAction 
+                  onClick={() => onChange({ settings: { ...slide.settings, slideHeight: 760 } })}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  Alaphelyzetbe állítás
+                </AlertDialogAction>
+              </div>
+            </AlertDialogContent>
+          </AlertDialog>
+        </>
       )}
 
       {/* For fill_in_blanks slides, show a message since the editor is in the center */}
@@ -3712,8 +3755,8 @@ function PreviewMode({ slides, currentIndex, onNext, onPrev, onExit, theme }: { 
         {currentSlide.type === 'text' ? (
           /* Text slides use scaled 1600x900 container matching the viewer */
           (() => {
-            const slideHeight = currentSlide.settings?.slideHeight || 900;
-            const needsScroll = slideHeight > 900;
+            const slideHeight = currentSlide.settings?.slideHeight || 760;
+            const needsScroll = slideHeight > 760;
             const scaledHeight = slideHeight * scale;
             return (
               <div 

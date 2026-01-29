@@ -179,8 +179,8 @@ export const TextSlideViewer: React.FC<TextSlideViewerProps> = ({ slide, onAnswe
     return <Element key={key} element={node} attributes={{}}>{children}</Element>;
   };
 
-  // Get the stored slide height
-  const slideHeight = slide.settings?.slideHeight || SLIDE_HEIGHT;
+  // Get the stored slide height (default to 760)
+  const slideHeight = slide.settings?.slideHeight || 760;
 
   // Always use scaled container to match editor exactly
   // This ensures consistent rendering between editor, preview, and viewer
@@ -225,7 +225,7 @@ function ScaledTextSlideContent({
     };
   }, []);
 
-  const needsScroll = slideHeight > SLIDE_HEIGHT;
+  const needsScroll = slideHeight > 760;
   // Calculate the visual dimensions after scaling
   const scaledHeight = slideHeight * scale;
 
@@ -234,8 +234,9 @@ function ScaledTextSlideContent({
       ref={outerRef}
       className="w-full"
       style={{
-        overflow: 'scroll',
+        overflow: needsScroll ? 'scroll' : 'hidden',
         height: `${scaledHeight}px`,
+        paddingBottom: needsScroll ? '100px' : undefined,
       }}
     >
       {/* Wrapper that constrains the layout to the scaled visual size */}
