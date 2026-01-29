@@ -1,7 +1,6 @@
 import React, { Suspense } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import LoginForm from "./components/auth/LoginForm";
-import SignUpForm from "./components/auth/SignUpForm";
 import Dashboard from "./components/pages/dashboard";
 import Success from "./components/pages/success";
 const ViewerApp = React.lazy(() => import('./ViewerApp'));
@@ -39,7 +38,6 @@ function AppRoutes() {
     <Suspense fallback={<LoadingScreen />}>
       <Routes>
         <Route path="/login" element={user ? <Navigate to="/" /> : <LoginForm />} />
-        <Route path="/signup" element={user ? <Navigate to="/" /> : <SignUpForm />} />
         <Route
           path="/"
           element={

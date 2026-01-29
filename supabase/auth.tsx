@@ -1,13 +1,12 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { User } from "@supabase/supabase-js";
 import { supabase } from "./supabase";
-import { signIn as authSignIn, signUp as authSignUp, signOut as authSignOut } from "../src/services/AuthService";
+import { signIn as authSignIn, signOut as authSignOut } from "../src/services/AuthService";
 
 type AuthContextType = {
   user: User | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, fullName: string) => Promise<void>;
   signOut: () => Promise<void>;
 };
 
@@ -39,16 +38,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await authSignIn(email, password);
   };
 
-  const signUp = async (email: string, password: string, fullName: string) => {
-    await authSignUp(email, password, fullName);
-  };
-
   const signOut = async () => {
     await authSignOut();
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ user, loading, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   );
