@@ -6,6 +6,8 @@ import Dashboard from "./components/pages/dashboard";
 import Success from "./components/pages/success";
 const ViewerApp = React.lazy(() => import('./ViewerApp'));
 const AdminDashboard = React.lazy(() => import('./components/admin/AdminDashboard'));
+const AdminLanding = React.lazy(() => import('./components/admin/AdminLanding'));
+const SiteSettings = React.lazy(() => import('./components/admin/SiteSettings'));
 import ViewerPage from "./components/viewer/ViewerPage";
 import ViewerPresentation from "./components/viewer/ViewerPresentation";
 import { AuthProvider, useAuth } from "../supabase/auth";
@@ -42,7 +44,7 @@ function AppRoutes() {
           path="/"
           element={
             <PrivateRoute>
-              <AdminDashboard />
+              <AdminLanding />
             </PrivateRoute>
           }
         />
@@ -50,7 +52,23 @@ function AppRoutes() {
           path="/admin"
           element={
             <PrivateRoute>
+              <AdminLanding />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/admin/editor"
+          element={
+            <PrivateRoute>
               <AdminDashboard />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/admin/settings"
+          element={
+            <PrivateRoute>
+              <SiteSettings />
             </PrivateRoute>
           }
         />
