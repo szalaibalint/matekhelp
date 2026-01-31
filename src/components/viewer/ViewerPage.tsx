@@ -287,8 +287,8 @@ export default function ViewerPage() {
             </p>
           </div>
           
-          <div className="absolute bottom-0 left-0 right-0 bg-black/20 backdrop-blur-sm px-5 py-3 flex items-center justify-between">
-            <div className="flex items-center gap-2 text-white/80 text-sm">
+          <div className="absolute bottom-0 left-0 right-0 bg-slate-800/95 px-5 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-2 text-white text-sm">
               <Eye className="h-4 w-4" />
               <span>Tananyag</span>
             </div>
