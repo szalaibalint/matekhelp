@@ -85,8 +85,11 @@ const MathText: React.FC<{ text: string }> = ({ text }) => {
 // Scaled Slide Preview Component - Renders the slide at full size and scales it down
 function ScaledSlidePreview({ slide, theme, userAnswer, onAnswer, slideIndex }: { slide: Slide; theme: any; userAnswer?: any; onAnswer?: (answer: any) => void; slideIndex?: number }) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const contentBodyRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
   const [parentSize, setParentSize] = useState({ width: 0, height: 0 });
+  const [contentHeight, setContentHeight] = useState(760);
+  const [needsScroll, setNeedsScroll] = useState(false);
 
   useEffect(() => {
     const updateScale = () => {
@@ -95,11 +98,12 @@ function ScaledSlidePreview({ slide, theme, userAnswer, onAnswer, slideIndex }: 
         if (parent) {
           const parentWidth = parent.offsetWidth;
           const parentHeight = parent.offsetHeight;
+          const targetHeight = slide.type === 'text' ? 760 : 900;
           
           // Calculate scale based on both width and height, use the smaller one
           const scaleX = parentWidth / 1600;
-          const scaleY = parentHeight / 900;
-          const newScale = Math.max(0.8, Math.min(scaleX, scaleY));
+          const scaleY = parentHeight / targetHeight;
+          const newScale = Math.min(scaleX, scaleY);
           
           setScale(newScale);
           setParentSize({ width: parentWidth, height: parentHeight });
@@ -131,12 +135,39 @@ function ScaledSlidePreview({ slide, theme, userAnswer, onAnswer, slideIndex }: 
     ? { background: backgroundColor }
     : { backgroundColor };
 
-  // Get stored height for text slides
-  const slideHeight = slide.settings?.slideHeight || 760;
+  const defaultHeight = 760;
 
-  // Calculate the scaled height for proper container sizing
-  const scaledHeight = slideHeight * scale;
-  const shouldScroll = slide.type === 'text' && parentSize.height > 0 && scaledHeight > parentSize.height;
+  useEffect(() => {
+    if (slide.type !== 'text') return;
+
+    const updateMeasurements = () => {
+      if (!contentBodyRef.current) return;
+      const bodyRect = contentBodyRef.current.getBoundingClientRect();
+      const unscaledHeight = scale > 0 ? bodyRect.height / scale : bodyRect.height;
+      const nextHeight = Math.max(defaultHeight, Math.ceil(unscaledHeight));
+      setContentHeight(nextHeight);
+      if (parentSize.height > 0) {
+        const scaledContentHeight = nextHeight * scale;
+        setNeedsScroll(scaledContentHeight > parentSize.height + 2);
+      } else {
+        setNeedsScroll(false);
+      }
+    };
+
+    updateMeasurements();
+
+    const resizeObserver = new ResizeObserver(updateMeasurements);
+    if (contentBodyRef.current) {
+      resizeObserver.observe(contentBodyRef.current);
+    }
+    if (containerRef.current?.parentElement) {
+      resizeObserver.observe(containerRef.current.parentElement);
+    }
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [slide.type, slide.content, scale, parentSize.height]);
 
   // For text slides, use full width with scrollable content
   if (slide.type === 'text') {
@@ -145,8 +176,8 @@ function ScaledSlidePreview({ slide, theme, userAnswer, onAnswer, slideIndex }: 
         ref={containerRef}
         className="w-full h-full overflow-x-hidden flex items-start justify-center"
         style={{
-          overflowY: shouldScroll ? 'auto' : 'hidden',
-          scrollbarGutter: shouldScroll ? 'stable' : 'auto',
+          overflowY: needsScroll ? 'auto' : 'hidden',
+          scrollbarGutter: needsScroll ? 'stable' : 'auto',
         }}
       >
         <style>{`
@@ -167,16 +198,23 @@ function ScaledSlidePreview({ slide, theme, userAnswer, onAnswer, slideIndex }: 
         <div 
           className="preview-scroll-container flex-shrink-0"
           style={{
-            width: '1600px',
-            height: `${slideHeight}px`,
-            transform: `scale(${scale})`,
-            transformOrigin: 'top center',
-            ...backgroundStyle,
-            color: textColor,
+            width: `${1600 * scale}px`,
+            height: `${contentHeight * scale}px`,
           }}
         >
-          <div className="w-full p-8 overflow-visible relative" style={{ paddingRight: '24px' }}>
-            <RichTextRenderer content={slide.content} />
+          <div
+            style={{
+              width: '1600px',
+              minHeight: `${contentHeight}px`,
+              transform: `scale(${scale})`,
+              transformOrigin: 'top left',
+              ...backgroundStyle,
+              color: textColor,
+            }}
+          >
+            <div ref={contentBodyRef} className="w-full p-8 overflow-visible relative" style={{ paddingRight: '24px' }}>
+              <RichTextRenderer content={slide.content} />
+            </div>
           </div>
         </div>
       </div>

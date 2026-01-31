@@ -198,8 +198,11 @@ function ScaledTextSlideContent({
   slideHeight?: number;
 }) {
   const outerRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const contentBodyRef = useRef<HTMLDivElement>(null);
   // Dynamic scale based on container width - matches preview behavior
   const [scale, setScale] = useState(1);
+  const [needsScroll, setNeedsScroll] = useState(false);
 
   useEffect(() => {
     const updateScale = () => {
@@ -225,25 +228,47 @@ function ScaledTextSlideContent({
     };
   }, []);
 
-  const needsScroll = slideHeight > 760;
+  const defaultHeight = 760;
   // Calculate the visual dimensions after scaling
-  const scaledHeight = slideHeight * scale;
+  const defaultScaledHeight = defaultHeight * scale;
+
+  useEffect(() => {
+    if (!outerRef.current || !contentBodyRef.current) return;
+
+    const checkOverflow = () => {
+      if (!outerRef.current || !contentBodyRef.current) return;
+      const bodyRect = contentBodyRef.current.getBoundingClientRect();
+      const contentHeightUnscaled = scale > 0 ? bodyRect.height / scale : bodyRect.height;
+      setNeedsScroll(contentHeightUnscaled > defaultHeight + 2);
+    };
+
+    checkOverflow();
+
+    const resizeObserver = new ResizeObserver(checkOverflow);
+    resizeObserver.observe(outerRef.current);
+    resizeObserver.observe(contentBodyRef.current);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [content, defaultScaledHeight, scale]);
 
   return (
     <div 
       ref={outerRef}
       className="w-full"
       style={{
-        overflow: needsScroll ? 'scroll' : 'hidden',
-        height: `${scaledHeight}px`,
-        paddingBottom: needsScroll ? '100px' : undefined,
+        overflowY: needsScroll ? 'auto' : 'hidden',
+        overflowX: 'hidden',
+        height: `${defaultScaledHeight}px`,
       }}
     >
       {/* Wrapper that constrains the layout to the scaled visual size */}
       <div
+        ref={contentRef}
         style={{
           width: '100%',
-          height: `${scaledHeight}px`,
+          height: `${defaultScaledHeight}px`,
           overflow: 'hidden',
         }}
       >
@@ -251,11 +276,15 @@ function ScaledTextSlideContent({
           className="origin-top-left"
           style={{
             width: `${SLIDE_WIDTH}px`,
-            minHeight: `${slideHeight}px`,
+            minHeight: `${defaultHeight}px`,
             transform: `scale(${scale})`,
           }}
         >
-          <div className="w-full p-8 overflow-visible relative" style={{ paddingRight: '24px' }}>
+          <div
+            ref={contentBodyRef}
+            className="w-full p-8 overflow-visible relative"
+            style={{ paddingRight: '24px' }}
+          >
             <div className="prose prose-lg max-w-none relative" style={{ whiteSpace: 'pre-wrap' }}>
               {content.map((node: any, i: number) => renderNode(node, [i]))}
             </div>
