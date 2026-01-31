@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../ui/button';
 import { supabase } from '../../../supabase/supabase';
-import { ArrowLeft, Maximize, Minimize, Grid, X, BookOpen, RotateCw } from 'lucide-react';
+import { ArrowLeft, Maximize, Minimize, Grid, X, BookOpen, RotateCw, ImagePlus } from 'lucide-react';
 import { Slide, loadSlides } from '../../services/SlideService';
 import { SlideViewer } from './SlideViewer';
 import { ResultsPage } from './ResultsPage';
@@ -13,6 +13,380 @@ import { useViewerAuth } from '../../contexts/ViewerAuthContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../ui/dialog';
 import { useToast } from '../ui/use-toast';
 import { AlertCircle, RefreshCw } from 'lucide-react';
+import RichTextRenderer from './RichTextRenderer';
+import { useState as useReactState, useEffect as useReactEffect } from 'react';
+import katex from 'katex';
+import 'katex/dist/katex.min.css';
+
+// Math text rendering helper
+const renderMathText = (text: string): string => {
+  if (!text) return text;
+  
+  // Check if text contains any LaTeX markers
+  if (!text.includes('$') && !text.includes('\\[') && !text.includes('\\(')) {
+    return text;
+  }
+  
+  try {
+    let result = text;
+    
+    // Replace display math $$...$$ 
+    result = result.replace(/\$\$([^\$]+)\$\$/g, (match, formula) => {
+      try {
+        return katex.renderToString(formula, { throwOnError: false, displayMode: true });
+      } catch (e) {
+        return match;
+      }
+    });
+    
+    // Replace inline math $...$
+    result = result.replace(/\$([^\$]+)\$/g, (match, formula) => {
+      try {
+        return katex.renderToString(formula, { throwOnError: false, displayMode: false });
+      } catch (e) {
+        return match;
+      }
+    });
+    
+    // Replace display math \[...\]
+    result = result.replace(/\\\[([^\]]+)\\\]/g, (match, formula) => {
+      try {
+        return katex.renderToString(formula, { throwOnError: false, displayMode: true });
+      } catch (e) {
+        return match;
+      }
+    });
+    
+    // Replace inline math \(...\)
+    result = result.replace(/\\\(([^\)]+)\\\)/g, (match, formula) => {
+      try {
+        return katex.renderToString(formula, { throwOnError: false, displayMode: false });
+      } catch (e) {
+        return match;
+      }
+    });
+    
+    return result;
+  } catch (e) {
+    return text;
+  }
+};
+
+const MathText: React.FC<{ text: string }> = ({ text }) => {
+  const [html, setHtml] = useReactState<string>(text);
+  
+  useReactEffect(() => {
+    setHtml(renderMathText(text));
+  }, [text]);
+  
+  return <span dangerouslySetInnerHTML={{ __html: html }} />;
+};
+
+// Scaled Slide Preview Component - Renders the slide at full size and scales it down
+function ScaledSlidePreview({ slide, theme, userAnswer, onAnswer, slideIndex }: { slide: Slide; theme: any; userAnswer?: any; onAnswer?: (answer: any) => void; slideIndex?: number }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+  const [parentSize, setParentSize] = useState({ width: 0, height: 0 });
+
+  useEffect(() => {
+    const updateScale = () => {
+      if (containerRef.current) {
+        const parent = containerRef.current.parentElement;
+        if (parent) {
+          const parentWidth = parent.offsetWidth;
+          const parentHeight = parent.offsetHeight;
+          
+          // Calculate scale based on both width and height, use the smaller one
+          const scaleX = parentWidth / 1600;
+          const scaleY = parentHeight / 900;
+          const newScale = Math.max(0.8, Math.min(scaleX, scaleY));
+          
+          setScale(newScale);
+          setParentSize({ width: parentWidth, height: parentHeight });
+        }
+      }
+    };
+
+    updateScale();
+    window.addEventListener('resize', updateScale);
+    
+    // Use ResizeObserver for more accurate tracking
+    const resizeObserver = new ResizeObserver(updateScale);
+    if (containerRef.current?.parentElement) {
+      resizeObserver.observe(containerRef.current.parentElement);
+    }
+
+    return () => {
+      window.removeEventListener('resize', updateScale);
+      resizeObserver.disconnect();
+    };
+  }, []);
+
+  const backgroundColor = slide.backgroundColor || theme?.background || '#ffffff';
+  const textColor = slide.textColor || theme?.textColor || '#000000';
+  
+  // Check if background is a gradient
+  const isGradient = backgroundColor.includes('gradient');
+  const backgroundStyle = isGradient 
+    ? { background: backgroundColor }
+    : { backgroundColor };
+
+  // Get stored height for text slides
+  const slideHeight = slide.settings?.slideHeight || 760;
+
+  // Calculate the scaled height for proper container sizing
+  const scaledHeight = slideHeight * scale;
+  const shouldScroll = slide.type === 'text' && parentSize.height > 0 && scaledHeight > parentSize.height;
+
+  // For text slides, use full width with scrollable content
+  if (slide.type === 'text') {
+    return (
+      <div 
+        ref={containerRef}
+        className="w-full h-full overflow-x-hidden flex items-start justify-center"
+        style={{
+          overflowY: shouldScroll ? 'auto' : 'hidden',
+          scrollbarGutter: shouldScroll ? 'stable' : 'auto',
+        }}
+      >
+        <style>{`
+          .preview-scroll-container::-webkit-scrollbar {
+            width: 8px;
+          }
+          .preview-scroll-container::-webkit-scrollbar-track {
+            background: transparent;
+          }
+          .preview-scroll-container::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 4px;
+          }
+          .preview-scroll-container::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 0, 0, 0.3);
+          }
+        `}</style>
+        <div 
+          className="preview-scroll-container flex-shrink-0"
+          style={{
+            width: '1600px',
+            height: `${slideHeight}px`,
+            transform: `scale(${scale})`,
+            transformOrigin: 'top center',
+            ...backgroundStyle,
+            color: textColor,
+          }}
+        >
+          <div className="w-full p-8 overflow-visible relative" style={{ paddingRight: '24px' }}>
+            <RichTextRenderer content={slide.content} />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Other slide types - center content on page
+  return (
+    <div className="w-full h-full flex items-center justify-center overflow-hidden">
+      <div 
+        ref={containerRef}
+        className="origin-center flex-shrink-0"
+        style={{
+          width: '1600px',
+          height: '900px',
+          transform: `scale(${scale})`,
+        }}
+      >
+        <div 
+          className="w-full h-full flex flex-col items-center justify-center"
+          style={{ 
+            ...backgroundStyle,
+            color: textColor,
+          }}
+        >
+        {slide.type === 'heading' && (
+          <div className="text-center px-16">
+            <h1
+              className="font-bold mb-4"
+              style={{ 
+                color: slide.content?.textColor || textColor,
+                fontSize: slide.content?.fontSize || '48px',
+                fontFamily: slide.content?.fontFamily || 'Inter'
+              }}
+            >
+              {slide.content?.text || 'Címsor'}
+            </h1>
+            {slide.content?.subtitle && (
+              <p
+                style={{ 
+                  color: slide.content?.subtitleColor || '#666666',
+                  fontSize: slide.content?.subtitleFontSize || '24px',
+                  fontFamily: slide.content?.subtitleFontFamily || 'Inter'
+                }}
+              >
+                {slide.content.subtitle}
+              </p>
+            )}
+          </div>
+        )}
+
+        {slide.type === 'image' && (
+          <div className="text-center px-16">
+            {slide.content?.url ? (
+              <>
+                <img 
+                  src={slide.content.url} 
+                  alt={slide.content.caption || ''} 
+                  className="max-w-full max-h-[700px] mx-auto object-contain rounded-lg"
+                />
+                {slide.content.caption && (
+                  <p className="text-gray-600 mt-4 text-xl">{slide.content.caption}</p>
+                )}
+              </>
+            ) : (
+              <div className="flex flex-col items-center text-gray-400">
+                <ImagePlus className="h-24 w-24 mb-4" />
+                <span className="text-2xl">Kép hozzáadása</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {slide.type === 'multiple_choice' && (
+          <div className="w-full px-16">
+            <h2 className="text-4xl font-bold mb-12 text-center" style={{ color: slide.content?.questionColor || textColor }}>
+              <MathText text={slide.content?.question || 'Kérdés'} />
+            </h2>
+            <div className="grid grid-cols-2 gap-6 max-w-4xl mx-auto">
+              {(slide.content?.options || []).map((option: any, index: number) => {
+                const isSelected = slide.content?.multipleCorrect 
+                  ? (Array.isArray(userAnswer) && userAnswer.includes(index))
+                  : userAnswer === index;
+                
+                return (
+                  <button
+                    key={index}
+                    onClick={() => {
+                      if (!onAnswer) return;
+                      if (slide.content?.multipleCorrect) {
+                        const current = Array.isArray(userAnswer) ? userAnswer : [];
+                        const newAnswer = current.includes(index)
+                          ? current.filter((i: number) => i !== index)
+                          : [...current, index];
+                        onAnswer(newAnswer);
+                      } else {
+                        onAnswer(index);
+                      }
+                    }}
+                    className={`p-6 rounded-xl text-center text-xl font-medium border-2 transition-all hover:scale-105 ${
+                      isSelected ? 'ring-4 ring-blue-500 shadow-lg' : ''
+                    }`}
+                    style={{ 
+                      color: option.textColor || textColor,
+                      backgroundColor: option.bgColor || '#ffffff',
+                      borderColor: isSelected ? '#3b82f6' : (option.borderColor || '#d1d5db'),
+                    }}
+                  >
+                    <MathText text={option.text || option} />
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {slide.type === 'ranking' && (
+          <div className="w-full px-16">
+            <h2 className="text-4xl font-bold mb-12 text-center" style={{ color: slide.content?.questionColor || textColor }}>
+              <MathText text={slide.content?.question || 'Rakd sorrendbe'} />
+            </h2>
+            <div className="space-y-4 max-w-2xl mx-auto">
+              {(slide.content?.items || []).map((item: any, index: number) => (
+                <div 
+                  key={index} 
+                  className="p-5 rounded-xl text-xl font-medium border-2 flex items-center"
+                  style={{ 
+                    color: item.textColor || textColor,
+                    backgroundColor: item.bgColor || '#ffffff',
+                    borderColor: item.borderColor || '#d1d5db',
+                  }}
+                >
+                  <span className="font-bold mr-4 text-2xl">{index + 1}.</span>
+                  <MathText text={item.text || item} />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {slide.type === 'matching' && (
+          <div className="w-full px-16">
+            <h2 className="text-4xl font-bold mb-12 text-center" style={{ color: slide.content?.questionColor || textColor }}>
+              <MathText text={slide.content?.question || 'Párosítsd össze'} />
+            </h2>
+            <div className="grid grid-cols-2 gap-12 max-w-4xl mx-auto">
+              <div className="space-y-4">
+                {(slide.content?.pairs || []).map((pair: any, index: number) => (
+                  <div key={index} className="p-4 rounded-xl text-xl font-medium border-2 text-center" style={{ backgroundColor: pair.leftColor || '#ffffff' }}>
+                    <MathText text={pair.left} />
+                  </div>
+                ))}
+              </div>
+              <div className="space-y-4">
+                {(slide.content?.pairs || []).map((pair: any, index: number) => (
+                  <div key={index} className="p-4 rounded-xl text-xl font-medium border-2 border-dashed text-center" style={{ backgroundColor: pair.rightColor || '#ffffff' }}>
+                    <MathText text={pair.right} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {slide.type === 'true_false' && (
+          <div className="w-full text-center px-16">
+            <h2 className="text-4xl font-bold mb-16" style={{ color: slide.content?.statementColor || textColor }}>
+              <MathText text={slide.content?.statement || 'Állítás'} />
+            </h2>
+            <div className="grid grid-cols-2 gap-8 max-w-2xl mx-auto">
+              <button
+                onClick={() => onAnswer && onAnswer(true)}
+                className={`p-8 rounded-xl border-4 transition-all hover:scale-105 ${
+                  userAnswer === true ? 'ring-4 ring-blue-500 shadow-lg' : ''
+                }`}
+                style={{
+                  borderColor: userAnswer === true ? '#3b82f6' : '#22c55e',
+                  backgroundColor: '#f0fdf4'
+                }}
+              >
+                <span className="text-3xl font-bold text-green-600">IGAZ</span>
+              </button>
+              <button
+                onClick={() => onAnswer && onAnswer(false)}
+                className={`p-8 rounded-xl border-4 transition-all hover:scale-105 ${
+                  userAnswer === false ? 'ring-4 ring-blue-500 shadow-lg' : ''
+                }`}
+                style={{
+                  borderColor: userAnswer === false ? '#3b82f6' : '#ef4444',
+                  backgroundColor: '#fef2f2'
+                }}
+              >
+                <span className="text-3xl font-bold text-red-600">HAMIS</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {slide.type === 'fill_in_blanks' && (
+          <div className="w-full px-16">
+            <div className="text-2xl leading-relaxed">
+              <RichTextRenderer content={slide.content?.content || []} />
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+    </div>
+  );
+}
 
 export default function ViewerPresentation() {
   const { id } = useParams();
@@ -539,7 +913,7 @@ export default function ViewerPresentation() {
   const slideTextColor = currentSlide?.textColor || presentation.theme?.textColor || '#000000';
 
   return (
-    <div className="h-screen flex flex-col relative bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+    <div className="h-screen flex flex-col bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
       {/* Mobile Portrait Overlay - Ask user to rotate device */}
       {isMobilePortrait && (
         <div className="fixed inset-0 z-[100] bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 flex flex-col items-center justify-center p-8 text-white">
@@ -560,7 +934,7 @@ export default function ViewerPresentation() {
       )}
 
       {/* Progress bar */}
-      <div className="h-1 bg-gray-200/50 backdrop-blur-sm">
+      <div className="h-1 bg-gray-200/50 backdrop-blur-sm z-50 flex-shrink-0">
         <div
           className="h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 transition-all shadow-sm"
           style={{ width: `${((currentIndex + 1) / slides.length) * 100}%` }}
@@ -569,7 +943,7 @@ export default function ViewerPresentation() {
 
       {/* Header - Hidden in fullscreen */}
       {!isFullscreen && (
-        <div className="bg-white/80 backdrop-blur-md border-b border-gray-200/50 shadow-sm px-4 py-3 flex items-center justify-between">
+        <div className="bg-white/80 backdrop-blur-md border-b border-gray-200/50 shadow-sm px-4 py-3 flex items-center justify-between z-50 flex-shrink-0">
           <div className="flex items-center gap-3">
             <Button
               variant="ghost"
@@ -684,8 +1058,8 @@ export default function ViewerPresentation() {
                         : 'border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50/50 hover:shadow-lg'
                   }`}
                 >
-                  <div className="flex items-start gap-2">
-                    <div className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shadow-sm transition-all ${
+                  <div className="flex items-start gap-3">
+                    <div className={`flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold transition-all ${
                       !isAccessible
                         ? 'bg-gray-300 text-gray-500'
                         : index === currentIndex
@@ -717,25 +1091,35 @@ export default function ViewerPresentation() {
         </>
       )}
 
-      {/* Slide container */}
+      {/* Slide container - Takes remaining space */}
       <div
-        className={`flex-1 transition-all ${
+        className={`flex-1 min-h-0 overflow-hidden ${
           showThumbnails && !isFullscreen ? 'md:mr-48 lg:mr-64' : ''
-        } ${currentSlide.type === 'text' ? 'overflow-hidden' : 'overflow-hidden flex items-center justify-center'}`}
-        style={{ backgroundColor: slideBackgroundColor, color: slideTextColor }}
+        }`}
+        style={{ backgroundColor: slideBackgroundColor }}
       >
-        <SlideViewer
-          slide={currentSlide}
-          userAnswer={userAnswers[currentIndex]}
-          onAnswer={(answer, slideIndex, elementIndex) => handleAnswer(answer, slideIndex, elementIndex)}
-          textColor={slideTextColor}
-          slideIndex={currentIndex}
-        />
+        {['ranking', 'matching', 'fill_in_blanks'].includes(currentSlide.type) ? (
+          <SlideViewer
+            slide={currentSlide}
+            userAnswer={userAnswers[currentIndex]}
+            onAnswer={(answer, slideIndex, elementIndex) => handleAnswer(answer, slideIndex, elementIndex)}
+            textColor={slideTextColor}
+            slideIndex={currentIndex}
+          />
+        ) : (
+          <ScaledSlidePreview
+            slide={currentSlide}
+            theme={presentation.theme}
+            userAnswer={userAnswers[currentIndex]}
+            onAnswer={(answer) => handleAnswer(answer, currentIndex)}
+            slideIndex={currentIndex}
+          />
+        )}
       </div>
 
-      {/* Navigation Toolbar - Hidden in fullscreen */}
+      {/* Navigation Toolbar - Separate footer block */}
       {!isFullscreen && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-md border-t border-gray-200/50 p-2 md:p-4 shadow-lg z-40">
+        <div className="bg-white/80 backdrop-blur-md border-t border-gray-200/50 p-2 md:p-4 shadow-lg flex-shrink-0">
           {/* Mobile: Vertical Stack */}
           <div className="flex md:hidden flex-col gap-2">
           <div className="flex items-center justify-between px-2">

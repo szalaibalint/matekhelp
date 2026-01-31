@@ -1994,11 +1994,21 @@ function ScaledSlideEditor({
   onHeightChange?: (height: number) => void;
 }) {
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
-  const [isResizing, setIsResizing] = useState(false);
+  const [autoHeight, setAutoHeight] = useState(760);
+  const lastHeightRef = useRef(760);
   
-  // Get stored height or default to 760
-  const slideHeight = slide.settings?.slideHeight || 760;
+  // Get stored height or use auto-calculated height
+  const slideHeight = slide.type === 'text' ? Math.max(760, autoHeight) : 900;
+
+  useEffect(() => {
+    if (slide.type !== 'text') return;
+
+    const initialHeight = Math.max(760, slide.settings?.slideHeight || 760);
+    setAutoHeight(initialHeight);
+    lastHeightRef.current = initialHeight;
+  }, [slide.id, slide.settings?.slideHeight, slide.type]);
 
   useEffect(() => {
     const updateScale = () => {
@@ -2027,32 +2037,50 @@ function ScaledSlideEditor({
     };
   }, []);
 
-  // Handle resize drag for text slides
-  const handleResizeStart = (e: React.MouseEvent) => {
-    if (slide.type !== 'text') return;
-    e.preventDefault();
-    setIsResizing(true);
-    
-    const startY = e.clientY;
-    const startHeight = slideHeight;
-    
-    const handleMouseMove = (moveEvent: MouseEvent) => {
-      const deltaY = (moveEvent.clientY - startY) / scale;
-      const newHeight = Math.max(400, Math.round(startHeight + deltaY));
-      if (onHeightChange) {
-        onHeightChange(newHeight);
+  // Auto-calculate height based on content
+  useEffect(() => {
+    if (slide.type !== 'text' || !contentRef.current) return;
+
+    const measureContent = () => {
+      if (!contentRef.current) return;
+      
+      // Get the scroll height of the content
+      const scrollHeight = contentRef.current.scrollHeight;
+      
+      // Calculate minimum required height (default 760, or higher if content needs it)
+      const requiredHeight = Math.max(760, scrollHeight);
+
+      setAutoHeight(requiredHeight);
+
+      // Notify parent component of height change
+      if (onHeightChange && requiredHeight !== lastHeightRef.current) {
+        lastHeightRef.current = requiredHeight;
+        onHeightChange(requiredHeight);
       }
     };
+
+    // Measure on a small delay to ensure DOM is updated
+    const timeoutId = setTimeout(measureContent, 50);
     
-    const handleMouseUp = () => {
-      setIsResizing(false);
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
+    // Also observe for mutations in the content
+    const mutationObserver = new MutationObserver(() => {
+      clearTimeout(timeoutId);
+      setTimeout(measureContent, 50);
+    });
+    
+    mutationObserver.observe(contentRef.current, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['style', 'class'],
+      characterData: true
+    });
+
+    return () => {
+      clearTimeout(timeoutId);
+      mutationObserver.disconnect();
     };
-    
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-  };
+  }, [slide.content, slide.type, onHeightChange]);
 
   const backgroundColor = slide.backgroundColor || theme?.background || '#ffffff';
   const textColor = slide.textColor || theme?.textColor || '#000000';
@@ -2069,7 +2097,6 @@ function ScaledSlideEditor({
 
   // Calculate the scaled dimensions for the wrapper
   const scaledWidth = 1600 * scale;
-  const scaledHeight = effectiveHeight * scale;
 
   // Toolbar height (approximate) - needed for positioning above the slide
   const toolbarHeight = 72; // Approximate height of the editor toolbar
@@ -2082,7 +2109,6 @@ function ScaledSlideEditor({
         width: '100%',
         maxWidth: `${scaledWidth}px`,
         marginTop: `${toolbarHeight}px`, // Space for toolbar above
-        paddingBottom: slide.type === 'text' ? '12px' : undefined, // Space for resize handle
       }}
     >
       <div 
@@ -2101,34 +2127,18 @@ function ScaledSlideEditor({
             minHeight: `${effectiveHeight}px`,
           }}
         >
-          {/* Full-size editor that will be scaled down */}
-          <RichTextEditor
-            content={content as Descendant[]}
-            onChange={onContentChange}
-            enableDragBlanks={slide.type === 'fill_in_blanks'}
-            blanks={slide.type === 'fill_in_blanks' ? (slide.content?.blanks || []) : undefined}
-            onBlanksChange={onBlanksChange}
-          />
+          <div ref={contentRef} className="w-full">
+            {/* Full-size editor that will be scaled down */}
+            <RichTextEditor
+              content={content as Descendant[]}
+              onChange={onContentChange}
+              enableDragBlanks={slide.type === 'fill_in_blanks'}
+              blanks={slide.type === 'fill_in_blanks' ? (slide.content?.blanks || []) : undefined}
+              onBlanksChange={onBlanksChange}
+            />
+          </div>
         </div>
       </div>
-      
-      {/* Resize handle for text slides */}
-      {slide.type === 'text' && (
-        <div
-          className={`absolute left-0 h-3 cursor-ns-resize flex items-center justify-center group transition-colors ${
-            isResizing ? 'bg-blue-200' : 'hover:bg-blue-100'
-          }`}
-          style={{ 
-            top: `${scaledHeight}px`,
-            width: `${scaledWidth}px`,
-          }}
-          onMouseDown={handleResizeStart}
-        >
-          <div className={`w-16 h-1 rounded-full transition-colors ${
-            isResizing ? 'bg-blue-500' : 'bg-gray-300 group-hover:bg-blue-400'
-          }`} />
-        </div>
-      )}
     </div>
   );
 }
