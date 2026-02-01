@@ -27,7 +27,7 @@ export const Toolbar: React.FC = () => {
     zoom,
     setZoom,
     resetView,
-    copyShapes,
+    duplicate,
     deleteSelected,
     undo,
     redo,
@@ -170,9 +170,9 @@ export const Toolbar: React.FC = () => {
           </button>
           <button
             className="toolbar-btn"
-            onClick={copyShapes}
+            onClick={duplicate}
             disabled={selectedShapeIds.length === 0}
-            title="Copy (Ctrl+C)"
+            title="Duplicate (Ctrl+D)"
           >
             <Copy size={20} />
           </button>

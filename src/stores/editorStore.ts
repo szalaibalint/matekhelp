@@ -43,7 +43,7 @@ interface EditorState {
   updateShape: (shapeId: string, updates: Partial<ShapeData>, options?: { saveHistory?: boolean }) => void;
   selectShape: (shapeId: string, addToSelection?: boolean) => void;
   clearSelection: () => void;
-  copyShapes: () => void;
+  duplicate: () => void;
   pasteShapes: () => void;
   deleteSelected: () => void;
   
@@ -257,19 +257,34 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     set({ selectedShapeIds: [] });
   },
 
-  copyShapes: () => {
+  duplicate: () => {
     const { presentation, currentSlideId, selectedShapeIds } = get();
-    if (!presentation || !currentSlideId) return;
+    if (!presentation || !currentSlideId || selectedShapeIds.length === 0) return;
     
     const slide = presentation.getSlide(currentSlideId);
     if (!slide) return;
     
-    const shapesToCopy = selectedShapeIds
-      .map(id => slide.getShape(id))
-      .filter((shape): shape is Shape => shape !== undefined)
-      .map(shape => shape.toData());
+    get().saveHistory();
     
-    set({ copiedShapes: shapesToCopy });
+    const newShapeIds: string[] = [];
+    
+    selectedShapeIds.forEach(id => {
+      const shape = slide.getShape(id);
+      if (!shape) return;
+      
+      // Clone the shape and offset it slightly
+      const clonedShape = shape.clone();
+      clonedShape.setPosition({
+        x: clonedShape.transform.position.x + 20,
+        y: clonedShape.transform.position.y + 20,
+      });
+      
+      slide.addShape(clonedShape);
+      newShapeIds.push(clonedShape.id);
+    });
+    
+    // Select the newly duplicated shapes
+    set({ presentation, selectedShapeIds: newShapeIds });
   },
 
   pasteShapes: () => {
