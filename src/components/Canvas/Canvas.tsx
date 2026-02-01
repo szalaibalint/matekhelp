@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { Stage, Layer, Rect, Ellipse, Line, Text, Group, Circle } from 'react-konva';
+import { Stage, Layer, Rect, Ellipse, Line, Text, Group, Circle, Arrow } from 'react-konva';
 import { useEditorStore } from '../../stores/editorStore';
 import { ShapeType } from '../../types';
 import Konva from 'konva';
@@ -334,14 +334,23 @@ const CanvasShape: React.FC<CanvasShapeProps> = ({ shape, isSelected, onSelect, 
       const rotatedCenterX = centerX * Math.cos(rotationRad) - centerY * Math.sin(rotationRad);
       const rotatedCenterY = centerX * Math.sin(rotationRad) + centerY * Math.cos(rotationRad);
       
+      const lineNode = shape.type === ShapeType.ARROW ? (
+        <Arrow
+          {...commonProps}
+          points={points}
+          pointerLength={10}
+          pointerWidth={10}
+        />
+      ) : (
+        <Line
+          {...commonProps}
+          points={points}
+        />
+      );
+
       return (
         <Group>
-          <Line
-            {...commonProps}
-            points={points}
-            pointerLength={shape.type === ShapeType.ARROW ? 10 : 0}
-            pointerWidth={shape.type === ShapeType.ARROW ? 10 : 0}
-          />
+          {lineNode}
           {isSelected && (
             <Group
               x={shape.transform.position.x + rotatedCenterX}
