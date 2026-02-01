@@ -192,7 +192,38 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const slide = presentation.getSlide(currentSlideId);
     if (!slide) return;
     
+    const shapeBeforeUpdate = slide.shapes.find(s => s.id === shapeId);
+    
+    console.group('🟢 STORE UPDATE - updateShape');
+    console.log('Shape ID:', shapeId);
+    console.log('Current Slide ID:', currentSlideId);
+    console.log('Updates Received:', updates);
+    if (shapeBeforeUpdate) {
+      console.log('Shape Before Update:');
+      console.table({
+        'Type': shapeBeforeUpdate.type,
+        'Position': shapeBeforeUpdate.transform.position,
+        'Size': shapeBeforeUpdate.transform.size,
+        'Rotation': shapeBeforeUpdate.transform.rotation,
+        'Locked': shapeBeforeUpdate.locked,
+      });
+    }
+    
     slide.updateShape(shapeId, updates);
+    
+    const shapeAfterUpdate = slide.shapes.find(s => s.id === shapeId);
+    if (shapeAfterUpdate) {
+      console.log('Shape After Update:');
+      console.table({
+        'Type': shapeAfterUpdate.type,
+        'Position': shapeAfterUpdate.transform.position,
+        'Size': shapeAfterUpdate.transform.size,
+        'Rotation': shapeAfterUpdate.transform.rotation,
+        'Locked': shapeAfterUpdate.locked,
+      });
+    }
+    console.groupEnd();
+    
     set({ presentation });
   },
 
