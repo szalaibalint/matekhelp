@@ -36,17 +36,17 @@ export const Properties: React.FC = () => {
   const handleColorChange = (property: 'fill' | 'stroke', value: string) => {
     updateShape(selectedShape.id, {
       color: { ...selectedShape.color, [property]: value },
-    });
+    }, { saveHistory: true });
   };
 
   const handleStrokeWidthChange = (value: number) => {
     updateShape(selectedShape.id, {
       color: { ...selectedShape.color, strokeWidth: value },
-    });
+    }, { saveHistory: true });
   };
 
   const handleOpacityChange = (value: number) => {
-    updateShape(selectedShape.id, { opacity: value });
+    updateShape(selectedShape.id, { opacity: value }, { saveHistory: true });
   };
 
   const handlePositionChange = (axis: 'x' | 'y', value: number) => {
@@ -58,7 +58,7 @@ export const Properties: React.FC = () => {
           [axis]: value,
         },
       },
-    });
+    }, { saveHistory: true });
   };
 
   const handleSizeChange = (dimension: 'width' | 'height', value: number) => {
@@ -70,7 +70,7 @@ export const Properties: React.FC = () => {
           [dimension]: Math.max(1, value),
         },
       },
-    });
+    }, { saveHistory: true });
   };
 
   const handleRotationChange = (value: number) => {
@@ -80,7 +80,7 @@ export const Properties: React.FC = () => {
         ...selectedShape.transform,
         rotation: value,
       },
-    });
+    }, { saveHistory: true });
   };
 
   return (

@@ -9,9 +9,10 @@ interface CanvasShapeProps {
   isSelected: boolean;
   onSelect: () => void;
   onChange: (updates: any) => void;
+  onStart?: () => void;
 }
 
-const CanvasShape: React.FC<CanvasShapeProps> = ({ shape, isSelected, onSelect, onChange }) => {
+const CanvasShape: React.FC<CanvasShapeProps> = ({ shape, isSelected, onSelect, onChange, onStart }) => {
   const shapeRef = useRef<any>(null);
   const [imageElement, setImageElement] = useState<HTMLImageElement | null>(null);
   const [imageFailed, setImageFailed] = useState(false);
@@ -119,12 +120,13 @@ const CanvasShape: React.FC<CanvasShapeProps> = ({ shape, isSelected, onSelect, 
       };
     }
     
-    onChange({
+    const updatePayload = {
       transform: {
         ...shape.transform,
         position: newPosition,
       },
-    });
+    };
+    onChange(updatePayload);
   };
 
   const handleDragEnd = (e: any) => {
@@ -160,12 +162,14 @@ const CanvasShape: React.FC<CanvasShapeProps> = ({ shape, isSelected, onSelect, 
     console.log('Update Payload:', { transform: { ...shape.transform, position: newPosition } });
     console.groupEnd();
     
-    onChange({
+    const updatePayload = {
       transform: {
         ...shape.transform,
         position: newPosition,
       },
-    });
+    };
+
+    onChange(updatePayload);
   };
 
   const handleTransformEnd = (e: any) => {
@@ -312,8 +316,10 @@ const CanvasShape: React.FC<CanvasShapeProps> = ({ shape, isSelected, onSelect, 
     draggable: !shape.locked,
     onClick: onSelect,
     onTap: onSelect,
+    onDragStart: onStart,
     onDragMove: shape.type === ShapeType.IMAGE ? undefined : handleDragMove,
     onDragEnd: handleDragEnd,
+    onTransformStart: onStart,
     onTransformEnd: handleTransformEnd,
   };
 
@@ -435,19 +441,35 @@ const CanvasShape: React.FC<CanvasShapeProps> = ({ shape, isSelected, onSelect, 
               x={shape.transform.position.x + rotatedCenterX}
               y={shape.transform.position.y + rotatedCenterY}
               draggable={!shape.locked}
+              onDragStart={onStart}
               onDragMove={(e) => {
                 // Update line position in real-time while dragging
                 const handleX = e.target.x();
                 const handleY = e.target.y();
                 const newLineX = handleX - rotatedCenterX;
                 const newLineY = handleY - rotatedCenterY;
-                
+
                 onChange({
                   transform: {
                     ...shape.transform,
                     position: { x: newLineX, y: newLineY },
                   },
                 });
+              }}
+              onDragEnd={(e) => {
+                const handleX = e.target.x();
+                const handleY = e.target.y();
+                const newLineX = handleX - rotatedCenterX;
+                const newLineY = handleY - rotatedCenterY;
+
+                const updatePayload = {
+                  transform: {
+                    ...shape.transform,
+                    position: { x: newLineX, y: newLineY },
+                  },
+                };
+
+                onChange(updatePayload);
               }}
               onMouseEnter={(e) => {
                 const container = e.target.getStage()?.container();
@@ -544,6 +566,7 @@ export const Canvas: React.FC = () => {
     setZoom,
     setPan,
     version,
+    saveHistory,
   } = useEditorStore();
 
   const currentSlide = presentation?.getSlide(currentSlideId || '');
@@ -615,6 +638,7 @@ export const Canvas: React.FC = () => {
               isSelected={selectedShapeIds.includes(shape.id)}
               onSelect={() => selectShape(shape.id)}
               onChange={(updates) => updateShape(shape.id, updates)}
+              onStart={() => saveHistory()}
             />
           ))}
         </Layer>

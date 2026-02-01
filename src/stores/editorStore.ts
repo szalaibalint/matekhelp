@@ -40,7 +40,7 @@ interface EditorState {
   // Actions - Shapes
   addShape: (type: ShapeType, position: Position, options?: { size?: Size; imageUrl?: string }) => void;
   removeShape: (shapeId: string) => void;
-  updateShape: (shapeId: string, updates: Partial<ShapeData>) => void;
+  updateShape: (shapeId: string, updates: Partial<ShapeData>, options?: { saveHistory?: boolean }) => void;
   selectShape: (shapeId: string, addToSelection?: boolean) => void;
   clearSelection: () => void;
   copyShapes: () => void;
@@ -145,7 +145,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   },
 
   setCurrentSlide: (slideId) => {
-    set({ currentSlideId: slideId, selectedShapeIds: [] });
+    set({ currentSlideId: slideId, selectedShapeIds: [], history: { past: [], future: [] } });
   },
 
   moveSlide: (fromIndex, toIndex) => {
@@ -164,12 +164,13 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const slide = presentation.getSlide(currentSlideId);
     if (!slide) return;
     
+    get().saveHistory();
+    
     const shape = ShapeFactory.createShape(type, position, options?.size);
     if (type === ShapeType.IMAGE && options?.imageUrl && 'setImageUrl' in shape) {
       (shape as any).setImageUrl(options.imageUrl);
     }
     slide.addShape(shape);
-    get().saveHistory();
     
     set({ presentation, selectedShapeIds: [shape.id] });
   },
@@ -181,8 +182,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const slide = presentation.getSlide(currentSlideId);
     if (!slide) return;
     
-    slide.removeShape(shapeId);
     get().saveHistory();
+    
+    slide.removeShape(shapeId);
     
     set({
       presentation,
@@ -190,12 +192,16 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     });
   },
 
-  updateShape: (shapeId, updates) => {
+  updateShape: (shapeId, updates, options) => {
     const { presentation, currentSlideId } = get();
     if (!presentation || !currentSlideId) return;
     
     const slide = presentation.getSlide(currentSlideId);
     if (!slide) return;
+    
+    if (options?.saveHistory) {
+      get().saveHistory();
+    }
     
     const shapeBeforeUpdate = slide.shapes.find(s => s.id === shapeId);
     
@@ -273,6 +279,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const slide = presentation.getSlide(currentSlideId);
     if (!slide) return;
     
+    get().saveHistory();
+    
     const newShapeIds: string[] = [];
     
     copiedShapes.forEach(shapeData => {
@@ -286,13 +294,20 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       newShapeIds.push(shape.id);
     });
     
-    get().saveHistory();
     set({ presentation, selectedShapeIds: newShapeIds });
   },
 
   deleteSelected: () => {
-    const { selectedShapeIds } = get();
-    selectedShapeIds.forEach(id => get().removeShape(id));
+    const { presentation, currentSlideId, selectedShapeIds } = get();
+    if (!presentation || !currentSlideId || selectedShapeIds.length === 0) return;
+    
+    const slide = presentation.getSlide(currentSlideId);
+    if (!slide) return;
+    
+    get().saveHistory();
+    selectedShapeIds.forEach(id => slide.removeShape(id));
+    
+    set({ presentation, selectedShapeIds: [] });
   },
 
   // Canvas actions
@@ -345,6 +360,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     
     set({
       presentation,
+      selectedShapeIds: [],
+      version: get().version + 1,
       history: {
         past: history.past.slice(0, -1),
         future: [currentState, ...history.future],
@@ -367,6 +384,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     
     set({
       presentation,
+      selectedShapeIds: [],
+      version: get().version + 1,
       history: {
         past: [...history.past, currentState],
         future: history.future.slice(1),

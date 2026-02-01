@@ -32,6 +32,7 @@ export const Toolbar: React.FC = () => {
     undo,
     redo,
     selectedShapeIds,
+    history,
   } = useEditorStore();
 
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
@@ -151,10 +152,20 @@ export const Toolbar: React.FC = () => {
 
         {/* Edit Actions */}
         <div className="toolbar-section">
-          <button className="toolbar-btn" onClick={undo} title="Undo (Ctrl+Z)">
+          <button 
+            className="toolbar-btn" 
+            onClick={undo} 
+            disabled={history.past.length === 0}
+            title="Undo (Ctrl+Z)"
+          >
             <Undo size={20} />
           </button>
-          <button className="toolbar-btn" onClick={redo} title="Redo (Ctrl+Y)">
+          <button 
+            className="toolbar-btn" 
+            onClick={redo} 
+            disabled={history.future.length === 0}
+            title="Redo (Ctrl+Y)"
+          >
             <Redo size={20} />
           </button>
           <button
