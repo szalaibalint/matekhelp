@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { Stage, Layer, Rect, Ellipse, Line, Text } from 'react-konva';
+import { Stage, Layer, Rect, Ellipse, Line, Text, Group, Circle } from 'react-konva';
 import { useEditorStore } from '../../stores/editorStore';
 import { ShapeType } from '../../types';
 import Konva from 'konva';
@@ -49,13 +49,49 @@ const CanvasShape: React.FC<CanvasShapeProps> = ({ shape, isSelected, onSelect, 
     }
   }, [isSelected]);
 
+  const handleDragMove = (e: any) => {
+    // Lines use top-left positioning (no offset), other shapes use center-based positioning
+    let newPosition;
+    if (shape.type === ShapeType.LINE || shape.type === ShapeType.ARROW) {
+      // Lines use top-left positioning, so node.x/y is already top-left
+      newPosition = {
+        x: e.target.x(),
+        y: e.target.y(),
+      };
+    } else {
+      // Other shapes use center-based positioning with offset
+      // So node.x/y is at center, convert back to top-left for storage
+      newPosition = {
+        x: e.target.x() - shape.transform.size.width / 2,
+        y: e.target.y() - shape.transform.size.height / 2,
+      };
+    }
+    
+    onChange({
+      transform: {
+        ...shape.transform,
+        position: newPosition,
+      },
+    });
+  };
+
   const handleDragEnd = (e: any) => {
-    // All shapes now use center-based positioning with offset
-    // So node.x/y is at center, convert back to top-left for storage
-    let newPosition = {
-      x: e.target.x() - shape.transform.size.width / 2,
-      y: e.target.y() - shape.transform.size.height / 2,
-    };
+    // Lines use top-left positioning (no offset), other shapes use center-based positioning
+    let newPosition;
+    if (shape.type === ShapeType.LINE || shape.type === ShapeType.ARROW) {
+      // Lines use top-left positioning, so node.x/y is already top-left
+      newPosition = {
+        x: e.target.x(),
+        y: e.target.y(),
+      };
+    } else {
+      // Other shapes use center-based positioning with offset
+      // So node.x/y is at center, convert back to top-left for storage
+      newPosition = {
+        x: e.target.x() - shape.transform.size.width / 2,
+        y: e.target.y() - shape.transform.size.height / 2,
+      };
+    }
     
     const oldPosition = shape.transform.position;
     const delta = {
@@ -92,12 +128,22 @@ const CanvasShape: React.FC<CanvasShapeProps> = ({ shape, isSelected, onSelect, 
     const newHeight = Math.max(5, node.height() * scaleY);
     const newSize = { width: newWidth, height: newHeight };
     
-    // All shapes now use center-based positioning with offset
-    // So node.x/y is at center, convert back to top-left for storage
-    let newPosition = {
-      x: node.x() - newWidth / 2,
-      y: node.y() - newHeight / 2,
-    };
+    // Lines use top-left positioning (no offset), other shapes use center-based positioning
+    let newPosition;
+    if (shape.type === ShapeType.LINE || shape.type === ShapeType.ARROW) {
+      // Lines use top-left positioning, so node.x/y is already top-left
+      newPosition = {
+        x: node.x(),
+        y: node.y(),
+      };
+    } else {
+      // Other shapes use center-based positioning with offset
+      // So node.x/y is at center, convert back to top-left for storage
+      newPosition = {
+        x: node.x() - newWidth / 2,
+        y: node.y() - newHeight / 2,
+      };
+    }
     
     const newRotation = node.rotation();
     // Normalize rotation to 0-360 range
@@ -145,6 +191,8 @@ const CanvasShape: React.FC<CanvasShapeProps> = ({ shape, isSelected, onSelect, 
     // CRITICAL FIX: Update node dimensions to match new size
     // This ensures the next transform uses the correct base dimensions
     // Different shape types have different properties
+    let newPoints: number[] | undefined;
+    
     if (shape.type === ShapeType.CIRCLE) {
       // Ellipse uses radiusX and radiusY, allowing non-uniform sizing
       node.radiusX(newWidth / 2);
@@ -152,13 +200,21 @@ const CanvasShape: React.FC<CanvasShapeProps> = ({ shape, isSelected, onSelect, 
       console.log('⚠️ CRITICAL FIX: Ellipse radii updated to:', newWidth / 2, 'x', newHeight / 2);
     } else if (shape.type === ShapeType.TRIANGLE) {
       // Triangle is a Line shape - update its points array to match new dimensions
-      const newPoints = [
+      newPoints = [
         0, newHeight,
         newWidth / 2, 0,
         newWidth, newHeight,
       ];
       node.points(newPoints);
       console.log('⚠️ CRITICAL FIX: Triangle points updated to:', newPoints);
+    } else if (shape.type === ShapeType.LINE || shape.type === ShapeType.ARROW) {
+      // Lines and arrows use points array - scale existing points by scaleX and scaleY
+      const oldPoints = shape.points || [0, 0, 100, 100];
+      newPoints = oldPoints.map((coord: number, index: number) => 
+        index % 2 === 0 ? coord * scaleX : coord * scaleY
+      );
+      node.points(newPoints);
+      console.log('⚠️ CRITICAL FIX: Line/Arrow points scaled from:', oldPoints, 'to:', newPoints);
     } else {
       // Rectangles, etc. use width/height
       node.width(newWidth);
@@ -167,7 +223,7 @@ const CanvasShape: React.FC<CanvasShapeProps> = ({ shape, isSelected, onSelect, 
     }
     console.log('Verification - radiusX/width:', node.radiusX?.() || node.width(), 'radiusY/height:', node.radiusY?.() || node.height());
 
-    const updatePayload = {
+    const updatePayload: any = {
       transform: {
         ...shape.transform,
         position: newPosition,
@@ -175,6 +231,12 @@ const CanvasShape: React.FC<CanvasShapeProps> = ({ shape, isSelected, onSelect, 
         rotation: normalizedRotation,
       },
     };
+    
+    // Include updated points for shapes that use them
+    if (newPoints !== undefined) {
+      updatePayload.points = newPoints;
+    }
+    
     console.log('Final Update Payload:', updatePayload);
     console.groupEnd();
     
@@ -198,6 +260,7 @@ const CanvasShape: React.FC<CanvasShapeProps> = ({ shape, isSelected, onSelect, 
     draggable: !shape.locked,
     onClick: onSelect,
     onTap: onSelect,
+    onDragMove: handleDragMove,
     onDragEnd: handleDragEnd,
     onTransformEnd: handleTransformEnd,
   };
@@ -258,16 +321,122 @@ const CanvasShape: React.FC<CanvasShapeProps> = ({ shape, isSelected, onSelect, 
       );
     
     case ShapeType.LINE:
-    case ShapeType.ARROW:
+    case ShapeType.ARROW: {
+      const points = shape.points || [0, 0, 100, 100];
+      // Calculate center of the line's bounding box for the move handle
+      const minX = Math.min(points[0], points[2]);
+      const maxX = Math.max(points[0], points[2]);
+      const minY = Math.min(points[1], points[3]);
+      const maxY = Math.max(points[1], points[3]);
+      const centerX = (minX + maxX) / 2;
+      const centerY = (minY + maxY) / 2;
+      const rotationRad = (shape.transform.rotation * Math.PI) / 180;
+      const rotatedCenterX = centerX * Math.cos(rotationRad) - centerY * Math.sin(rotationRad);
+      const rotatedCenterY = centerX * Math.sin(rotationRad) + centerY * Math.cos(rotationRad);
+      
       return (
-        <Line
-          {...commonProps}
-          points={shape.points || [0, 0, 100, 100]}
-          pointerLength={shape.type === ShapeType.ARROW ? 10 : 0}
-          pointerWidth={shape.type === ShapeType.ARROW ? 10 : 0}
-        />
+        <Group>
+          <Line
+            {...commonProps}
+            points={points}
+            pointerLength={shape.type === ShapeType.ARROW ? 10 : 0}
+            pointerWidth={shape.type === ShapeType.ARROW ? 10 : 0}
+          />
+          {isSelected && (
+            <Group
+              x={shape.transform.position.x + rotatedCenterX}
+              y={shape.transform.position.y + rotatedCenterY}
+              draggable={!shape.locked}
+              onDragMove={(e) => {
+                // Update line position in real-time while dragging
+                const handleX = e.target.x();
+                const handleY = e.target.y();
+                const newLineX = handleX - rotatedCenterX;
+                const newLineY = handleY - rotatedCenterY;
+                
+                onChange({
+                  transform: {
+                    ...shape.transform,
+                    position: { x: newLineX, y: newLineY },
+                  },
+                });
+              }}
+              onMouseEnter={(e) => {
+                const container = e.target.getStage()?.container();
+                if (container) container.style.cursor = 'move';
+              }}
+              onMouseLeave={(e) => {
+                const container = e.target.getStage()?.container();
+                if (container) container.style.cursor = 'default';
+              }}
+            >
+              {/* Invisible hitbox for easier dragging */}
+              <Rect
+                x={-15}
+                y={-15}
+                width={30}
+                height={30}
+                fill="transparent"
+              />
+              {/* Crosshair move icon */}
+              {/* Vertical line */}
+              <Line
+                points={[0, -10, 0, 10]}
+                stroke="#4A90E2"
+                strokeWidth={2}
+                listening={false}
+              />
+              {/* Horizontal line */}
+              <Line
+                points={[-10, 0, 10, 0]}
+                stroke="#4A90E2"
+                strokeWidth={2}
+                listening={false}
+              />
+              {/* Arrow heads - top */}
+              <Line
+                points={[-3, -7, 0, -10, 3, -7]}
+                stroke="#4A90E2"
+                strokeWidth={2}
+                listening={false}
+              />
+              {/* Arrow heads - bottom */}
+              <Line
+                points={[-3, 7, 0, 10, 3, 7]}
+                stroke="#4A90E2"
+                strokeWidth={2}
+                listening={false}
+              />
+              {/* Arrow heads - left */}
+              <Line
+                points={[-7, -3, -10, 0, -7, 3]}
+                stroke="#4A90E2"
+                strokeWidth={2}
+                listening={false}
+              />
+              {/* Arrow heads - right */}
+              <Line
+                points={[7, -3, 10, 0, 7, 3]}
+                stroke="#4A90E2"
+                strokeWidth={2}
+                listening={false}
+              />
+              {/* Center circle for better visibility */}
+              <Circle
+                x={0}
+                y={0}
+                radius={3}
+                fill="#FFFFFF"
+                stroke="#4A90E2"
+                strokeWidth={2}
+                listening={false}
+              />
+            </Group>
+          )}
+        </Group>
       );
-    
+    }
+
     default:
       return null;
   }
