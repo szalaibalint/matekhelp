@@ -32,7 +32,7 @@ export class Slide {
     return this.shapes.find(shape => shape.id === shapeId);
   }
 
-  updateShape(shapeId: string, updates: Partial<Shape>): void {
+  updateShape(shapeId: string, updates: Partial<ShapeData>): void {
     const shape = this.getShape(shapeId);
     if (shape) {
       Object.assign(shape, updates);

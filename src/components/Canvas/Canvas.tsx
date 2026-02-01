@@ -1,5 +1,5 @@
-import React, { useRef, useEffect } from 'react';
-import { Stage, Layer, Rect, Ellipse, Line, Text, Group, Circle, Arrow } from 'react-konva';
+import React, { useRef, useEffect, useState } from 'react';
+import { Stage, Layer, Rect, Ellipse, Line, Text, Group, Circle, Arrow, Image as KonvaImage } from 'react-konva';
 import { useEditorStore } from '../../stores/editorStore';
 import { ShapeType } from '../../types';
 import Konva from 'konva';
@@ -13,6 +13,53 @@ interface CanvasShapeProps {
 
 const CanvasShape: React.FC<CanvasShapeProps> = ({ shape, isSelected, onSelect, onChange }) => {
   const shapeRef = useRef<any>(null);
+  const [imageElement, setImageElement] = useState<HTMLImageElement | null>(null);
+  const [imageFailed, setImageFailed] = useState(false);
+
+  const getProxyUrl = (url: string) => `https://images.weserv.nl/?url=${encodeURIComponent(url)}`;
+
+  useEffect(() => {
+    if (shape.type !== ShapeType.IMAGE) return;
+    const url = shape.imageUrl?.trim();
+    if (!url) {
+      setImageElement(null);
+      setImageFailed(false);
+      return;
+    }
+
+    let isCancelled = false;
+    let didFallback = false;
+
+    const img = new window.Image();
+    img.crossOrigin = 'anonymous';
+
+    const handleLoad = () => {
+      if (isCancelled) return;
+      setImageElement(img);
+      setImageFailed(false);
+    };
+
+    const handleError = () => {
+      if (isCancelled) return;
+      if (!didFallback) {
+        didFallback = true;
+        img.src = getProxyUrl(url);
+        return;
+      }
+      setImageElement(null);
+      setImageFailed(true);
+    };
+
+    img.addEventListener('load', handleLoad);
+    img.addEventListener('error', handleError);
+    img.src = url;
+
+    return () => {
+      isCancelled = true;
+      img.removeEventListener('load', handleLoad);
+      img.removeEventListener('error', handleError);
+    };
+  }, [shape.type, shape.imageUrl]);
 
   useEffect(() => {
     if (isSelected && shapeRef.current) {
@@ -20,10 +67,15 @@ const CanvasShape: React.FC<CanvasShapeProps> = ({ shape, isSelected, onSelect, 
         nodes: [shapeRef.current],
         keepRatio: false,
         enabledAnchors: ['top-left', 'top-right', 'bottom-left', 'bottom-right', 'top-center', 'middle-left', 'middle-right', 'bottom-center'],
+        borderStrokeWidth: 1,
+        anchorStrokeWidth: 1,
+        anchorSize: 8,
         // Enable shift key to toggle aspect ratio locking
         // When shift is pressed, keepRatio becomes true
         centeredScaling: false,
       });
+
+      transformer.ignoreStroke(true);
       
       // Listen for transform events to check shift key state
       transformer.on('transformstart', () => {
@@ -47,7 +99,7 @@ const CanvasShape: React.FC<CanvasShapeProps> = ({ shape, isSelected, onSelect, 
         transformer.destroy();
       };
     }
-  }, [isSelected]);
+  }, [isSelected, shape.id, shape.type, imageElement]);
 
   const handleDragMove = (e: any) => {
     // Lines use top-left positioning (no offset), other shapes use center-based positioning
@@ -260,7 +312,7 @@ const CanvasShape: React.FC<CanvasShapeProps> = ({ shape, isSelected, onSelect, 
     draggable: !shape.locked,
     onClick: onSelect,
     onTap: onSelect,
-    onDragMove: handleDragMove,
+    onDragMove: shape.type === ShapeType.IMAGE ? undefined : handleDragMove,
     onDragEnd: handleDragEnd,
     onTransformEnd: handleTransformEnd,
   };
@@ -317,6 +369,33 @@ const CanvasShape: React.FC<CanvasShapeProps> = ({ shape, isSelected, onSelect, 
           text={shape.text || 'Text'}
           fontSize={shape.fontSize || 24}
           fontFamily={shape.fontFamily || 'Arial'}
+        />
+      );
+
+    case ShapeType.IMAGE:
+      if (!imageElement) {
+        return (
+          <Rect
+            {...commonProps}
+            x={shape.transform.position.x + shape.transform.size.width / 2}
+            y={shape.transform.position.y + shape.transform.size.height / 2}
+            offsetX={shape.transform.size.width / 2}
+            offsetY={shape.transform.size.height / 2}
+            fill={imageFailed ? '#ffe9e9' : '#f3f3f3'}
+            stroke={imageFailed ? '#ff6b6b' : '#bbb'}
+            dash={[6, 4]}
+          />
+        );
+      }
+
+      return (
+        <KonvaImage
+          {...commonProps}
+          image={imageElement}
+          x={shape.transform.position.x + shape.transform.size.width / 2}
+          y={shape.transform.position.y + shape.transform.size.height / 2}
+          offsetX={shape.transform.size.width / 2}
+          offsetY={shape.transform.size.height / 2}
         />
       );
     

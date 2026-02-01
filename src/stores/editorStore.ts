@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { Presentation, Shape } from '../models';
 import { ToolType, ShapeType } from '../types';
-import type { Position, ShapeData } from '../types';
+import type { Position, ShapeData, Size } from '../types';
 import { PresentationService } from '../services';
 import { ShapeFactory } from '../services';
 
@@ -38,9 +38,9 @@ interface EditorState {
   moveSlide: (fromIndex: number, toIndex: number) => void;
   
   // Actions - Shapes
-  addShape: (type: ShapeType, position: Position) => void;
+  addShape: (type: ShapeType, position: Position, options?: { size?: Size; imageUrl?: string }) => void;
   removeShape: (shapeId: string) => void;
-  updateShape: (shapeId: string, updates: Partial<Shape>) => void;
+  updateShape: (shapeId: string, updates: Partial<ShapeData>) => void;
   selectShape: (shapeId: string, addToSelection?: boolean) => void;
   clearSelection: () => void;
   copyShapes: () => void;
@@ -157,14 +157,17 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   },
 
   // Shape actions
-  addShape: (type, position) => {
+  addShape: (type, position, options) => {
     const { presentation, currentSlideId } = get();
     if (!presentation || !currentSlideId) return;
     
     const slide = presentation.getSlide(currentSlideId);
     if (!slide) return;
     
-    const shape = ShapeFactory.createShape(type, position);
+    const shape = ShapeFactory.createShape(type, position, options?.size);
+    if (type === ShapeType.IMAGE && options?.imageUrl && 'setImageUrl' in shape) {
+      (shape as any).setImageUrl(options.imageUrl);
+    }
     slide.addShape(shape);
     get().saveHistory();
     
