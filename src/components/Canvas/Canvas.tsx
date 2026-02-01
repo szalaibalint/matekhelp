@@ -1,21 +1,36 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Stage, Layer, Rect, Ellipse, Line, Text, Group, Circle, Arrow, Image as KonvaImage } from 'react-konva';
 import { useEditorStore } from '../../stores/editorStore';
-import { ShapeType } from '../../types';
+import { ShapeType, ToolType } from '../../types';
 import Konva from 'konva';
 
 interface CanvasShapeProps {
   shape: any;
   isSelected: boolean;
+  isMultiSelected?: boolean;
   onSelect: () => void;
   onChange: (updates: any) => void;
   onStart?: () => void;
 }
 
-const CanvasShape: React.FC<CanvasShapeProps> = ({ shape, isSelected, onSelect, onChange, onStart }) => {
+const CanvasShape: React.FC<CanvasShapeProps> = ({ shape, isSelected, isMultiSelected, onSelect, onChange, onStart }) => {
+  // Add isMultiSelected to shape object for use in useEffect
+  shape.isMultiSelected = isMultiSelected;
   const shapeRef = useRef<any>(null);
   const [imageElement, setImageElement] = useState<HTMLImageElement | null>(null);
   const [imageFailed, setImageFailed] = useState(false);
+  const renderCount = useRef<number>(0);
+  const lastRenderLog = useRef<number>(0);
+  
+  renderCount.current++;
+  const now = Date.now();
+  if (now - lastRenderLog.current > 1000) {
+    console.log(`🔷 CanvasShape rendered ${renderCount.current} times in last second`);
+    renderCount.current = 0;
+    lastRenderLog.current = now;
+  }
+  
+  const { tool } = useEditorStore();
 
   const getProxyUrl = (url: string) => `https://images.weserv.nl/?url=${encodeURIComponent(url)}`;
 
@@ -62,8 +77,13 @@ const CanvasShape: React.FC<CanvasShapeProps> = ({ shape, isSelected, onSelect, 
     };
   }, [shape.type, shape.imageUrl]);
 
+  // Only show individual transformer when this is the ONLY selected shape
+  // Multi-selection will be handled by the group transformer in Canvas component
   useEffect(() => {
-    if (isSelected && shapeRef.current) {
+    // This prop will be passed from Canvas to indicate if multi-select is active
+    const isSingleSelection = isSelected && !shape.isMultiSelected;
+    
+    if (isSingleSelection && shapeRef.current && tool === ToolType.SELECT) {
       const transformer = new Konva.Transformer({
         nodes: [shapeRef.current],
         keepRatio: false,
@@ -71,27 +91,16 @@ const CanvasShape: React.FC<CanvasShapeProps> = ({ shape, isSelected, onSelect, 
         borderStrokeWidth: 1,
         anchorStrokeWidth: 1,
         anchorSize: 8,
-        // Enable shift key to toggle aspect ratio locking
-        // When shift is pressed, keepRatio becomes true
         centeredScaling: false,
       });
 
       transformer.ignoreStroke(true);
-      
-      // Listen for transform events to check shift key state
-      transformer.on('transformstart', () => {
-        console.log('🔵 Transform started');
-      });
       
       transformer.on('transform', () => {
         const stage = shapeRef.current.getStage();
         if (stage) {
           const isShiftPressed = stage.container().ownerDocument?.defaultView?.event?.shiftKey || false;
           transformer.keepRatio(isShiftPressed);
-          
-          if (isShiftPressed) {
-            console.log('⚪ SHIFT pressed - proportional resize enabled');
-          }
         }
       });
       
@@ -100,7 +109,7 @@ const CanvasShape: React.FC<CanvasShapeProps> = ({ shape, isSelected, onSelect, 
         transformer.destroy();
       };
     }
-  }, [isSelected, shape.id, shape.type, imageElement]);
+  }, [isSelected, shape.id, shape.type, shape.isMultiSelected, imageElement, tool]);
 
   const handleDragMove = (e: any) => {
     // Lines use top-left positioning (no offset), other shapes use center-based positioning
@@ -147,20 +156,6 @@ const CanvasShape: React.FC<CanvasShapeProps> = ({ shape, isSelected, onSelect, 
       };
     }
     
-    const oldPosition = shape.transform.position;
-    const delta = {
-      x: newPosition.x - oldPosition.x,
-      y: newPosition.y - oldPosition.y,
-    };
-    console.group('🔴 SHAPE MOVE - dragEnd');
-    console.log('Shape ID:', shape.id);
-    console.log('Shape Type:', shape.type);
-    console.log('Old Position:', oldPosition);
-    console.log('New Position:', newPosition);
-    console.log('Delta:', delta);
-    console.log('Current Transform:', shape.transform);
-    console.log('Update Payload:', { transform: { ...shape.transform, position: newPosition } });
-    console.groupEnd();
     
     const updatePayload = {
       transform: {
@@ -176,9 +171,6 @@ const CanvasShape: React.FC<CanvasShapeProps> = ({ shape, isSelected, onSelect, 
     const node = e.target;
     const scaleX = node.scaleX();
     const scaleY = node.scaleY();
-    const oldSize = shape.transform.size;
-    const oldRotation = shape.transform.rotation;
-    const oldPosition = shape.transform.position;
     
     const newWidth = Math.max(5, node.width() * scaleX);
     const newHeight = Math.max(5, node.height() * scaleY);
@@ -205,44 +197,8 @@ const CanvasShape: React.FC<CanvasShapeProps> = ({ shape, isSelected, onSelect, 
     // Normalize rotation to 0-360 range
     const normalizedRotation = ((newRotation % 360) + 360) % 360;
 
-    console.group('🔴 SHAPE RESIZE/TRANSFORM - transformEnd');
-    console.log('Shape ID:', shape.id);
-    console.log('Shape Type:', shape.type);
-    console.log('Raw Node Values:');
-    console.table({
-      'node.x()': node.x(),
-      'node.y()': node.y(),
-      'node.width()': node.width(),
-      'node.height()': node.height(),
-      'node.scaleX()': scaleX,
-      'node.scaleY()': scaleY,
-      'node.rotation()': newRotation,
-    });
-    console.log('Old State:');
-    console.table({
-      'Position': oldPosition,
-      'Size': oldSize,
-      'Rotation': oldRotation,
-    });
-    console.log('New State:');
-    console.table({
-      'Position': newPosition,
-      'Size': newSize,
-      'Rotation': newRotation,
-    });
-    console.log('Calculated Values:');
-    console.table({
-      'newWidth (width * scaleX)': newWidth,
-      'newHeight (height * scaleY)': newHeight,
-      'Width Changed': oldSize.width !== newWidth,
-      'Height Changed': oldSize.height !== newHeight,
-      'Position Changed': oldPosition.x !== newPosition.x || oldPosition.y !== newPosition.y,
-      'Rotation Changed': oldRotation !== newRotation,
-    });
-
     node.scaleX(1);
     node.scaleY(1);
-    console.log('Scale Reset: scaleX and scaleY set to 1');
     
     // CRITICAL FIX: Update node dimensions to match new size
     // This ensures the next transform uses the correct base dimensions
@@ -253,7 +209,6 @@ const CanvasShape: React.FC<CanvasShapeProps> = ({ shape, isSelected, onSelect, 
       // Ellipse uses radiusX and radiusY, allowing non-uniform sizing
       node.radiusX(newWidth / 2);
       node.radiusY(newHeight / 2);
-      console.log('⚠️ CRITICAL FIX: Ellipse radii updated to:', newWidth / 2, 'x', newHeight / 2);
     } else if (shape.type === ShapeType.TRIANGLE) {
       // Triangle is a Line shape - update its points array to match new dimensions
       newPoints = [
@@ -262,7 +217,6 @@ const CanvasShape: React.FC<CanvasShapeProps> = ({ shape, isSelected, onSelect, 
         newWidth, newHeight,
       ];
       node.points(newPoints);
-      console.log('⚠️ CRITICAL FIX: Triangle points updated to:', newPoints);
     } else if (shape.type === ShapeType.LINE || shape.type === ShapeType.ARROW) {
       // Lines and arrows use points array - scale existing points by scaleX and scaleY
       const oldPoints = shape.points || [0, 0, 100, 100];
@@ -270,15 +224,12 @@ const CanvasShape: React.FC<CanvasShapeProps> = ({ shape, isSelected, onSelect, 
         index % 2 === 0 ? coord * scaleX : coord * scaleY
       );
       node.points(newPoints);
-      console.log('⚠️ CRITICAL FIX: Line/Arrow points scaled from:', oldPoints, 'to:', newPoints);
     } else {
       // Rectangles, etc. use width/height
       node.width(newWidth);
       node.height(newHeight);
-      console.log('⚠️ CRITICAL FIX: Node dimensions updated to:', newWidth, 'x', newHeight);
     }
-    console.log('Verification - radiusX/width:', node.radiusX?.() || node.width(), 'radiusY/height:', node.radiusY?.() || node.height());
-
+    
     const updatePayload: any = {
       transform: {
         ...shape.transform,
@@ -293,14 +244,13 @@ const CanvasShape: React.FC<CanvasShapeProps> = ({ shape, isSelected, onSelect, 
       updatePayload.points = newPoints;
     }
     
-    console.log('Final Update Payload:', updatePayload);
-    console.groupEnd();
-    
     onChange(updatePayload);
   };
 
   const commonProps = {
     ref: shapeRef,
+    id: `shape-${shape.id}`,
+    name: 'shape',
     x: shape.transform.position.x,
     y: shape.transform.position.y,
     width: shape.transform.size.width,
@@ -313,11 +263,11 @@ const CanvasShape: React.FC<CanvasShapeProps> = ({ shape, isSelected, onSelect, 
     strokeWidth: shape.color.strokeWidth,
     strokeScaleEnabled: false, // Keep stroke width constant during transforms
     opacity: shape.opacity,
-    draggable: !shape.locked,
-    onClick: onSelect,
-    onTap: onSelect,
+    draggable: !shape.locked && tool === ToolType.SELECT,
+    onClick: tool === ToolType.SELECT ? onSelect : undefined,
+    onTap: tool === ToolType.SELECT ? onSelect : undefined,
     onDragStart: onStart,
-    onDragMove: shape.type === ShapeType.IMAGE ? undefined : handleDragMove,
+    onDragMove: handleDragMove,
     onDragEnd: handleDragEnd,
     onTransformStart: onStart,
     onTransformEnd: handleTransformEnd,
@@ -436,7 +386,7 @@ const CanvasShape: React.FC<CanvasShapeProps> = ({ shape, isSelected, onSelect, 
       return (
         <Group>
           {lineNode}
-          {isSelected && (
+          {isSelected && tool === ToolType.SELECT && (
             <Group
               x={shape.transform.position.x + rotatedCenterX}
               y={shape.transform.position.y + rotatedCenterY}
@@ -552,8 +502,34 @@ const CanvasShape: React.FC<CanvasShapeProps> = ({ shape, isSelected, onSelect, 
   }
 };
 
+// Memoize to prevent re-renders when parent updates
+const MemoizedCanvasShape = React.memo(CanvasShape, (prevProps, nextProps) => {
+  // Re-render only if these props change
+  return (
+    prevProps.shape === nextProps.shape &&
+    prevProps.isSelected === nextProps.isSelected &&
+    prevProps.isMultiSelected === nextProps.isMultiSelected &&
+    prevProps.onSelect === nextProps.onSelect &&
+    prevProps.onChange === nextProps.onChange &&
+    prevProps.onStart === nextProps.onStart
+  );
+});
+
 export const Canvas: React.FC = () => {
   const stageRef = useRef<any>(null);
+  const transformerRef = useRef<any>(null);
+  const selectionGroupRef = useRef<any>(null);
+  const canvasRenderCount = useRef<number>(0);
+  const lastCanvasRenderLog = useRef<number>(0);
+  
+  canvasRenderCount.current++;
+  const now = Date.now();
+  if (now - lastCanvasRenderLog.current > 1000) {
+    console.log(`🟢 Canvas component rendered ${canvasRenderCount.current} times in last second`);
+    canvasRenderCount.current = 0;
+    lastCanvasRenderLog.current = now;
+  }
+  
   const {
     presentation,
     currentSlideId,
@@ -565,26 +541,285 @@ export const Canvas: React.FC = () => {
     pan,
     setZoom,
     setPan,
-    version,
     saveHistory,
+    tool,
+    selectionRect,
+    setSelectionRect,
+    selectShapesInRect,
+    refreshUI,
+    setGroupTransformer,
   } = useEditorStore();
+
+  const [isPanning, setIsPanning] = useState(false);
+  const [isSelecting, setIsSelecting] = useState(false);
+  const lastPanPosition = useRef<{ x: number; y: number } | null>(null);
+  const lastSelectionUpdate = useRef<number>(0);
+  const lastRefreshUI = useRef<number>(0);
+  const pendingSelectionRect = useRef<any>(null);
+
+  const grabCursor = `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'><circle cx='16' cy='16' r='7' fill='white' stroke='black' stroke-width='2'/><circle cx='16' cy='16' r='2' fill='black'/></svg>") 16 16, grab`;
+  const grabbingCursor = `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'><circle cx='16' cy='16' r='7' fill='black' stroke='white' stroke-width='2'/><circle cx='16' cy='16' r='2' fill='white'/></svg>") 16 16, grabbing`;
 
   const currentSlide = presentation?.getSlide(currentSlideId || '');
 
-  console.group('🟢 CANVAS RENDER');
-  console.log('Version:', version);
-  console.log('Shapes count:', currentSlide?.shapes.length);
-  if (currentSlide?.shapes.length) {
-    console.log('First shape rotation:', currentSlide.shapes[0].transform.rotation);
-  }
-  console.groupEnd();
+  // Clear selection state when tool changes to avoid conflicts
+  useEffect(() => {
+    if (tool !== 'select') {
+      setIsSelecting(false);
+      setSelectionRect(null);
+    }
+  }, [tool]);
+
+  // Group transformer for multi-selection
+  useEffect(() => {
+    if (selectedShapeIds.length > 1 && tool === ToolType.SELECT && selectionGroupRef.current) {
+      const layer = selectionGroupRef.current.getLayer();
+      if (!layer) return;
+
+      // Get all selected shape nodes
+      const selectedNodes = currentSlide?.shapes
+        .filter(shape => selectedShapeIds.includes(shape.id))
+        .map(shape => {
+          // Find the Konva node for this shape
+          return layer.findOne(`#shape-${shape.id}`);
+        })
+        .filter(Boolean);
+
+      if (selectedNodes && selectedNodes.length > 1) {
+        // Create transformer for the group
+        const transformer = new Konva.Transformer({
+          nodes: selectedNodes,
+          keepRatio: false,
+          enabledAnchors: ['top-left', 'top-right', 'bottom-left', 'bottom-right', 'top-center', 'middle-left', 'middle-right', 'bottom-center'],
+          borderStrokeWidth: 1,
+          anchorStrokeWidth: 1,
+          anchorSize: 8,
+          centeredScaling: false,
+          rotationSnaps: [0, 45, 90, 135, 180, 225, 270, 315],
+        });
+
+        transformer.ignoreStroke(true);
+        transformerRef.current = transformer;
+        setGroupTransformer(transformer);
+        layer.add(transformer);
+        
+        // Listen for transform start
+        transformer.on('transformstart', () => {
+          console.log('🟢 Group transform started with shapes:', selectedShapeIds);
+        });
+        
+        // Listen for transform end to update all shapes
+        transformer.on('transformend', () => {
+          console.log('🔄 Group transform ended');
+          selectedNodes.forEach((node: any) => {
+            const shapeId = node.id().replace('shape-', '');
+            const shape = currentSlide?.shapes.find(s => s.id === shapeId);
+            if (!shape) return;
+
+            console.log(`📦 Shape ${shapeId} (${shape.type}):`, {
+              nodeX: node.x(),
+              nodeY: node.y(),
+              nodeRotation: node.rotation(),
+              nodeScaleX: node.scaleX(),
+              nodeScaleY: node.scaleY(),
+              originalRotation: shape.transform.rotation,
+            });
+
+            // Get the transform values from the node
+            const scaleX = node.scaleX();
+            const scaleY = node.scaleY();
+            const rotation = node.rotation();
+            
+            // Calculate new size based on scale
+            const newWidth = node.width() * scaleX;
+            const newHeight = node.height() * scaleY;
+            
+            // After group transform, node.x() and node.y() are already in the correct final positions
+            // For center-based shapes, they represent the center position
+            // We need to store as top-left for our data model
+            let newPosition;
+            if (shape.type === ShapeType.LINE || shape.type === ShapeType.ARROW) {
+              // Lines are already top-left based
+              newPosition = {
+                x: node.x(),
+                y: node.y(),
+              };
+            } else {
+              // For center-based shapes, convert center position to top-left
+              // node.x/y is the rotated center position, so just subtract half width/height
+              newPosition = {
+                x: node.x() - newWidth / 2,
+                y: node.y() - newHeight / 2,
+              };
+            }
+            
+            console.log(`✅ Calculated new position for ${shapeId}:`, newPosition, `rotation: ${rotation}`);
+            
+            // Reset scale to 1
+            node.scaleX(1);
+            node.scaleY(1);
+            
+            // Update node dimensions
+            let newPoints: number[] | undefined;
+            if (shape.type === ShapeType.CIRCLE) {
+              node.radiusX(newWidth / 2);
+              node.radiusY(newHeight / 2);
+            } else if (shape.type === ShapeType.TRIANGLE) {
+              newPoints = [0, newHeight, newWidth / 2, 0, newWidth, newHeight];
+              node.points(newPoints);
+            } else if (shape.type === ShapeType.LINE || shape.type === ShapeType.ARROW) {
+              const oldPoints = (shape as any).points || [0, 0, 100, 100];
+              newPoints = oldPoints.map((coord: number, index: number) => 
+                index % 2 === 0 ? coord * scaleX : coord * scaleY
+              );
+              node.points(newPoints);
+            } else {
+              node.width(newWidth);
+              node.height(newHeight);
+            }
+            
+            // Build update payload
+            const updatePayload: any = {
+              transform: {
+                ...shape.transform,
+                position: newPosition,
+                size: { width: newWidth, height: newHeight },
+                // Apply the rotation from the node
+                rotation: rotation,
+              },
+            };
+            
+            if (newPoints !== undefined) {
+              updatePayload.points = newPoints;
+            }
+            
+            // Update the shape in the store
+            updateShape(shapeId, updatePayload);
+          });
+          
+          // Refresh UI after all updates
+          refreshUI();
+        });
+        
+        return () => {
+          transformer.destroy();
+          transformerRef.current = null;
+          setGroupTransformer(null);
+        };
+      }
+    }
+  }, [selectedShapeIds, tool, currentSlide?.shapes, updateShape, refreshUI]);
+
+  const handleStageMouseDown = (e: any) => {
+    const clickedOnEmpty = e.target === e.target.getStage();
+
+    if (tool === 'pan') {
+      // Pan should work even when clicking on shapes
+      setIsPanning(true);
+      const pos = e.target.getStage().getPointerPosition();
+      lastPanPosition.current = pos;
+      // Don't manually set cursor here - let the useEffect handle it since isPanning is changing
+    } else if (tool === 'select' && clickedOnEmpty) {
+      const stage = e.target.getStage();
+      const screenPos = stage.getPointerPosition();
+      
+      clearSelection();
+      setIsSelecting(true);
+      setSelectionRect({ start: screenPos, end: screenPos });
+    }
+  };
+
+  const handleStageMouseMove = (e: any) => {
+    const stage = e.target.getStage();
+    const pos = stage.getPointerPosition();
+    
+    if (isPanning && lastPanPosition.current) {
+      const dx = pos.x - lastPanPosition.current.x;
+      const dy = pos.y - lastPanPosition.current.y;
+      
+      setPan({
+        x: pan.x + dx,
+        y: pan.y + dy,
+      });
+      
+      lastPanPosition.current = pos;
+    } else if (isSelecting && selectionRect) {
+      // Store the pending update
+      pendingSelectionRect.current = {
+        start: selectionRect.start,
+        end: pos,
+      };
+      
+      const now = Date.now();
+      // Only actually update state every 16ms (~60fps)
+      if (now - lastSelectionUpdate.current >= 16) {
+        setSelectionRect(pendingSelectionRect.current);
+        lastSelectionUpdate.current = now;
+      }
+    }
+  };
+
+  const handleStageMouseUp = () => {
+    if (isPanning) {
+      setIsPanning(false);
+      lastPanPosition.current = null;
+      // Don't manually set cursor here - let the useEffect handle it since isPanning is changing
+    } else if (isSelecting && (selectionRect || pendingSelectionRect.current)) {
+      // Use the pending rect if it's more recent than the state
+      const finalRect = pendingSelectionRect.current || selectionRect;
+      
+      // Only select if there's a meaningful selection area
+      const width = Math.abs(finalRect.end.x - finalRect.start.x);
+      const height = Math.abs(finalRect.end.y - finalRect.start.y);
+      
+      if (width > 5 && height > 5) {
+        selectShapesInRect(finalRect);
+      }
+      
+      setIsSelecting(false);
+      setSelectionRect(null);
+      pendingSelectionRect.current = null;
+    }
+  };
 
   const handleStageClick = (e: any) => {
     const clickedOnEmpty = e.target === e.target.getStage();
-    if (clickedOnEmpty) {
+    if (clickedOnEmpty && tool !== 'pan' && tool !== 'select') {
       clearSelection();
     }
   };
+
+  // Update cursor based on tool
+  useEffect(() => {
+    const stage = stageRef.current;
+    if (!stage) return;
+    
+    const container = stage.container();
+    const canvas = container.querySelector('canvas') as HTMLCanvasElement | null;
+    const body = document.body;
+    
+    if (tool === 'pan') {
+      const cursor = isPanning ? grabbingCursor : grabCursor;
+      
+      // Set cursor with !important to prevent override
+      container.style.setProperty('cursor', cursor, 'important');
+      if (canvas) {
+        canvas.style.setProperty('cursor', cursor, 'important');
+      }
+      body.style.setProperty('cursor', cursor, 'important');
+    } else if (tool === 'select') {
+      // Set cursor with !important to prevent override
+      container.style.setProperty('cursor', 'default', 'important');
+      if (canvas) {
+        canvas.style.setProperty('cursor', 'default', 'important');
+      }
+      body.style.setProperty('cursor', 'default', 'important');
+    }
+    
+    return () => {
+      // cleanup
+    };
+  }, [tool, isPanning]);
 
   const handleWheel = (e: any) => {
     e.evt.preventDefault();
@@ -608,6 +843,47 @@ export const Canvas: React.FC = () => {
     setPan(newPos);
   };
 
+  const handleShapeChange = useCallback((shapeId: string, updates: any) => {
+    // If this shape is selected and there are multiple selections, move all selected shapes
+    if (selectedShapeIds.includes(shapeId) && selectedShapeIds.length > 1 && updates.transform?.position) {
+      const shape = currentSlide?.shapes.find(s => s.id === shapeId);
+      if (!shape) return;
+      
+      // Calculate the delta (movement distance)
+      const delta = {
+        x: updates.transform.position.x - shape.transform.position.x,
+        y: updates.transform.position.y - shape.transform.position.y,
+      };
+      
+      // Apply the delta to ALL selected shapes (including the dragged one)
+      // This ensures they all move together in perfect sync
+      selectedShapeIds.forEach((selectedId) => {
+        const selectedShape = currentSlide?.shapes.find(s => s.id === selectedId);
+        if (selectedShape) {
+          updateShape(selectedId, {
+            transform: {
+              ...selectedShape.transform,
+              position: {
+                x: selectedShape.transform.position.x + delta.x,
+                y: selectedShape.transform.position.y + delta.y,
+              },
+            },
+          });
+        }
+      });
+    } else {
+      // Single shape update
+      updateShape(shapeId, updates);
+    }
+    
+    // Throttle refreshUI to 30fps
+    const now = Date.now();
+    if (now - lastRefreshUI.current > 33) {
+      refreshUI();
+      lastRefreshUI.current = now;
+    }
+  }, [selectedShapeIds, currentSlide, updateShape, refreshUI]);
+
   if (!currentSlide) {
     return (
       <div className="canvas-container">
@@ -626,21 +902,48 @@ export const Canvas: React.FC = () => {
         scaleY={zoom}
         x={pan.x}
         y={pan.y}
+        onMouseDown={handleStageMouseDown}
+        onMouseMove={handleStageMouseMove}
+        onMouseUp={handleStageMouseUp}
         onClick={handleStageClick}
         onWheel={handleWheel}
         style={{ background: currentSlide.background }}
       >
         <Layer>
-          {currentSlide.shapes.map((shape) => (
-            <CanvasShape
-              key={shape.id}
-              shape={shape}
-              isSelected={selectedShapeIds.includes(shape.id)}
-              onSelect={() => selectShape(shape.id)}
-              onChange={(updates) => updateShape(shape.id, updates)}
-              onStart={() => saveHistory()}
-            />
-          ))}
+          <Group ref={selectionGroupRef}>
+            {currentSlide.shapes.map((shape) => (
+              <MemoizedCanvasShape
+                key={shape.id}
+                shape={shape}
+                isSelected={selectedShapeIds.includes(shape.id)}
+                isMultiSelected={selectedShapeIds.length > 1 && selectedShapeIds.includes(shape.id)}
+                onSelect={() => selectShape(shape.id)}
+                onChange={(updates) => handleShapeChange(shape.id, updates)}
+                onStart={() => saveHistory()}
+              />
+            ))}
+          </Group>
+          {/* Selection rectangle */}
+          {selectionRect && (() => {
+            // Convert screen coordinates to canvas coordinates for proper display
+            const startX = (selectionRect.start.x - pan.x) / zoom;
+            const startY = (selectionRect.start.y - pan.y) / zoom;
+            const endX = (selectionRect.end.x - pan.x) / zoom;
+            const endY = (selectionRect.end.y - pan.y) / zoom;
+            
+            return (
+              <Rect
+                x={Math.min(startX, endX)}
+                y={Math.min(startY, endY)}
+                width={Math.abs(endX - startX)}
+                height={Math.abs(endY - startY)}
+                fill="rgba(0, 123, 255, 0.1)"
+                stroke="rgba(0, 123, 255, 0.8)"
+                strokeWidth={1 / zoom}
+                listening={false}
+              />
+            );
+          })()}
         </Layer>
       </Stage>
     </div>

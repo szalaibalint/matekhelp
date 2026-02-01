@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Presentation, Shape } from '../models';
+import { Presentation } from '../models';
 import { ToolType, ShapeType } from '../types';
 import type { Position, ShapeData, Size } from '../types';
 import { PresentationService } from '../services';
@@ -17,6 +17,8 @@ interface EditorState {
   tool: ToolType;
   zoom: number;
   pan: Position;
+  selectionRect: { start: Position; end: Position } | null;
+  groupTransformer: any | null;
   
   // History
   history: {
@@ -52,11 +54,15 @@ interface EditorState {
   setZoom: (zoom: number) => void;
   setPan: (pan: Position) => void;
   resetView: () => void;
+  setSelectionRect: (rect: { start: Position; end: Position } | null) => void;
+  selectShapesInRect: (rect: { start: Position; end: Position }) => void;
+  setGroupTransformer: (transformer: any) => void;
   
   // Actions - History
   undo: () => void;
   redo: () => void;
   saveHistory: () => void;
+  refreshUI: () => void;
 }
 
 export const useEditorStore = create<EditorState>((set, get) => ({
@@ -69,6 +75,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   tool: ToolType.SELECT,
   zoom: 1,
   pan: { x: 0, y: 0 },
+  selectionRect: null,
+  groupTransformer: null,
   history: {
     past: [],
     future: [],
@@ -203,40 +211,13 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       get().saveHistory();
     }
     
-    const shapeBeforeUpdate = slide.shapes.find(s => s.id === shapeId);
-    
-    console.group('🟢 STORE UPDATE - updateShape');
-    console.log('Shape ID:', shapeId);
-    console.log('Current Slide ID:', currentSlideId);
-    console.log('Updates Received:', updates);
-    if (shapeBeforeUpdate) {
-      console.log('Shape Before Update:');
-      console.table({
-        'Type': shapeBeforeUpdate.type,
-        'Position': shapeBeforeUpdate.transform.position,
-        'Size': shapeBeforeUpdate.transform.size,
-        'Rotation': shapeBeforeUpdate.transform.rotation,
-        'Locked': shapeBeforeUpdate.locked,
-      });
-    }
-    
+    const startTime = performance.now();
     slide.updateShape(shapeId, updates);
+    const duration = performance.now() - startTime;
     
-    const shapeAfterUpdate = slide.shapes.find(s => s.id === shapeId);
-    if (shapeAfterUpdate) {
-      console.log('Shape After Update:');
-      console.table({
-        'Type': shapeAfterUpdate.type,
-        'Position': shapeAfterUpdate.transform.position,
-        'Size': shapeAfterUpdate.transform.size,
-        'Rotation': shapeAfterUpdate.transform.rotation,
-        'Locked': shapeAfterUpdate.locked,
-      });
+    if (duration > 5) {
+      console.warn(`⚠️ updateShape took ${duration.toFixed(2)}ms for shape ${shapeId}`);
     }
-    console.groupEnd();
-    
-    // Increment version to trigger re-render
-    set({ version: get().version + 1 });
   },
 
   selectShape: (shapeId, addToSelection = false) => {
@@ -342,6 +323,55 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     set({ zoom: 1, pan: { x: 0, y: 0 } });
   },
 
+  setSelectionRect: (rect) => {
+    set({ selectionRect: rect });
+  },
+
+  selectShapesInRect: (rect) => {
+    const { presentation, currentSlideId, zoom, pan } = get();
+    if (!presentation || !currentSlideId) return;
+
+    const slide = presentation.getSlide(currentSlideId);
+    if (!slide) return;
+
+    // Convert screen coordinates to canvas coordinates
+    const startX = (rect.start.x - pan.x) / zoom;
+    const startY = (rect.start.y - pan.y) / zoom;
+    const endX = (rect.end.x - pan.x) / zoom;
+    const endY = (rect.end.y - pan.y) / zoom;
+
+    const selectionLeft = Math.min(startX, endX);
+    const selectionRight = Math.max(startX, endX);
+    const selectionTop = Math.min(startY, endY);
+    const selectionBottom = Math.max(startY, endY);
+
+    // Select shapes that are FULLY inside the rectangle
+    const selectedIds = slide.shapes
+      .filter(shape => {
+        const shapeLeft = shape.transform.position.x;
+        const shapeTop = shape.transform.position.y;
+        const shapeRight = shapeLeft + shape.transform.size.width;
+        const shapeBottom = shapeTop + shape.transform.size.height;
+
+        const fullyInside = (
+          shapeLeft >= selectionLeft &&
+          shapeRight <= selectionRight &&
+          shapeTop >= selectionTop &&
+          shapeBottom <= selectionBottom
+        );
+
+        // Shape is fully inside if all its corners are inside the selection rect
+        return fullyInside;
+      })
+      .map(shape => shape.id);
+
+    set({ selectedShapeIds: selectedIds });
+  },
+
+  setGroupTransformer: (transformer) => {
+    set({ groupTransformer: transformer });
+  },
+
   // History actions
   saveHistory: () => {
     const { presentation, currentSlideId, history } = get();
@@ -406,5 +436,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         future: history.future.slice(1),
       },
     });
+  },
+
+  refreshUI: () => {
+    set({ version: get().version + 1 });
   },
 }));
