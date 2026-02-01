@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { Stage, Layer, Rect, Circle, Ellipse, Line, Text } from 'react-konva';
+import { Stage, Layer, Rect, Ellipse, Line, Text } from 'react-konva';
 import { useEditorStore } from '../../stores/editorStore';
 import { ShapeType } from '../../types';
 import Konva from 'konva';
@@ -33,8 +33,7 @@ const CanvasShape: React.FC<CanvasShapeProps> = ({ shape, isSelected, onSelect, 
       transformer.on('transform', () => {
         const stage = shapeRef.current.getStage();
         if (stage) {
-          const isShiftPressed = stage.container().ownerDocument.shiftKey || 
-                                window.event?.shiftKey || false;
+          const isShiftPressed = stage.container().ownerDocument?.defaultView?.event?.shiftKey || false;
           transformer.keepRatio(isShiftPressed);
           
           if (isShiftPressed) {
@@ -51,15 +50,12 @@ const CanvasShape: React.FC<CanvasShapeProps> = ({ shape, isSelected, onSelect, 
   }, [isSelected]);
 
   const handleDragEnd = (e: any) => {
-    // CRITICAL: For circles, node.x/y is at CENTER, but we store position as TOP-LEFT
-    // So we need to convert center position back to top-left corner
-    let newPosition = { x: e.target.x(), y: e.target.y() };
-    if (shape.type === ShapeType.CIRCLE) {
-      newPosition = {
-        x: e.target.x() - shape.transform.size.width / 2,
-        y: e.target.y() - shape.transform.size.height / 2,
-      };
-    }
+    // All shapes now use center-based positioning with offset
+    // So node.x/y is at center, convert back to top-left for storage
+    let newPosition = {
+      x: e.target.x() - shape.transform.size.width / 2,
+      y: e.target.y() - shape.transform.size.height / 2,
+    };
     
     const oldPosition = shape.transform.position;
     const delta = {
@@ -96,17 +92,16 @@ const CanvasShape: React.FC<CanvasShapeProps> = ({ shape, isSelected, onSelect, 
     const newHeight = Math.max(5, node.height() * scaleY);
     const newSize = { width: newWidth, height: newHeight };
     
-    // CRITICAL: For circles, node.x/y is at CENTER, but we store position as TOP-LEFT
-    // So we need to convert center position back to top-left corner
-    let newPosition = { x: node.x(), y: node.y() };
-    if (shape.type === ShapeType.CIRCLE) {
-      newPosition = {
-        x: node.x() - newWidth / 2,
-        y: node.y() - newHeight / 2,
-      };
-    }
+    // All shapes now use center-based positioning with offset
+    // So node.x/y is at center, convert back to top-left for storage
+    let newPosition = {
+      x: node.x() - newWidth / 2,
+      y: node.y() - newHeight / 2,
+    };
     
     const newRotation = node.rotation();
+    // Normalize rotation to 0-360 range
+    const normalizedRotation = ((newRotation % 360) + 360) % 360;
 
     console.group('🔴 SHAPE RESIZE/TRANSFORM - transformEnd');
     console.log('Shape ID:', shape.id);
@@ -177,7 +172,7 @@ const CanvasShape: React.FC<CanvasShapeProps> = ({ shape, isSelected, onSelect, 
         ...shape.transform,
         position: newPosition,
         size: newSize,
-        rotation: newRotation,
+        rotation: normalizedRotation,
       },
     };
     console.log('Final Update Payload:', updatePayload);
@@ -193,6 +188,8 @@ const CanvasShape: React.FC<CanvasShapeProps> = ({ shape, isSelected, onSelect, 
     width: shape.transform.size.width,
     height: shape.transform.size.height,
     rotation: shape.transform.rotation,
+    offsetX: 0,
+    offsetY: 0,
     fill: shape.color.fill,
     stroke: shape.color.stroke,
     strokeWidth: shape.color.strokeWidth,
@@ -207,7 +204,15 @@ const CanvasShape: React.FC<CanvasShapeProps> = ({ shape, isSelected, onSelect, 
 
   switch (shape.type) {
     case ShapeType.RECTANGLE:
-      return <Rect {...commonProps} />;
+      return (
+        <Rect
+          {...commonProps}
+          x={shape.transform.position.x + shape.transform.size.width / 2}
+          y={shape.transform.position.y + shape.transform.size.height / 2}
+          offsetX={shape.transform.size.width / 2}
+          offsetY={shape.transform.size.height / 2}
+        />
+      );
     
     case ShapeType.CIRCLE:
       // Use Ellipse to support non-uniform width/height (oval shapes)
@@ -225,6 +230,10 @@ const CanvasShape: React.FC<CanvasShapeProps> = ({ shape, isSelected, onSelect, 
       return (
         <Line
           {...commonProps}
+          x={shape.transform.position.x + shape.transform.size.width / 2}
+          y={shape.transform.position.y + shape.transform.size.height / 2}
+          offsetX={shape.transform.size.width / 2}
+          offsetY={shape.transform.size.height / 2}
           points={[
             0, shape.transform.size.height,
             shape.transform.size.width / 2, 0,
@@ -238,6 +247,10 @@ const CanvasShape: React.FC<CanvasShapeProps> = ({ shape, isSelected, onSelect, 
       return (
         <Text
           {...commonProps}
+          x={shape.transform.position.x + shape.transform.size.width / 2}
+          y={shape.transform.position.y + shape.transform.size.height / 2}
+          offsetX={shape.transform.size.width / 2}
+          offsetY={shape.transform.size.height / 2}
           text={shape.text || 'Text'}
           fontSize={shape.fontSize || 24}
           fontFamily={shape.fontFamily || 'Arial'}
@@ -273,9 +286,18 @@ export const Canvas: React.FC = () => {
     pan,
     setZoom,
     setPan,
+    version,
   } = useEditorStore();
 
   const currentSlide = presentation?.getSlide(currentSlideId || '');
+
+  console.group('🟢 CANVAS RENDER');
+  console.log('Version:', version);
+  console.log('Shapes count:', currentSlide?.shapes.length);
+  if (currentSlide?.shapes.length) {
+    console.log('First shape rotation:', currentSlide.shapes[0].transform.rotation);
+  }
+  console.groupEnd();
 
   const handleStageClick = (e: any) => {
     const clickedOnEmpty = e.target === e.target.getStage();

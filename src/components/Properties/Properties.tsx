@@ -2,12 +2,23 @@ import React from 'react';
 import { useEditorStore } from '../../stores/editorStore';
 
 export const Properties: React.FC = () => {
-  const { presentation, currentSlideId, selectedShapeIds, updateShape } = useEditorStore();
+  const { presentation, currentSlideId, selectedShapeIds, updateShape, version } = useEditorStore();
 
   const currentSlide = presentation?.getSlide(currentSlideId || '');
   const selectedShape = selectedShapeIds.length === 1
     ? currentSlide?.getShape(selectedShapeIds[0])
     : null;
+
+  console.group('🔵 PROPERTIES RENDER');
+  console.log('Version:', version);
+  console.log('Selected Shape ID:', selectedShapeIds[0]);
+  if (selectedShape) {
+    console.log('Shape Rotation:', selectedShape.transform.rotation);
+    console.log('Shape Position:', selectedShape.transform.position);
+    console.log('Shape Size:', selectedShape.transform.size);
+    console.log('Shape Opacity:', selectedShape.opacity);
+  }
+  console.groupEnd();
 
   if (!selectedShape) {
     return (
@@ -63,6 +74,7 @@ export const Properties: React.FC = () => {
   };
 
   const handleRotationChange = (value: number) => {
+    console.log('🟡 ROTATION CHANGE:', value);
     updateShape(selectedShape.id, {
       transform: {
         ...selectedShape.transform,

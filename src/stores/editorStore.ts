@@ -9,6 +9,7 @@ interface EditorState {
   // Presentation state
   presentation: Presentation | null;
   currentSlideId: string | null;
+  version: number; // Increment to force re-renders
   
   // Canvas state
   selectedShapeIds: string[];
@@ -62,6 +63,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   // Initial state
   presentation: null,
   currentSlideId: null,
+  version: 0,
   selectedShapeIds: [],
   copiedShapes: [],
   tool: ToolType.SELECT,
@@ -224,7 +226,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     }
     console.groupEnd();
     
-    set({ presentation });
+    // Increment version to trigger re-render
+    set({ version: get().version + 1 });
   },
 
   selectShape: (shapeId, addToSelection = false) => {
