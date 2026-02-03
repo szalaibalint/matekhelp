@@ -48,7 +48,7 @@ const CanvasShape: React.FC<CanvasShapeProps> = ({ shape, isSelected, isMultiSel
     lastRenderLog.current = now;
   }
   
-  const { tool } = useEditorStore();
+  const { tool, zoom } = useEditorStore();
 
   const getProxyUrl = (url: string) => `https://images.weserv.nl/?url=${encodeURIComponent(url)}`;
 
@@ -342,8 +342,8 @@ const CanvasShape: React.FC<CanvasShapeProps> = ({ shape, isSelected, isMultiSel
     offsetY: 0,
     fill: shape.color.fill,
     stroke: shape.color.stroke,
-    strokeWidth: shape.color.strokeWidth,
-    strokeScaleEnabled: true, // Enable stroke scaling with zoom
+    strokeWidth: shape.color.strokeWidth * zoom,
+    strokeScaleEnabled: false, // Prevent scaling during shape transforms, but manually scale by zoom
     opacity: isEditing ? 0 : baseOpacity,
     draggable: !shape.locked && tool === ToolType.SELECT,
     onClick: tool === ToolType.SELECT ? onSelect : undefined,
