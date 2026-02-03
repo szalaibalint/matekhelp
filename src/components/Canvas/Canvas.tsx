@@ -1196,6 +1196,10 @@ export const Canvas: React.FC = () => {
     );
   }
 
+  // Standard slide dimensions (Full HD 16:9 aspect ratio)
+  const slideWidth = 1920;
+  const slideHeight = 1080;
+
   return (
     <div className="canvas-container">
       <Stage
@@ -1211,9 +1215,22 @@ export const Canvas: React.FC = () => {
         onMouseUp={handleStageMouseUp}
         onClick={handleStageClick}
         onWheel={handleWheel}
-        style={{ background: currentSlide.background }}
       >
         <Layer>
+          {/* Slide background - white rectangle representing the actual slide */}
+          <Rect
+            x={0}
+            y={0}
+            width={slideWidth}
+            height={slideHeight}
+            fill={currentSlide.background}
+            listening={false}
+            shadowColor="black"
+            shadowBlur={20}
+            shadowOpacity={0.3}
+            shadowOffsetX={0}
+            shadowOffsetY={4}
+          />
           <Group ref={selectionGroupRef}>
             {currentSlide.shapes.map((shape) => (
               <MemoizedCanvasShape
