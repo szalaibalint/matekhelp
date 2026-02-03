@@ -19,6 +19,7 @@ interface EditorState {
   pan: Position;
   selectionRect: { start: Position; end: Position } | null;
   groupTransformer: any | null;
+  editingTextId: string | null;
   
   // History
   history: {
@@ -57,6 +58,7 @@ interface EditorState {
   setSelectionRect: (rect: { start: Position; end: Position } | null) => void;
   selectShapesInRect: (rect: { start: Position; end: Position }) => void;
   setGroupTransformer: (transformer: any) => void;
+  setEditingTextId: (id: string | null) => void;
   
   // Actions - History
   undo: () => void;
@@ -77,6 +79,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   pan: { x: 0, y: 0 },
   selectionRect: null,
   groupTransformer: null,
+  editingTextId: null,
   history: {
     past: [],
     future: [],
@@ -370,6 +373,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   setGroupTransformer: (transformer) => {
     set({ groupTransformer: transformer });
+  },
+
+  setEditingTextId: (id) => {
+    set({ editingTextId: id });
   },
 
   // History actions

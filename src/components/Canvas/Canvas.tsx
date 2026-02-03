@@ -4,16 +4,29 @@ import { useEditorStore } from '../../stores/editorStore';
 import { ShapeType, ToolType } from '../../types';
 import Konva from 'konva';
 
+const getPlainTextFromHtml = (value: string) => {
+  if (!value) return '';
+  if (!value.includes('<')) return value;
+  try {
+    const doc = new DOMParser().parseFromString(value, 'text/html');
+    return doc.body.textContent || '';
+  } catch {
+    return value.replace(/<[^>]*>/g, '');
+  }
+};
+
 interface CanvasShapeProps {
   shape: any;
   isSelected: boolean;
   isMultiSelected?: boolean;
+  isEditing?: boolean;
   onSelect: () => void;
   onChange: (updates: any) => void;
   onStart?: () => void;
+  onEditText?: (shapeId: string) => void;
 }
 
-const CanvasShape: React.FC<CanvasShapeProps> = ({ shape, isSelected, isMultiSelected, onSelect, onChange, onStart }) => {
+const CanvasShape: React.FC<CanvasShapeProps> = ({ shape, isSelected, isMultiSelected, isEditing, onSelect, onChange, onStart, onEditText }) => {
   // Add isMultiSelected to shape object for use in useEffect
   shape.isMultiSelected = isMultiSelected;
   const shapeRef = useRef<any>(null);
@@ -197,6 +210,21 @@ const CanvasShape: React.FC<CanvasShapeProps> = ({ shape, isSelected, isMultiSel
     // Normalize rotation to 0-360 range
     const normalizedRotation = ((newRotation % 360) + 360) % 360;
 
+    if (shape.type === ShapeType.TEXT) {
+      const clientRect = node.getClientRect?.();
+      console.log('🟦 TEXT RESIZE END', {
+        id: shape.id,
+        nodeX: node.x(),
+        nodeY: node.y(),
+        scaleX,
+        scaleY,
+        newWidth,
+        newHeight,
+        normalizedRotation,
+        clientRect,
+      });
+    }
+
     node.scaleX(1);
     node.scaleY(1);
     
@@ -229,6 +257,16 @@ const CanvasShape: React.FC<CanvasShapeProps> = ({ shape, isSelected, isMultiSel
       node.width(newWidth);
       node.height(newHeight);
     }
+
+    if (
+      shape.type === ShapeType.RECTANGLE ||
+      shape.type === ShapeType.TRIANGLE ||
+      shape.type === ShapeType.TEXT ||
+      shape.type === ShapeType.IMAGE
+    ) {
+      node.offsetX(newWidth / 2);
+      node.offsetY(newHeight / 2);
+    }
     
     const updatePayload: any = {
       transform: {
@@ -247,6 +285,41 @@ const CanvasShape: React.FC<CanvasShapeProps> = ({ shape, isSelected, isMultiSel
     onChange(updatePayload);
   };
 
+  const handleTransform = (e: any) => {
+    const node = e.target;
+    const rotation = node.rotation();
+    if (shape.type === ShapeType.TEXT) {
+      const scaleX = node.scaleX();
+      const scaleY = node.scaleY();
+      const rawWidth = node.width();
+      const rawHeight = node.height();
+      const clientRect = node.getClientRect?.();
+      console.log('🟦 TEXT RESIZE (live)', {
+        id: shape.id,
+        nodeX: node.x(),
+        nodeY: node.y(),
+        scaleX,
+        scaleY,
+        rawWidth,
+        rawHeight,
+        calcWidth: rawWidth * scaleX,
+        calcHeight: rawHeight * scaleY,
+        rotation,
+        clientRect,
+        dataPos: shape.transform.position,
+        dataSize: shape.transform.size,
+      });
+    }
+    onChange({
+      transform: {
+        ...shape.transform,
+        rotation,
+      },
+    });
+  };
+
+  const baseOpacity = shape.type === ShapeType.TEXT ? 0 : shape.opacity;
+
   const commonProps = {
     ref: shapeRef,
     id: `shape-${shape.id}`,
@@ -262,7 +335,7 @@ const CanvasShape: React.FC<CanvasShapeProps> = ({ shape, isSelected, isMultiSel
     stroke: shape.color.stroke,
     strokeWidth: shape.color.strokeWidth,
     strokeScaleEnabled: false, // Keep stroke width constant during transforms
-    opacity: shape.opacity,
+    opacity: isEditing ? 0 : baseOpacity,
     draggable: !shape.locked && tool === ToolType.SELECT,
     onClick: tool === ToolType.SELECT ? onSelect : undefined,
     onTap: tool === ToolType.SELECT ? onSelect : undefined,
@@ -270,6 +343,7 @@ const CanvasShape: React.FC<CanvasShapeProps> = ({ shape, isSelected, isMultiSel
     onDragMove: handleDragMove,
     onDragEnd: handleDragEnd,
     onTransformStart: onStart,
+    onTransform: handleTransform,
     onTransformEnd: handleTransformEnd,
   };
 
@@ -314,7 +388,15 @@ const CanvasShape: React.FC<CanvasShapeProps> = ({ shape, isSelected, isMultiSel
         />
       );
     
-    case ShapeType.TEXT:
+    case ShapeType.TEXT: {
+      const handleTextClick = () => {
+        if (tool !== ToolType.SELECT) return;
+        if (isSelected) {
+          onEditText?.(shape.id);
+        } else {
+          onSelect();
+        }
+      };
       return (
         <Text
           {...commonProps}
@@ -322,11 +404,16 @@ const CanvasShape: React.FC<CanvasShapeProps> = ({ shape, isSelected, isMultiSel
           y={shape.transform.position.y + shape.transform.size.height / 2}
           offsetX={shape.transform.size.width / 2}
           offsetY={shape.transform.size.height / 2}
-          text={shape.text || 'Text'}
+          text={getPlainTextFromHtml(shape.text || 'Text')}
           fontSize={shape.fontSize || 24}
           fontFamily={shape.fontFamily || 'Arial'}
+          onClick={handleTextClick}
+          onTap={handleTextClick}
+          onDblClick={() => onEditText?.(shape.id)}
+          onDblTap={() => onEditText?.(shape.id)}
         />
       );
+    }
 
     case ShapeType.IMAGE:
       if (!imageElement) {
@@ -509,9 +596,11 @@ const MemoizedCanvasShape = React.memo(CanvasShape, (prevProps, nextProps) => {
     prevProps.shape === nextProps.shape &&
     prevProps.isSelected === nextProps.isSelected &&
     prevProps.isMultiSelected === nextProps.isMultiSelected &&
+    prevProps.isEditing === nextProps.isEditing &&
     prevProps.onSelect === nextProps.onSelect &&
     prevProps.onChange === nextProps.onChange &&
-    prevProps.onStart === nextProps.onStart
+    prevProps.onStart === nextProps.onStart &&
+    prevProps.onEditText === nextProps.onEditText
   );
 });
 
@@ -519,6 +608,7 @@ export const Canvas: React.FC = () => {
   const stageRef = useRef<any>(null);
   const transformerRef = useRef<any>(null);
   const selectionGroupRef = useRef<any>(null);
+  const textEditorRef = useRef<HTMLDivElement | null>(null);
   const canvasRenderCount = useRef<number>(0);
   const lastCanvasRenderLog = useRef<number>(0);
   
@@ -548,19 +638,95 @@ export const Canvas: React.FC = () => {
     selectShapesInRect,
     refreshUI,
     setGroupTransformer,
+    setTool,
+    editingTextId,
+    setEditingTextId,
   } = useEditorStore();
 
   const [isPanning, setIsPanning] = useState(false);
   const [isSelecting, setIsSelecting] = useState(false);
+  const [editingHtml, setEditingHtml] = useState('');
   const lastPanPosition = useRef<{ x: number; y: number } | null>(null);
   const lastSelectionUpdate = useRef<number>(0);
   const lastRefreshUI = useRef<number>(0);
+  const lastGroupTransformUpdate = useRef<number>(0);
   const pendingSelectionRect = useRef<any>(null);
 
   const grabCursor = `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'><circle cx='16' cy='16' r='7' fill='white' stroke='black' stroke-width='2'/><circle cx='16' cy='16' r='2' fill='black'/></svg>") 16 16, grab`;
   const grabbingCursor = `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'><circle cx='16' cy='16' r='7' fill='black' stroke='white' stroke-width='2'/><circle cx='16' cy='16' r='2' fill='white'/></svg>") 16 16, grabbing`;
 
   const currentSlide = presentation?.getSlide(currentSlideId || '');
+
+  const startTextEditing = useCallback((shapeId: string) => {
+    if (!currentSlide) return;
+    const shape = currentSlide.getShape(shapeId);
+    if (!shape || shape.type !== ShapeType.TEXT) return;
+    const textShape = shape as any;
+
+    saveHistory();
+    try {
+      document.execCommand('styleWithCSS', false, 'true');
+    } catch {
+      // ignore
+    }
+    selectShape(shapeId);
+    setTool(ToolType.SELECT);
+    setEditingTextId(shapeId);
+    setEditingHtml(textShape.text || '');
+  }, [currentSlide, saveHistory, selectShape, setTool]);
+
+  const stopTextEditing = useCallback((save = true) => {
+    if (!editingTextId) return;
+    if (save && editingTextId) {
+      updateShape(editingTextId, { text: editingHtml }, { saveHistory: false });
+    }
+    setEditingTextId(null);
+  }, [editingTextId, editingHtml, updateShape]);
+
+  useEffect(() => {
+    if (!editingTextId) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        stopTextEditing(true);
+      }
+    };
+
+    const handleMouseDown = (event: MouseEvent) => {
+      if (!textEditorRef.current) return;
+      const target = event.target as Node;
+      
+      // Don't close if clicking inside the text editor
+      if (textEditorRef.current.contains(target)) return;
+      
+      // Don't close if clicking on the toolbar or its children
+      const toolbar = document.querySelector('.toolbar');
+      if (toolbar?.contains(target)) return;
+      
+      // Close editor if clicking anywhere else
+      stopTextEditing(true);
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('mousedown', handleMouseDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('mousedown', handleMouseDown);
+    };
+  }, [editingTextId, stopTextEditing]);
+
+  useEffect(() => {
+    if (!editingTextId || !currentSlide) return;
+    const shape = currentSlide.getShape(editingTextId);
+    if (!shape) {
+      setEditingTextId(null);
+    }
+  }, [editingTextId, currentSlide]);
+
+  useEffect(() => {
+    if (!editingTextId || !textEditorRef.current) return;
+    textEditorRef.current.innerHTML = editingHtml || '';
+    textEditorRef.current.focus();
+  }, [editingTextId]);
 
   // Clear selection state when tool changes to avoid conflicts
   useEffect(() => {
@@ -606,6 +772,58 @@ export const Canvas: React.FC = () => {
         // Listen for transform start
         transformer.on('transformstart', () => {
           console.log('🟢 Group transform started with shapes:', selectedShapeIds);
+        });
+
+        const updateShapesFromNodes = (isLive: boolean) => {
+          selectedNodes.forEach((node: any) => {
+            const shapeId = node.id().replace('shape-', '');
+            const shape = currentSlide?.shapes.find(s => s.id === shapeId);
+            if (!shape) return;
+
+            const scaleX = node.scaleX();
+            const scaleY = node.scaleY();
+            const rotation = node.rotation();
+            const width = shape.transform.size.width;
+            const height = shape.transform.size.height;
+
+            const isScaled = Math.abs(scaleX - 1) > 0.001 || Math.abs(scaleY - 1) > 0.001;
+            const liveWidth = isScaled ? node.width() * scaleX : width;
+            const liveHeight = isScaled ? node.height() * scaleY : height;
+
+            let newPosition;
+            if (shape.type === ShapeType.LINE || shape.type === ShapeType.ARROW) {
+              newPosition = {
+                x: node.x(),
+                y: node.y(),
+              };
+            } else {
+              newPosition = {
+                x: node.x() - liveWidth / 2,
+                y: node.y() - liveHeight / 2,
+              };
+            }
+
+            const updatePayload: any = {
+              transform: {
+                ...shape.transform,
+                position: newPosition,
+                rotation: rotation,
+                size: { width: liveWidth, height: liveHeight },
+              },
+            };
+
+            updateShape(shapeId, updatePayload, { saveHistory: false });
+          });
+
+          const now = Date.now();
+          if (!isLive || now - lastGroupTransformUpdate.current > 16) {
+            refreshUI();
+            lastGroupTransformUpdate.current = now;
+          }
+        };
+
+        transformer.on('transform', () => {
+          updateShapesFromNodes(true);
         });
         
         // Listen for transform end to update all shapes
@@ -694,7 +912,7 @@ export const Canvas: React.FC = () => {
             }
             
             // Update the shape in the store
-            updateShape(shapeId, updatePayload);
+            updateShape(shapeId, updatePayload, { saveHistory: false });
           });
           
           // Refresh UI after all updates
@@ -884,6 +1102,32 @@ export const Canvas: React.FC = () => {
     }
   }, [selectedShapeIds, currentSlide, updateShape, refreshUI]);
 
+  const editingShape = editingTextId && currentSlide
+    ? currentSlide.getShape(editingTextId)
+    : null;
+
+  const handleEditorInput = useCallback(() => {
+    if (!editingTextId || !textEditorRef.current) return;
+    const html = textEditorRef.current.innerHTML;
+    setEditingHtml(html);
+    updateShape(editingTextId, { text: html });
+  }, [editingTextId, updateShape]);
+
+  const applyCommand = useCallback((command: string, value?: string) => {
+    if (!textEditorRef.current) return;
+    textEditorRef.current.focus();
+    document.execCommand(command, false, value);
+    requestAnimationFrame(() => handleEditorInput());
+  }, [handleEditorInput]);
+
+  // Expose applyCommand to window for Toolbar to use
+  useEffect(() => {
+    (window as any).canvasApplyCommand = applyCommand;
+    return () => {
+      delete (window as any).canvasApplyCommand;
+    };
+  }, [applyCommand]);
+
   if (!currentSlide) {
     return (
       <div className="canvas-container">
@@ -917,9 +1161,11 @@ export const Canvas: React.FC = () => {
                 shape={shape}
                 isSelected={selectedShapeIds.includes(shape.id)}
                 isMultiSelected={selectedShapeIds.length > 1 && selectedShapeIds.includes(shape.id)}
+                isEditing={editingTextId === shape.id}
                 onSelect={() => selectShape(shape.id)}
                 onChange={(updates) => handleShapeChange(shape.id, updates)}
                 onStart={() => saveHistory()}
+                onEditText={startTextEditing}
               />
             ))}
           </Group>
@@ -946,6 +1192,76 @@ export const Canvas: React.FC = () => {
           })()}
         </Layer>
       </Stage>
+
+      <div
+        className="canvas-text-display-layer"
+        style={{
+          transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+        }}
+      >
+        {currentSlide.shapes
+          .filter((shape) => shape.type === ShapeType.TEXT)
+          .map((shape) => {
+            if (shape.id === editingTextId) return null;
+            const textShape = shape as any;
+            return (
+              <div
+                key={shape.id}
+                className="canvas-text-display"
+                style={{
+                  left: `${textShape.transform.position.x}px`,
+                  top: `${textShape.transform.position.y}px`,
+                  width: `${textShape.transform.size.width}px`,
+                  height: `${textShape.transform.size.height}px`,
+                  transform: `rotate(${textShape.transform.rotation}deg)`,
+                  transformOrigin: 'center center',
+                  opacity: textShape.opacity,
+                  color: textShape.color?.fill || '#111827',
+                  fontSize: `${textShape.fontSize || 24}px`,
+                  fontFamily: textShape.fontFamily || 'Arial',
+                }}
+                dangerouslySetInnerHTML={{ __html: textShape.text || '' }}
+              />
+            );
+          })}
+      </div>
+
+      {editingShape && editingShape.type === ShapeType.TEXT && (
+        <div
+          className="canvas-text-editor-layer"
+          style={{
+            transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+          }}
+        >
+          {(() => {
+            const textShape = editingShape as any;
+            return (
+          <div
+            className="canvas-text-editor"
+            style={{
+              left: `${textShape.transform.position.x}px`,
+              top: `${textShape.transform.position.y}px`,
+              width: `${textShape.transform.size.width}px`,
+              height: `${textShape.transform.size.height}px`,
+              transform: `rotate(${textShape.transform.rotation}deg)`,
+              transformOrigin: 'center center',
+              color: textShape.color?.fill || '#111827',
+              ['--editor-font-size' as any]: `${textShape.fontSize || 24}px`,
+              ['--editor-font-family' as any]: textShape.fontFamily || 'Arial',
+            }}
+          >
+            <div
+              ref={textEditorRef}
+              className="rich-text-editor"
+              contentEditable
+              suppressContentEditableWarning
+              onInput={handleEditorInput}
+            />
+          </div>
+            );
+          })()}
+        </div>
+      )}
     </div>
   );
 };

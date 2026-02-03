@@ -247,6 +247,8 @@ export const Properties: React.FC = () => {
           },
         });
       });
+
+      refreshUI();
       
       console.log('✅ SLIDER: Complete');
     };

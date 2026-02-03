@@ -207,17 +207,35 @@ body {
 .toolbar {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
   padding: 0.5rem;
   background: #ffffff;
   border-bottom: 1px solid #e0e0e0;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  overflow-x: auto;
+}
+
+.toolbar-island {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  flex-shrink: 0;
 }
 
 .toolbar-section {
   display: flex;
   gap: 0.25rem;
   align-items: center;
+}
+
+.toolbar-island .toolbar-section + .toolbar-section {
+  margin-left: 0.5rem;
+  padding-left: 0.5rem;
+  border-left: 1px solid #e2e8f0;
 }
 
 .toolbar-divider {
@@ -259,6 +277,40 @@ body {
   color: #666;
   min-width: 50px;
   text-align: center;
+}
+
+.toolbar-select {
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #111827;
+  font-size: 0.75rem;
+  padding: 0 6px;
+  cursor: pointer;
+  max-width: 120px;
+}
+
+.toolbar-color-picker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  width: 28px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  padding: 2px;
+  cursor: pointer;
+}
+
+.toolbar-color-picker input {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
 }
 
 /* Modal */
@@ -373,6 +425,52 @@ body {
   position: relative;
   overflow: hidden;
   background: #e8e8e8;
+}
+
+.canvas-text-editor-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 20;
+  transform-origin: top left;
+}
+
+.canvas-text-display-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+  transform-origin: top left;
+}
+
+.canvas-text-display {
+  position: absolute;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow: hidden;
+}
+
+.canvas-text-editor {
+  position: absolute;
+  pointer-events: auto;
+  background: transparent;
+  border: 1px dashed rgba(76, 175, 80, 0.5);
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px rgba(76, 175, 80, 0.1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.rich-text-editor {
+  flex: 1;
+  padding: 0;
+  outline: none;
+  overflow: auto;
+  font-size: var(--editor-font-size, 20px);
+  font-family: var(--editor-font-family, 'Arial');
+  color: inherit;
+  background: transparent;
 }
 
 .canvas-empty {
