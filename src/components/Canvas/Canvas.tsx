@@ -2,7 +2,12 @@ import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Stage, Layer, Rect, Ellipse, Line, Text, Group, Circle, Arrow, Image as KonvaImage } from 'react-konva';
 import { useEditorStore } from '../../stores/editorStore';
 import { ShapeType, ToolType } from '../../types';
+import type { Transform } from '../../types';
 import Konva from 'konva';
+
+const GROUP_DEBUG = true;
+const RENDER_DEBUG = false;
+const TEXT_DEBUG = false;
 
 const getPlainTextFromHtml = (value: string) => {
   if (!value) return '';
@@ -37,7 +42,7 @@ const CanvasShape: React.FC<CanvasShapeProps> = ({ shape, isSelected, isMultiSel
   
   renderCount.current++;
   const now = Date.now();
-  if (now - lastRenderLog.current > 1000) {
+  if (RENDER_DEBUG && now - lastRenderLog.current > 1000) {
     console.log(`🔷 CanvasShape rendered ${renderCount.current} times in last second`);
     renderCount.current = 0;
     lastRenderLog.current = now;
@@ -212,17 +217,19 @@ const CanvasShape: React.FC<CanvasShapeProps> = ({ shape, isSelected, isMultiSel
 
     if (shape.type === ShapeType.TEXT) {
       const clientRect = node.getClientRect?.();
-      console.log('🟦 TEXT RESIZE END', {
-        id: shape.id,
-        nodeX: node.x(),
-        nodeY: node.y(),
-        scaleX,
-        scaleY,
-        newWidth,
-        newHeight,
-        normalizedRotation,
-        clientRect,
-      });
+      if (TEXT_DEBUG) {
+        console.log('🟦 TEXT RESIZE END', {
+          id: shape.id,
+          nodeX: node.x(),
+          nodeY: node.y(),
+          scaleX,
+          scaleY,
+          newWidth,
+          newHeight,
+          normalizedRotation,
+          clientRect,
+        });
+      }
     }
 
     node.scaleX(1);
@@ -294,21 +301,23 @@ const CanvasShape: React.FC<CanvasShapeProps> = ({ shape, isSelected, isMultiSel
       const rawWidth = node.width();
       const rawHeight = node.height();
       const clientRect = node.getClientRect?.();
-      console.log('🟦 TEXT RESIZE (live)', {
-        id: shape.id,
-        nodeX: node.x(),
-        nodeY: node.y(),
-        scaleX,
-        scaleY,
-        rawWidth,
-        rawHeight,
-        calcWidth: rawWidth * scaleX,
-        calcHeight: rawHeight * scaleY,
-        rotation,
-        clientRect,
-        dataPos: shape.transform.position,
-        dataSize: shape.transform.size,
-      });
+      if (TEXT_DEBUG) {
+        console.log('🟦 TEXT RESIZE (live)', {
+          id: shape.id,
+          nodeX: node.x(),
+          nodeY: node.y(),
+          scaleX,
+          scaleY,
+          rawWidth,
+          rawHeight,
+          calcWidth: rawWidth * scaleX,
+          calcHeight: rawHeight * scaleY,
+          rotation,
+          clientRect,
+          dataPos: shape.transform.position,
+          dataSize: shape.transform.size,
+        });
+      }
     }
     onChange({
       transform: {
@@ -614,7 +623,7 @@ export const Canvas: React.FC = () => {
   
   canvasRenderCount.current++;
   const now = Date.now();
-  if (now - lastCanvasRenderLog.current > 1000) {
+  if (RENDER_DEBUG && now - lastCanvasRenderLog.current > 1000) {
     console.log(`🟢 Canvas component rendered ${canvasRenderCount.current} times in last second`);
     canvasRenderCount.current = 0;
     lastCanvasRenderLog.current = now;
@@ -646,16 +655,75 @@ export const Canvas: React.FC = () => {
   const [isPanning, setIsPanning] = useState(false);
   const [isSelecting, setIsSelecting] = useState(false);
   const [editingHtml, setEditingHtml] = useState('');
+  const [liveTextTransforms, setLiveTextTransforms] = useState<Record<string, Transform>>({});
   const lastPanPosition = useRef<{ x: number; y: number } | null>(null);
   const lastSelectionUpdate = useRef<number>(0);
   const lastRefreshUI = useRef<number>(0);
   const lastGroupTransformUpdate = useRef<number>(0);
   const pendingSelectionRect = useRef<any>(null);
+  const lastGroupDebugLog = useRef<number>(0);
+
+  const currentSlide = presentation?.getSlide(currentSlideId || '');
+
+  const logGroupTransformDebug = useCallback((label: string, nodes: any[]) => {
+    if (!GROUP_DEBUG) return;
+    if (!currentSlide || !nodes || nodes.length === 0) return;
+
+    const now = Date.now();
+    if (label === 'transform' && now - lastGroupDebugLog.current < 200) {
+      return;
+    }
+    lastGroupDebugLog.current = now;
+
+    const stage = stageRef.current;
+    const stageScale = stage ? { x: stage.scaleX?.(), y: stage.scaleY?.() } : null;
+    const stagePos = stage ? { x: stage.x?.(), y: stage.y?.() } : null;
+
+    const nodeRects = nodes.map((node: any) => {
+      const shapeId = node.attrs?.shapeId || node.id?.()?.replace('shape-', '');
+      const shape = currentSlide.shapes.find(s => s.id === shapeId);
+      const rect = node.getClientRect?.({ skipShadow: true, skipStroke: true }) || null;
+      return {
+        id: node.id?.(),
+        shapeId,
+        shapeType: shape?.type,
+        x: node.x?.(),
+        y: node.y?.(),
+        width: node.width?.(),
+        height: node.height?.(),
+        scaleX: node.scaleX?.(),
+        scaleY: node.scaleY?.(),
+        rotation: node.rotation?.(),
+        offsetX: node.offsetX?.(),
+        offsetY: node.offsetY?.(),
+        dataPos: shape?.transform?.position,
+        dataSize: shape?.transform?.size,
+        dataRotation: shape?.transform?.rotation,
+        clientRect: rect,
+      };
+    });
+
+    const rects = nodeRects.map(r => r.clientRect).filter(Boolean) as Array<{ x: number; y: number; width: number; height: number }>;
+    let bounds = null as null | { x: number; y: number; width: number; height: number };
+    if (rects.length > 0) {
+      const minX = Math.min(...rects.map(r => r.x));
+      const minY = Math.min(...rects.map(r => r.y));
+      const maxX = Math.max(...rects.map(r => r.x + r.width));
+      const maxY = Math.max(...rects.map(r => r.y + r.height));
+      bounds = { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+    }
+
+    const groupMethod = label === 'transform' ? console.groupCollapsed : console.group;
+    groupMethod(`🧭 GROUP ${label}`);
+    console.log('Selected IDs:', selectedShapeIds);
+    console.log('Stage:', { scale: stageScale, pos: stagePos, zoom, pan });
+    console.log('Group bounds (client rect):', bounds);
+    console.table(nodeRects);
+    console.groupEnd();
+  }, [currentSlide, selectedShapeIds, zoom, pan]);
 
   const grabCursor = `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'><circle cx='16' cy='16' r='7' fill='white' stroke='black' stroke-width='2'/><circle cx='16' cy='16' r='2' fill='black'/></svg>") 16 16, grab`;
   const grabbingCursor = `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'><circle cx='16' cy='16' r='7' fill='black' stroke='white' stroke-width='2'/><circle cx='16' cy='16' r='2' fill='white'/></svg>") 16 16, grabbing`;
-
-  const currentSlide = presentation?.getSlide(currentSlideId || '');
 
   const startTextEditing = useCallback((shapeId: string) => {
     if (!currentSlide) return;
@@ -772,63 +840,52 @@ export const Canvas: React.FC = () => {
         // Listen for transform start
         transformer.on('transformstart', () => {
           console.log('🟢 Group transform started with shapes:', selectedShapeIds);
+          logGroupTransformDebug('transformstart', selectedNodes as any[]);
         });
 
-        const updateShapesFromNodes = (isLive: boolean) => {
-          selectedNodes.forEach((node: any) => {
-            const shapeId = node.id().replace('shape-', '');
-            const shape = currentSlide?.shapes.find(s => s.id === shapeId);
-            if (!shape) return;
+        transformer.on('transform', () => {
+          const now = Date.now();
+          if (now - lastGroupTransformUpdate.current > 16) {
+            const nextLive: Record<string, Transform> = {};
 
-            const scaleX = node.scaleX();
-            const scaleY = node.scaleY();
-            const rotation = node.rotation();
-            const width = shape.transform.size.width;
-            const height = shape.transform.size.height;
+            selectedNodes.forEach((node: any) => {
+              const shapeId = node.id().replace('shape-', '');
+              const shape = currentSlide?.shapes.find(s => s.id === shapeId);
+              if (!shape || shape.type !== ShapeType.TEXT) return;
 
-            const isScaled = Math.abs(scaleX - 1) > 0.001 || Math.abs(scaleY - 1) > 0.001;
-            const liveWidth = isScaled ? node.width() * scaleX : width;
-            const liveHeight = isScaled ? node.height() * scaleY : height;
+              const scaleX = node.scaleX();
+              const scaleY = node.scaleY();
+              const rotation = node.rotation();
+              const width = shape.transform.size.width;
+              const height = shape.transform.size.height;
 
-            let newPosition;
-            if (shape.type === ShapeType.LINE || shape.type === ShapeType.ARROW) {
-              newPosition = {
-                x: node.x(),
-                y: node.y(),
-              };
-            } else {
-              newPosition = {
+              const isScaled = Math.abs(scaleX - 1) > 0.001 || Math.abs(scaleY - 1) > 0.001;
+              const liveWidth = isScaled ? node.width() * scaleX : width;
+              const liveHeight = isScaled ? node.height() * scaleY : height;
+
+              const newPosition = {
                 x: node.x() - liveWidth / 2,
                 y: node.y() - liveHeight / 2,
               };
-            }
 
-            const updatePayload: any = {
-              transform: {
-                ...shape.transform,
+              nextLive[shapeId] = {
                 position: newPosition,
-                rotation: rotation,
                 size: { width: liveWidth, height: liveHeight },
-              },
-            };
+                rotation,
+                scale: 1,
+              };
+            });
 
-            updateShape(shapeId, updatePayload, { saveHistory: false });
-          });
-
-          const now = Date.now();
-          if (!isLive || now - lastGroupTransformUpdate.current > 16) {
-            refreshUI();
+            setLiveTextTransforms(nextLive);
             lastGroupTransformUpdate.current = now;
           }
-        };
-
-        transformer.on('transform', () => {
-          updateShapesFromNodes(true);
+          logGroupTransformDebug('transform', selectedNodes as any[]);
         });
         
         // Listen for transform end to update all shapes
         transformer.on('transformend', () => {
           console.log('🔄 Group transform ended');
+          logGroupTransformDebug('transformend (before update)', selectedNodes as any[]);
           selectedNodes.forEach((node: any) => {
             const shapeId = node.id().replace('shape-', '');
             const shape = currentSlide?.shapes.find(s => s.id === shapeId);
@@ -917,12 +974,15 @@ export const Canvas: React.FC = () => {
           
           // Refresh UI after all updates
           refreshUI();
+          setLiveTextTransforms({});
+          logGroupTransformDebug('transformend (after update)', selectedNodes as any[]);
         });
         
         return () => {
           transformer.destroy();
           transformerRef.current = null;
           setGroupTransformer(null);
+          setLiveTextTransforms({});
         };
       }
     }
@@ -1204,16 +1264,20 @@ export const Canvas: React.FC = () => {
           .map((shape) => {
             if (shape.id === editingTextId) return null;
             const textShape = shape as any;
+            const liveTransform = liveTextTransforms[shape.id];
+            const position = liveTransform?.position || textShape.transform.position;
+            const size = liveTransform?.size || textShape.transform.size;
+            const rotation = liveTransform?.rotation ?? textShape.transform.rotation;
             return (
               <div
                 key={shape.id}
                 className="canvas-text-display"
                 style={{
-                  left: `${textShape.transform.position.x}px`,
-                  top: `${textShape.transform.position.y}px`,
-                  width: `${textShape.transform.size.width}px`,
-                  height: `${textShape.transform.size.height}px`,
-                  transform: `rotate(${textShape.transform.rotation}deg)`,
+                  left: `${position.x}px`,
+                  top: `${position.y}px`,
+                  width: `${size.width}px`,
+                  height: `${size.height}px`,
+                  transform: `rotate(${rotation}deg)`,
                   transformOrigin: 'center center',
                   opacity: textShape.opacity,
                   color: textShape.color?.fill || '#111827',
@@ -1235,15 +1299,19 @@ export const Canvas: React.FC = () => {
         >
           {(() => {
             const textShape = editingShape as any;
+            const liveTransform = liveTextTransforms[textShape.id];
+            const position = liveTransform?.position || textShape.transform.position;
+            const size = liveTransform?.size || textShape.transform.size;
+            const rotation = liveTransform?.rotation ?? textShape.transform.rotation;
             return (
           <div
             className="canvas-text-editor"
             style={{
-              left: `${textShape.transform.position.x}px`,
-              top: `${textShape.transform.position.y}px`,
-              width: `${textShape.transform.size.width}px`,
-              height: `${textShape.transform.size.height}px`,
-              transform: `rotate(${textShape.transform.rotation}deg)`,
+              left: `${position.x}px`,
+              top: `${position.y}px`,
+              width: `${size.width}px`,
+              height: `${size.height}px`,
+              transform: `rotate(${rotation}deg)`,
               transformOrigin: 'center center',
               color: textShape.color?.fill || '#111827',
               ['--editor-font-size' as any]: `${textShape.fontSize || 24}px`,
