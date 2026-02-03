@@ -343,7 +343,7 @@ const CanvasShape: React.FC<CanvasShapeProps> = ({ shape, isSelected, isMultiSel
     fill: shape.color.fill,
     stroke: shape.color.stroke,
     strokeWidth: shape.color.strokeWidth,
-    strokeScaleEnabled: false, // Keep stroke width constant during transforms
+    strokeScaleEnabled: true, // Enable stroke scaling with zoom
     opacity: isEditing ? 0 : baseOpacity,
     draggable: !shape.locked && tool === ToolType.SELECT,
     onClick: tool === ToolType.SELECT ? onSelect : undefined,
@@ -1111,12 +1111,15 @@ export const Canvas: React.FC = () => {
       y: (pointer.y - stage.y()) / oldScale,
     };
     
+    // Calculate new zoom level with min/max bounds (10% to 500%)
     const newScale = e.evt.deltaY > 0 ? oldScale * 0.9 : oldScale * 1.1;
-    setZoom(newScale);
+    const boundedScale = Math.max(0.1, Math.min(5.0, newScale));
+    
+    setZoom(boundedScale);
     
     const newPos = {
-      x: pointer.x - mousePointTo.x * newScale,
-      y: pointer.y - mousePointTo.y * newScale,
+      x: pointer.x - mousePointTo.x * boundedScale,
+      y: pointer.y - mousePointTo.y * boundedScale,
     };
     setPan(newPos);
   };
