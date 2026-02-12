@@ -1,9 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useEditorStore } from '../../stores/editorStore';
 import { ShapeType } from '../../types';
 
 export const Properties: React.FC = () => {
-  const { presentation, currentSlideId, selectedShapeIds, updateShape, refreshUI, groupTransformer } = useEditorStore();
+  const { 
+    presentation, 
+    currentSlideId, 
+    selectedShapeIds, 
+    updateShape, 
+    refreshUI, 
+    groupTransformer,
+    isPropertiesPanelCollapsed,
+    isPropertiesPanelAutoManaged,
+    togglePropertiesPanel,
+    setPropertiesPanelCollapsed
+  } = useEditorStore();
 
   const currentSlide = presentation?.getSlide(currentSlideId || '');
   const selectedShape = selectedShapeIds.length === 1
@@ -11,6 +22,25 @@ export const Properties: React.FC = () => {
     : null;
   
   const isMultiSelection = selectedShapeIds.length > 1;
+
+  // Track previous selection count to detect changes
+  const prevSelectionCount = useRef(selectedShapeIds.length);
+
+  // Auto-fold/unfold logic based on selection
+  useEffect(() => {
+    const hasSelection = selectedShapeIds.length > 0;
+    const selectionChanged = prevSelectionCount.current !== selectedShapeIds.length;
+    
+    // Only auto-unfold when selection actually changes from none to some
+    if (hasSelection && isPropertiesPanelCollapsed && isPropertiesPanelAutoManaged && selectionChanged) {
+      setPropertiesPanelCollapsed(false, true);
+    } else if (!hasSelection && isPropertiesPanelAutoManaged && selectionChanged) {
+      // If nothing is selected and panel was auto-managed, auto-collapse it and keep it auto-managed
+      setPropertiesPanelCollapsed(true, true);
+    }
+    
+    prevSelectionCount.current = selectedShapeIds.length;
+  }, [selectedShapeIds.length, isPropertiesPanelCollapsed, isPropertiesPanelAutoManaged, setPropertiesPanelCollapsed]);
   
   // Track initial group state for relative rotation calculations
   const [initialGroupState, setInitialGroupState] = useState<{
@@ -86,13 +116,22 @@ export const Properties: React.FC = () => {
 
   if (selectedShapeIds.length === 0) {
     return (
-      <div className="properties">
+      <div className={`properties ${isPropertiesPanelCollapsed ? 'collapsed' : ''}`}>
         <div className="properties-header">
           <h3>Properties</h3>
+          <button 
+            className="properties-toggle-btn" 
+            onClick={togglePropertiesPanel}
+            title={isPropertiesPanelCollapsed ? 'Expand properties' : 'Collapse properties'}
+          >
+            {isPropertiesPanelCollapsed ? '◀' : '▶'}
+          </button>
         </div>
-        <div className="properties-empty">
-          <p>Select a shape to edit its properties</p>
-        </div>
+        {!isPropertiesPanelCollapsed && (
+          <div className="properties-empty">
+            <p>Select a shape to edit its properties</p>
+          </div>
+        )}
       </div>
     );
   }
@@ -333,15 +372,23 @@ export const Properties: React.FC = () => {
     };
     
     return (
-      <div className="properties">
+      <div className={`properties ${isPropertiesPanelCollapsed ? 'collapsed' : ''}`}>
         <div className="properties-header">
           <h3>Group Properties</h3>
           <p style={{ fontSize: '12px', color: '#666', margin: '4px 0 0 0' }}>
             {selectedShapeIds.length} shapes selected
           </p>
+          <button 
+            className="properties-toggle-btn" 
+            onClick={togglePropertiesPanel}
+            title={isPropertiesPanelCollapsed ? 'Expand properties' : 'Collapse properties'}
+          >
+            {isPropertiesPanelCollapsed ? '\u25c0' : '\u25b6'}
+          </button>
         </div>
 
-        <div className="properties-content">
+        {!isPropertiesPanelCollapsed && (
+          <div className="properties-content">
           {/* Rotation */}
           <div className="property-group">
             <label className="property-label">Group Rotation</label>
@@ -357,6 +404,7 @@ export const Properties: React.FC = () => {
             <span>{Math.round(currentGroupRotation)}°</span>
           </div>
         </div>
+        )}
       </div>
     );
   }
@@ -425,12 +473,20 @@ export const Properties: React.FC = () => {
   };
 
   return (
-    <div className="properties">
+    <div className={`properties ${isPropertiesPanelCollapsed ? 'collapsed' : ''}`}>
       <div className="properties-header">
         <h3>Properties</h3>
+        <button 
+          className="properties-toggle-btn" 
+          onClick={togglePropertiesPanel}
+          title={isPropertiesPanelCollapsed ? 'Expand properties' : 'Collapse properties'}
+        >
+          {isPropertiesPanelCollapsed ? '◀' : '▶'}
+        </button>
       </div>
 
-      <div className="properties-content">
+      {!isPropertiesPanelCollapsed && (
+        <div className="properties-content">
         {/* Position */}
         <div className="property-group">
           <label className="property-label">Position</label>
@@ -535,6 +591,7 @@ export const Properties: React.FC = () => {
           <span>{Math.round(selectedShape.opacity * 100)}%</span>
         </div>
       </div>
+      )}
     </div>
   );
 };

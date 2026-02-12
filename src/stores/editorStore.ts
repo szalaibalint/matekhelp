@@ -20,6 +20,8 @@ interface EditorState {
   selectionRect: { start: Position; end: Position } | null;
   groupTransformer: any | null;
   editingTextId: string | null;
+  isPropertiesPanelCollapsed: boolean;
+  isPropertiesPanelAutoManaged: boolean;
   
   // History
   history: {
@@ -59,6 +61,8 @@ interface EditorState {
   selectShapesInRect: (rect: { start: Position; end: Position }) => void;
   setGroupTransformer: (transformer: any) => void;
   setEditingTextId: (id: string | null) => void;
+  togglePropertiesPanel: () => void;
+  setPropertiesPanelCollapsed: (collapsed: boolean, autoManaged?: boolean) => void;
   
   // Actions - History
   undo: () => void;
@@ -80,6 +84,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   selectionRect: null,
   groupTransformer: null,
   editingTextId: null,
+  isPropertiesPanelCollapsed: false,
+  isPropertiesPanelAutoManaged: false,
   history: {
     past: [],
     future: [],
@@ -377,6 +383,22 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   setEditingTextId: (id) => {
     set({ editingTextId: id });
+  },
+
+  togglePropertiesPanel: () => {
+    set((state) => ({ 
+      isPropertiesPanelCollapsed: !state.isPropertiesPanelCollapsed,
+      // If collapsing, enable auto-management so it will unfold on next selection
+      // If expanding, disable auto-management so it stays expanded
+      isPropertiesPanelAutoManaged: !state.isPropertiesPanelCollapsed ? true : false
+    }));
+  },
+
+  setPropertiesPanelCollapsed: (collapsed, autoManaged = false) => {
+    set({ 
+      isPropertiesPanelCollapsed: collapsed,
+      isPropertiesPanelAutoManaged: autoManaged
+    });
   },
 
   // History actions
